@@ -23,14 +23,17 @@ export async function GET(req: NextRequest) {
   try {
     await exchangeCodeForTokens(session.user.id, code);
 
-    // Add user to the default RippleMap group
-    const link = await db.arcGISAccountLink.findFirst({
-      where: { userId: session.user.id, isPrimary: true },
-    });
+    const [link, user] = await Promise.all([
+      db.arcGISAccountLink.findFirst({ where: { userId: session.user.id, isPrimary: true } }),
+      db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } }),
+    ]);
 
-    const user = await db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } });
     if (link && user?.arcgisGroupId) {
-      await addUserToGroup(user.arcgisGroupId, link.username);
+      try {
+        await addUserToGroup(user.arcgisGroupId, link.username);
+      } catch (groupErr) {
+        console.error("Failed to add user to ArcGIS group (non-fatal):", groupErr);
+      }
     }
 
     // Advance onboarding state
