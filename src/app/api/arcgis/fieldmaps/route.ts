@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getFieldMapsLayers, getRecentSubmissions } from "@/lib/arcgis/fieldmaps";
+import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -16,11 +17,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ submissions });
   }
 
-  const groupId = process.env.ARCGIS_GROUP_ID;
-  if (!groupId) {
+  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } });
+  if (!user?.arcgisGroupId) {
     return NextResponse.json({ error: "Group not configured" }, { status: 500 });
   }
 
-  const layers = await getFieldMapsLayers(groupId);
+  const layers = await getFieldMapsLayers(user.arcgisGroupId);
   return NextResponse.json({ layers });
 }

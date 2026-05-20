@@ -28,8 +28,9 @@ export async function GET(req: NextRequest) {
       where: { userId: session.user.id, isPrimary: true },
     });
 
-    if (link && process.env.ARCGIS_GROUP_ID) {
-      await addUserToGroup(process.env.ARCGIS_GROUP_ID, link.username);
+    const user = await db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } });
+    if (link && user?.arcgisGroupId) {
+      await addUserToGroup(user.arcgisGroupId, link.username);
     }
 
     // Advance onboarding state
