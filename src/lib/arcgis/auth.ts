@@ -54,7 +54,6 @@ export function buildArcGISOAuthURL(state: string): string {
     redirect_uri: process.env.ARCGIS_OAUTH_REDIRECT_URI!,
     state,
     expiration: "-1",
-    f: "json",
   });
   return `${AGOL_AUTH_URL}?${params.toString()}`;
 }
