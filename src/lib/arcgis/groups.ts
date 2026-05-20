@@ -1,11 +1,11 @@
 import type { ArcGISGroupItemsResponse, ArcGISItem } from "@/types/arcgis";
-import { getBCAppToken } from "./auth";
+import { getAdminToken, getBCAppToken } from "./auth";
 
 const AGOL_BASE = "https://www.arcgis.com/sharing/rest";
 
-/** Create a private ArcGIS Online group for a new client using the BC app token. Returns the new group ID. */
+/** Create a private ArcGIS Online group for a new client using the BC admin account. Returns the new group ID. */
 export async function createClientGroup(displayName: string): Promise<string> {
-  const token = await getBCAppToken();
+  const token = await getAdminToken();
   const params = new URLSearchParams({
     title: `RippleMap - ${displayName}`,
     access: "private",
@@ -35,7 +35,7 @@ export async function listGroupItems(
   type?: string,
   num = 50
 ): Promise<ArcGISItem[]> {
-  const token = await getBCAppToken();
+  const token = await getAdminToken();
   const params = new URLSearchParams({
     f: "json",
     token,
@@ -52,12 +52,12 @@ export async function listGroupItems(
   return data.items ?? [];
 }
 
-/** Add a user to an ArcGIS group using BC app credentials. */
+/** Add a user to an ArcGIS group using the BC admin account. */
 export async function addUserToGroup(
   groupId: string,
   username: string
 ): Promise<void> {
-  const token = await getBCAppToken();
+  const token = await getAdminToken();
   const params = new URLSearchParams({
     users: username,
     token,
@@ -82,7 +82,7 @@ export async function removeUserFromGroup(
   groupId: string,
   username: string
 ): Promise<void> {
-  const token = await getBCAppToken();
+  const token = await getAdminToken();
   const params = new URLSearchParams({
     users: username,
     token,

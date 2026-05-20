@@ -6,6 +6,7 @@ const AGOL_TOKEN_URL = "https://www.arcgis.com/sharing/rest/oauth2/token";
 const AGOL_AUTH_URL = "https://www.arcgis.com/sharing/rest/oauth2/authorize";
 
 let bcAppToken: { token: string; expiry: number } | null = null;
+let adminToken: { token: string; expiry: number } | null = null;
 
 /** Fetch or return a cached BC app-level token (client_credentials grant). */
 export async function getBCAppToken(): Promise<string> {
@@ -44,6 +45,36 @@ export async function getBCAppToken(): Promise<string> {
   };
 
   return data.access_token;
+}
+
+/** Fetch or return a cached token for the BC admin account (used for group management). */
+export async function getAdminToken(): Promise<string> {
+  const now = Date.now();
+  if (adminToken && adminToken.expiry > now + 5 * 60 * 1000) {
+    return adminToken.token;
+  }
+
+  const params = new URLSearchParams({
+    username: process.env.ARCGIS_ADMIN_USERNAME!,
+    password: process.env.ARCGIS_ADMIN_PASSWORD!,
+    client: "referer",
+    referer: process.env.ARCGIS_ORG_URL ?? "https://www.arcgis.com",
+    expiration: "60",
+    f: "json",
+  });
+
+  const res = await fetch(
+    "https://www.arcgis.com/sharing/rest/generateToken",
+    { method: "POST", body: params }
+  );
+  if (!res.ok) throw new Error(`Admin token request failed: ${res.statusText}`);
+
+  const data = await res.json();
+  if (data.error) throw new Error(`Admin token error: ${data.error.message}`);
+  if (!data.token) throw new Error("Admin token response missing token");
+
+  adminToken = { token: data.token, expiry: data.expires };
+  return data.token;
 }
 
 /** Build the ArcGIS OAuth authorization URL for a user to connect their account. */
