@@ -11,17 +11,19 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [arcgisLink, openTickets, recentMaps] = await Promise.all([
+  const [user, arcgisLink, openTickets] = await Promise.all([
+    db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } }),
     db.arcGISAccountLink.findFirst({
       where: { userId: session.user.id, isPrimary: true },
     }),
     db.supportTicket.count({
       where: { userId: session.user.id, status: { in: ["OPEN", "IN_PROGRESS"] } },
     }),
-    process.env.ARCGIS_GROUP_ID
-      ? listGroupItems(process.env.ARCGIS_GROUP_ID, "Web Map", 6).catch(() => [])
-      : Promise.resolve([]),
   ]);
+
+  const recentMaps = user?.arcgisGroupId
+    ? await listGroupItems(user.arcgisGroupId, "Web Map", 6).catch(() => [])
+    : [];
 
   return (
     <div className="flex flex-col h-full">
