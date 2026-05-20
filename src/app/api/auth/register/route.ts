@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { createClientGroup } from "@/lib/arcgis/groups";
 
 const schema = z.object({
   email: z.string().email(),
@@ -37,6 +38,13 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  try {
+    const groupId = await createClientGroup(orgName ?? name);
+    await db.user.update({ where: { id: user.id }, data: { arcgisGroupId: groupId } });
+  } catch (err) {
+    console.error(`Failed to create ArcGIS group for user ${user.id}:`, err);
+  }
 
   return NextResponse.json({ id: user.id }, { status: 201 });
 }

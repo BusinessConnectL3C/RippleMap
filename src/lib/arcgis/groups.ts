@@ -3,6 +3,32 @@ import { getBCAppToken } from "./auth";
 
 const AGOL_BASE = "https://www.arcgis.com/sharing/rest";
 
+/** Create a private ArcGIS Online group for a new client using the BC app token. Returns the new group ID. */
+export async function createClientGroup(displayName: string): Promise<string> {
+  const token = await getBCAppToken();
+  const params = new URLSearchParams({
+    title: `RippleMap - ${displayName}`,
+    access: "private",
+    description: "RippleMap client portal group",
+    tags: "ripplemap,client",
+    token,
+    f: "json",
+  });
+
+  const res = await fetch(`${AGOL_BASE}/community/createGroup`, {
+    method: "POST",
+    body: params,
+  });
+
+  if (!res.ok) throw new Error(`Failed to create ArcGIS group: ${res.statusText}`);
+
+  const data = await res.json();
+  if (data.error) throw new Error(`ArcGIS group creation error: ${data.error.message}`);
+  if (!data.group?.id) throw new Error("ArcGIS group creation returned no group ID");
+
+  return data.group.id as string;
+}
+
 /** List all items in a group, optionally filtered by type. */
 export async function listGroupItems(
   groupId: string,
