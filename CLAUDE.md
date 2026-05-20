@@ -29,7 +29,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 ### Not Yet Built / Pending
 - **Email confirmation on registration** — no transactional email service wired up yet. Needs Resend (or similar) + verification token flow.
 - **Admin panel** — no UI for BC staff to manage users, set arcgisGroupId manually if group creation fails, etc.
-- **Salesforce invoice integration** — route exists (`/api/salesforce/invoices`) but Salesforce env vars not configured
+- **Stripe billing integration** — replacing Salesforce. Existing Salesforce code (`src/lib/salesforce/`, `/api/salesforce/`, `SalesforceLink` table) to be removed. Stripe not yet implemented.
 - **ClickUp support ticket integration** — route exists (`/api/support/tickets`) but not tested end-to-end
 - **AWS S3** — dependency in package.json, not yet used in any feature
 - **Full onboarding completion** — the "explore" step and `api/onboarding/complete` route exist but haven't been tested through to dashboard

@@ -2,7 +2,7 @@
 
 ## System Overview
 
-The portal is a Next.js 16 application hosted on Vercel that acts as a unified client-facing interface. It connects five external platforms: ArcGIS Online, Neon (PostgreSQL), Salesforce, ClickUp, and AWS S3. All communication with external platforms happens server-side (API routes or server components) — no credentials or tokens are ever exposed to the browser.
+The portal is a Next.js 16 application hosted on Vercel that acts as a unified client-facing interface. It connects five external platforms: ArcGIS Online, Neon (PostgreSQL), Stripe, ClickUp, and AWS S3. All communication with external platforms happens server-side (API routes or server components) — no credentials or tokens are ever exposed to the browser.
 
 ```
                         ┌─────────────────────────────┐
@@ -13,15 +13,15 @@ The portal is a Next.js 16 application hosted on Vercel that acts as a unified c
      Browser ◄──────────┤  │ App      │ │ API      │  │
                         │  │ Router   │ │ Routes   │  │
                         │  └──────────┘ └──────────┘  │
-                        └──────┬──────────────┬────────┘
-                               │              │
-          ┌────────────────────┼──────────────┼────────────────────┐
-          │                    │              │                     │
-          ▼                    ▼              ▼                     ▼
-   ┌─────────────┐   ┌──────────────┐  ┌──────────┐   ┌─────────────────┐
-   │ ArcGIS      │   │ Neon         │  │Salesforce│   │    ClickUp      │
-   │ Online      │   │ PostgreSQL   │  │  CRM     │   │   (+ webhook)   │
-   └─────────────┘   └──────────────┘  └──────────┘   └─────────────────┘
+                        └───┬──────┬──────────┬────────┘
+                            │      │          │
+          ┌─────────────────┼──────┼──────────┼──────────────────────┐
+          │                 │      │          │                       │
+          ▼                 ▼      ▼          ▼                       ▼
+   ┌─────────────┐   ┌──────────┐  ┌──────┐  ┌─────────────────┐  ┌────────┐
+   │ ArcGIS      │   │ Neon     │  │Stripe│  │    ClickUp      │  │ AWS S3 │
+   │ Online      │   │ Postgres │  │      │  │   (+ webhook)   │  │        │
+   └─────────────┘   └──────────┘  └──────┘  └─────────────────┘  └────────┘
 ```
 
 ---
@@ -40,7 +40,7 @@ The portal is a Next.js 16 application hosted on Vercel that acts as a unified c
 | `ArcGISAccountLink` | Encrypted access/refresh tokens per user |
 | `OnboardingState` | Step progress and completion flag |
 | `SupportTicket` | Local mirror of ClickUp tasks |
-| `SalesforceLink` | Maps RippleMap user → Salesforce Contact/Account |
+| `SalesforceLink` | Legacy — to be removed and replaced with Stripe customer ID on `User` |
 
 **Env vars**: `DATABASE_URL`
 
@@ -122,24 +122,27 @@ Login form → POST /api/auth/callback/credentials
 
 ---
 
-### 4. Salesforce — Billing / Invoices
-**Purpose**: Display invoice history to clients on the `/billing` page.
+### 4. Stripe — Billing / Invoices
+**Purpose**: Display invoice history and manage subscriptions for clients on the `/billing` page.
 
-**Connection**: Server-side only. Uses OAuth2 `client_credentials` flow to get an app-level token, then queries a custom `Invoice__c` object via the Salesforce REST API (SOQL).
+**Connection**: Server-side only via the Stripe API. Each RippleMap user maps to a Stripe Customer via a `stripeCustomerId` stored on the `User` record (to be added in a future migration).
 
-**Data model assumption**: Each RippleMap user has a corresponding Salesforce Contact, linked via `SalesforceLink.contactId`. Invoices are queried by `Contact__c`.
-
-**Flow**:
+**Planned flow**:
 ```
-GET /api/salesforce/invoices
-  → getSalesforceToken() (client_credentials, cached 2 hours)
-  → SOQL: SELECT ... FROM Invoice__c WHERE Contact__c = '{contactId}'
-  → returns invoice records to billing page
+GET /api/billing/invoices
+  → fetch Stripe invoices for user's stripeCustomerId
+  → returns invoice list to billing page
+
+POST /api/billing/portal
+  → create Stripe Customer Portal session
+  → redirect client to Stripe-hosted portal for self-service billing
 ```
 
-**Status**: Routes built, env vars not yet configured in Vercel.
+**Webhooks**: Stripe will POST to `/api/billing/webhook` for subscription lifecycle events (payment succeeded, subscription cancelled, etc.) to keep local state in sync.
 
-**Env vars**: `SALESFORCE_CLIENT_ID`, `SALESFORCE_CLIENT_SECRET`, `SALESFORCE_INSTANCE_URL`
+**Status**: Not yet built. Existing Salesforce billing code (`src/lib/salesforce/`, `src/app/api/salesforce/`, `SalesforceLink` DB table) is to be removed when Stripe is implemented.
+
+**Env vars (to add)**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY`
 
 ---
 
@@ -199,11 +202,11 @@ Next.js App Router
   ├─ Server Component
   │    ├─ auth() — full session (auth.ts, Node.js runtime)
   │    ├─ DB queries via Prisma + pg
-  │    └─ ArcGIS / Salesforce / ClickUp calls as needed
+  │    └─ ArcGIS / Stripe / ClickUp calls as needed
   │
   └─ API Route (Node.js runtime)
        ├─ auth() — verifies session
-       └─ External API calls (ArcGIS, Salesforce, ClickUp)
+       └─ External API calls (ArcGIS, Stripe, ClickUp, S3)
 ```
 
 ## Token Security
