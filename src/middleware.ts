@@ -20,13 +20,6 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
-  if (isPortal && isLoggedIn) {
-    const onboardingCompleted = (session.user as { onboardingCompleted?: boolean }).onboardingCompleted;
-    if (!onboardingCompleted) {
-      return NextResponse.redirect(new URL("/onboarding/profile", nextUrl));
-    }
-  }
-
   if (isAuth && isLoggedIn) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
