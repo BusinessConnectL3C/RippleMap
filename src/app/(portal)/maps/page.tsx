@@ -15,9 +15,11 @@ export default async function MapsPage() {
     select: { arcgisGroupId: true },
   });
 
-  const maps = org?.arcgisGroupId
+  const allItems = org?.arcgisGroupId
     ? await listGroupItems(org.arcgisGroupId, "Web Map", 50).catch(() => [])
     : [];
+
+  const maps = allItems.filter((item) => item.type === "Web Map");
 
   return (
     <div className="flex flex-col h-full">

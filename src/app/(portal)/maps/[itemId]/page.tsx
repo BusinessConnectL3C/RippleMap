@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { getItem } from "@/lib/arcgis/items";
 import { getBCAppToken } from "@/lib/arcgis/auth";
 import { TopBar } from "@/components/layout/TopBar";
@@ -19,6 +19,8 @@ export default async function MapViewPage({ params }: Props) {
     getItem(itemId),
     getBCAppToken(),
   ]);
+
+  if (item.type !== "Web Map") notFound();
 
   return (
     <div className="flex flex-col h-full">
