@@ -11,8 +11,9 @@ export default async function SupportPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  const su = session.user as unknown as { orgId: string };
   const tickets = await db.supportTicket.findMany({
-    where: { userId: session.user.id },
+    where: { orgId: su.orgId },
     orderBy: { createdAt: "desc" },
   });
 
