@@ -5,6 +5,8 @@ import { listGroupItems } from "@/lib/arcgis/groups";
 import { TopBar } from "@/components/layout/TopBar";
 import { MapGallery } from "@/components/maps/MapGallery";
 
+const SUPPORTED_TYPES = ["Web Map", "Dashboard"];
+
 export default async function MapsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -16,10 +18,10 @@ export default async function MapsPage() {
   });
 
   const allItems = org?.arcgisGroupId
-    ? await listGroupItems(org.arcgisGroupId, "Web Map", 50).catch(() => [])
+    ? await listGroupItems(org.arcgisGroupId, undefined, 100).catch(() => [])
     : [];
 
-  const maps = allItems.filter((item) => item.type === "Web Map");
+  const maps = allItems.filter((item) => SUPPORTED_TYPES.includes(item.type));
 
   return (
     <div className="flex flex-col h-full">
