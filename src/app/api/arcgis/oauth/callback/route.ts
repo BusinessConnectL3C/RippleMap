@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { exchangeCodeForTokens } from "@/lib/arcgis/auth";
 import { addUserToGroup } from "@/lib/arcgis/groups";
 import { db } from "@/lib/db";
+import { getStepsForOrgType } from "@/lib/onboarding/steps";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   if (error || !code) {
     return NextResponse.redirect(
-      new URL(`/onboarding/arcgis-connect?error=oauth_failed`, req.url)
+      new URL("/onboarding?error=oauth_failed", req.url)
     );
   }
 
@@ -27,7 +28,10 @@ export async function GET(req: NextRequest) {
 
     const [link, org] = await Promise.all([
       db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
-      db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true } }),
+      db.organization.findUnique({
+        where: { id: su.orgId },
+        include: { onboardingState: true },
+      }),
     ]);
 
     if (link && org?.arcgisGroupId) {
@@ -38,19 +42,34 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    await db.onboardingState.update({
-      where: { orgId: su.orgId },
-      data: {
-        currentStep: 2,
-        completedSteps: { push: "arcgis_link" },
-      },
-    });
+    // Mark arcgis_connect complete and check if all steps are done
+    if (org?.onboardingState && !org.onboardingState.completed) {
+      const steps = getStepsForOrgType(org.type as "NONPROFIT" | "CORPORATE");
+      const existing = org.onboardingState.completedSteps;
+      const newCompleted = existing.includes("arcgis_connect")
+        ? existing
+        : [...existing, "arcgis_connect"];
+      const allComplete = steps.every((s) => newCompleted.includes(s.id));
 
-    return NextResponse.redirect(new URL("/onboarding/group-join", req.url));
+      await db.onboardingState.update({
+        where: { orgId: su.orgId },
+        data: {
+          completedSteps: newCompleted,
+          currentStep: steps.length,
+          completed: allComplete,
+        },
+      });
+
+      if (allComplete) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
+
+    return NextResponse.redirect(new URL("/onboarding", req.url));
   } catch (err) {
     console.error("ArcGIS OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/onboarding/arcgis-connect?error=token_exchange", req.url)
+      new URL("/onboarding?error=token_exchange", req.url)
     );
   }
 }

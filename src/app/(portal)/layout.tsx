@@ -13,7 +13,7 @@ export default async function PortalLayout({ children }: { children: React.React
     select: { completed: true },
   });
 
-  if (!state?.completed) redirect("/onboarding/profile");
+  if (!state?.completed) redirect("/onboarding");
 
   return (
     <div className="flex h-full">
