@@ -7,7 +7,7 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
   const isLoggedIn = !!session;
-  const isOnboarding = nextUrl.pathname.startsWith("/onboarding");
+  const token = session as unknown as { role?: string } | null;
   const isAuth = nextUrl.pathname.startsWith("/login") || nextUrl.pathname.startsWith("/register");
   const isPortal = nextUrl.pathname.startsWith("/dashboard") ||
     nextUrl.pathname.startsWith("/maps") ||
@@ -15,9 +15,14 @@ export default auth((req) => {
     nextUrl.pathname.startsWith("/support") ||
     nextUrl.pathname.startsWith("/billing") ||
     nextUrl.pathname.startsWith("/account");
+  const isAdmin = nextUrl.pathname.startsWith("/admin");
 
-  if (isPortal && !isLoggedIn) {
+  if ((isPortal || isAdmin) && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", nextUrl));
+  }
+
+  if (isAdmin && token?.role !== "BC_STAFF") {
+    return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   if (isAuth && isLoggedIn) {
@@ -36,6 +41,7 @@ export const config = {
     "/billing/:path*",
     "/account/:path*",
     "/onboarding/:path*",
+    "/admin/:path*",
     "/login",
     "/register",
   ],
