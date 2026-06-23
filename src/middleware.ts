@@ -7,7 +7,7 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
   const isLoggedIn = !!session;
-  const token = session as unknown as { role?: string } | null;
+  const userRole = (session?.user as unknown as { role?: string } | undefined)?.role;
   const isAuth = nextUrl.pathname.startsWith("/login") || nextUrl.pathname.startsWith("/register");
   const isPortal = nextUrl.pathname.startsWith("/dashboard") ||
     nextUrl.pathname.startsWith("/maps") ||
@@ -21,7 +21,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
-  if (isAdmin && token?.role !== "BC_STAFF") {
+  if (isAdmin && userRole !== "BC_STAFF") {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
