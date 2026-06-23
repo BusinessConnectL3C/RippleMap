@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 import { listGroupItems } from "@/lib/arcgis/groups";
 import { TopBar } from "@/components/layout/TopBar";
 import { FormList } from "@/components/forms/FormList";
@@ -8,16 +9,18 @@ export default async function FormsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const groupId = process.env.ARCGIS_GROUP_ID ?? "";
+  const su = session.user as unknown as { orgId: string };
+  const org = await db.organization.findUnique({
+    where: { id: su.orgId },
+    select: { arcgisGroupId: true },
+  });
 
-  const [survey123Items, fieldmapsItems] = await Promise.all([
-    groupId
-      ? listGroupItems(groupId, "Form", 50).catch(() => [])
-      : Promise.resolve([]),
-    groupId
-      ? listGroupItems(groupId, "Feature Service", 50).catch(() => [])
-      : Promise.resolve([]),
-  ]);
+  const [survey123Items, fieldmapsItems] = org?.arcgisGroupId
+    ? await Promise.all([
+        listGroupItems(org.arcgisGroupId, "Form", 50).catch(() => []),
+        listGroupItems(org.arcgisGroupId, "Feature Service", 50).catch(() => []),
+      ])
+    : [[], []];
 
   return (
     <div className="flex flex-col h-full">

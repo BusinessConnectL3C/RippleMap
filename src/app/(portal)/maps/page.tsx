@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 import { listGroupItems } from "@/lib/arcgis/groups";
 import { TopBar } from "@/components/layout/TopBar";
 import { MapGallery } from "@/components/maps/MapGallery";
@@ -8,9 +9,14 @@ export default async function MapsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const groupId = process.env.ARCGIS_GROUP_ID ?? "";
-  const maps = groupId
-    ? await listGroupItems(groupId, "Web Map", 50).catch(() => [])
+  const su = session.user as unknown as { orgId: string };
+  const org = await db.organization.findUnique({
+    where: { id: su.orgId },
+    select: { arcgisGroupId: true },
+  });
+
+  const maps = org?.arcgisGroupId
+    ? await listGroupItems(org.arcgisGroupId, "Web Map", 50).catch(() => [])
     : [];
 
   return (
