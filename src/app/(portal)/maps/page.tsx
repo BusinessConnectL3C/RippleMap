@@ -5,7 +5,7 @@ import { listGroupItems } from "@/lib/arcgis/groups";
 import { TopBar } from "@/components/layout/TopBar";
 import { MapGallery } from "@/components/maps/MapGallery";
 
-const SUPPORTED_TYPES = ["Web Map", "Dashboard"];
+const SUPPORTED_TYPES = ["Web Map", "Dashboard", "Web Experience"];
 
 export default async function MapsPage() {
   const session = await auth();
