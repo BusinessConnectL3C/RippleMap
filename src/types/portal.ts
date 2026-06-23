@@ -1,4 +1,6 @@
-export type Role = "CLIENT" | "ADMIN";
+export type OrgType = "NONPROFIT" | "CORPORATE";
+
+export type Role = "OWNER" | "ADMIN" | "MEMBER" | "BC_STAFF";
 
 export type TicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 
@@ -9,6 +11,7 @@ export interface SessionUser {
   email: string;
   name: string;
   role: Role;
+  orgId: string;
   onboardingCompleted: boolean;
 }
 

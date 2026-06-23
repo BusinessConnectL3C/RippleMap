@@ -16,8 +16,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const su = session.user as unknown as { orgId: string };
   const tickets = await db.supportTicket.findMany({
-    where: { userId: session.user.id },
+    where: { orgId: su.orgId },
     orderBy: { createdAt: "desc" },
   });
 
@@ -36,7 +37,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const user = await db.user.findUnique({ where: { id: session.user.id } });
+  const su = session.user as unknown as { orgId: string };
+  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { email: true } });
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -51,12 +53,11 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("ClickUp ticket creation failed:", err);
-    // Ticket still saved locally even if ClickUp fails
   }
 
   const ticket = await db.supportTicket.create({
     data: {
-      userId: session.user.id,
+      orgId: su.orgId,
       title: parsed.data.title,
       description: parsed.data.description,
       priority: parsed.data.priority,

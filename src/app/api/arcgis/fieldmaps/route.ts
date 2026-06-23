@@ -17,11 +17,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ submissions });
   }
 
-  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } });
-  if (!user?.arcgisGroupId) {
+  const su = session.user as unknown as { orgId: string };
+  const org = await db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true } });
+  if (!org?.arcgisGroupId) {
     return NextResponse.json({ error: "Group not configured" }, { status: 500 });
   }
 
-  const layers = await getFieldMapsLayers(user.arcgisGroupId);
+  const layers = await getFieldMapsLayers(org.arcgisGroupId);
   return NextResponse.json({ layers });
 }

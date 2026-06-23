@@ -8,8 +8,10 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const su = session.user as unknown as { orgId: string };
+
   await db.onboardingState.update({
-    where: { userId: session.user.id },
+    where: { orgId: su.orgId },
     data: {
       currentStep: 4,
       completedSteps: { push: "explore" },

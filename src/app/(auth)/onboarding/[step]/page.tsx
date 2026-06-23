@@ -32,8 +32,9 @@ export default async function OnboardingStepPage({ params }: Props) {
   const { step } = await params;
   if (!(step in STEP_MAP)) redirect("/onboarding/profile");
 
+  const su = session.user as unknown as { orgId: string };
   const state = await db.onboardingState.findUnique({
-    where: { userId: session.user.id },
+    where: { orgId: su.orgId },
   });
 
   if (state?.completed) redirect("/dashboard");

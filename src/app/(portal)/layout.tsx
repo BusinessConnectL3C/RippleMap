@@ -7,8 +7,9 @@ export default async function PortalLayout({ children }: { children: React.React
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  const su = session.user as unknown as { orgId: string };
   const state = await db.onboardingState.findUnique({
-    where: { userId: session.user.id },
+    where: { orgId: su.orgId },
     select: { completed: true },
   });
 

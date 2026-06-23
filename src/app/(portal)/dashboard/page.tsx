@@ -11,18 +11,18 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [user, arcgisLink, openTickets] = await Promise.all([
-    db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } }),
-    db.arcGISAccountLink.findFirst({
-      where: { userId: session.user.id, isPrimary: true },
-    }),
+  const su = session.user as unknown as { orgId: string };
+
+  const [org, arcgisLink, openTickets] = await Promise.all([
+    db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true } }),
+    db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
     db.supportTicket.count({
-      where: { userId: session.user.id, status: { in: ["OPEN", "IN_PROGRESS"] } },
+      where: { orgId: su.orgId, status: { in: ["OPEN", "IN_PROGRESS"] } },
     }),
   ]);
 
-  const recentMaps = user?.arcgisGroupId
-    ? await listGroupItems(user.arcgisGroupId, "Web Map", 6).catch(() => [])
+  const recentMaps = org?.arcgisGroupId
+    ? await listGroupItems(org.arcgisGroupId, "Web Map", 6).catch(() => [])
     : [];
 
   return (

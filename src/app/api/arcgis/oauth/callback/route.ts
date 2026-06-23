@@ -20,25 +20,26 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const su = session.user as unknown as { orgId: string };
+
   try {
     await exchangeCodeForTokens(session.user.id, code);
 
-    const [link, user] = await Promise.all([
-      db.arcGISAccountLink.findFirst({ where: { userId: session.user.id, isPrimary: true } }),
-      db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } }),
+    const [link, org] = await Promise.all([
+      db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
+      db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true } }),
     ]);
 
-    if (link && user?.arcgisGroupId) {
+    if (link && org?.arcgisGroupId) {
       try {
-        await addUserToGroup(user.arcgisGroupId, link.username);
+        await addUserToGroup(org.arcgisGroupId, link.username);
       } catch (groupErr) {
         console.error("Failed to add user to ArcGIS group (non-fatal):", groupErr);
       }
     }
 
-    // Advance onboarding state
     await db.onboardingState.update({
-      where: { userId: session.user.id },
+      where: { orgId: su.orgId },
       data: {
         currentStep: 2,
         completedSteps: { push: "arcgis_link" },

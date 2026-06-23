@@ -116,7 +116,7 @@ export async function exchangeCodeForTokens(
   const tokenExpiry = new Date(Date.now() + data.expires_in * 1000);
 
   await db.arcGISAccountLink.upsert({
-    where: { userId_orgId: { userId, orgId: userInfo.orgId } },
+    where: { userId },
     create: {
       userId,
       username: userInfo.username,
@@ -128,6 +128,8 @@ export async function exchangeCodeForTokens(
     },
     update: {
       username: userInfo.username,
+      orgId: userInfo.orgId,
+      orgUrl: userInfo.orgUrl ?? orgUrl,
       accessToken: encrypt(data.access_token),
       refreshToken: encrypt(data.refresh_token ?? ""),
       tokenExpiry,
@@ -137,8 +139,8 @@ export async function exchangeCodeForTokens(
 
 /** Get a valid access token for a user, refreshing if necessary. */
 export async function getUserToken(userId: string): Promise<string | null> {
-  const link = await db.arcGISAccountLink.findFirst({
-    where: { userId, isPrimary: true },
+  const link = await db.arcGISAccountLink.findUnique({
+    where: { userId },
   });
   if (!link) return null;
 

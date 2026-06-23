@@ -11,11 +11,12 @@ export default async function AccountPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [user, arcgisLink] = await Promise.all([
-    db.user.findUnique({ where: { id: session.user.id } }),
-    db.arcGISAccountLink.findFirst({
-      where: { userId: session.user.id, isPrimary: true },
-    }),
+  const su = session.user as unknown as { orgId: string; role: string };
+
+  const [user, org, arcgisLink] = await Promise.all([
+    db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true, role: true } }),
+    db.organization.findUnique({ where: { id: su.orgId }, select: { name: true, type: true } }),
+    db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
   ]);
 
   if (!user) redirect("/login");
@@ -36,12 +37,10 @@ export default async function AccountPage() {
               <span className="font-medium text-gray-900">{user.name}</span>
               <span className="text-gray-500">Email</span>
               <span className="font-medium text-gray-900">{user.email}</span>
-              {user.orgName && (
-                <>
-                  <span className="text-gray-500">Organization</span>
-                  <span className="font-medium text-gray-900">{user.orgName}</span>
-                </>
-              )}
+              <span className="text-gray-500">Organization</span>
+              <span className="font-medium text-gray-900">{org?.name ?? "—"}</span>
+              <span className="text-gray-500">Org Type</span>
+              <span className="font-medium text-gray-900">{org?.type ?? "—"}</span>
               <span className="text-gray-500">Role</span>
               <Badge variant="secondary" className="w-fit">{user.role}</Badge>
             </div>

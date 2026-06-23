@@ -27,7 +27,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await db.user.findUnique({
           where: { email: parsed.data.email },
-          include: { onboardingState: true },
+          include: { organization: { include: { onboardingState: true } } },
         });
         if (!user) return null;
 
@@ -42,7 +42,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
-          onboardingCompleted: user.onboardingState?.completed ?? false,
+          orgId: user.orgId,
+          onboardingCompleted: user.organization.onboardingState?.completed ?? false,
         };
       },
     }),

@@ -9,11 +9,12 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { arcgisGroupId: true } });
-  if (!user?.arcgisGroupId) {
+  const su = session.user as unknown as { orgId: string };
+  const org = await db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true } });
+  if (!org?.arcgisGroupId) {
     return NextResponse.json({ error: "Group not configured" }, { status: 500 });
   }
 
-  const maps = await listGroupItems(user.arcgisGroupId, "Web Map");
+  const maps = await listGroupItems(org.arcgisGroupId, "Web Map");
   return NextResponse.json({ maps });
 }

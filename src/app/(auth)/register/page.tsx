@@ -14,7 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Enter a valid email"),
-  orgName: z.string().optional(),
+  orgName: z.string().min(2, "Organization name is required"),
+  orgType: z.enum(["NONPROFIT", "CORPORATE"]),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {
@@ -29,6 +30,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: { orgType: "NONPROFIT" },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -40,6 +42,7 @@ export default function RegisterPage() {
         name: data.name,
         email: data.email,
         orgName: data.orgName,
+        orgType: data.orgType,
         password: data.password,
       }),
     });
@@ -84,8 +87,21 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="orgName">Organization Name (optional)</Label>
+                <Label htmlFor="orgName">Organization Name</Label>
                 <Input id="orgName" placeholder="Acme Nonprofit" {...register("orgName")} />
+                {errors.orgName && <p className="text-xs text-red-600">{errors.orgName.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="orgType">Organization Type</Label>
+                <select
+                  id="orgType"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
+                  {...register("orgType")}
+                >
+                  <option value="NONPROFIT">Nonprofit</option>
+                  <option value="CORPORATE">Corporate</option>
+                </select>
               </div>
 
               <div className="space-y-2">

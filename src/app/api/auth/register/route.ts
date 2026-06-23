@@ -8,7 +8,8 @@ const schema = z.object({
   email: z.string().email(),
   name: z.string().min(2),
   password: z.string().min(8),
-  orgName: z.string().optional(),
+  orgName: z.string().min(2),
+  orgType: z.enum(["NONPROFIT", "CORPORATE"]).default("NONPROFIT"),
 });
 
 export async function POST(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { email, name, password, orgName } = parsed.data;
+  const { email, name, password, orgName, orgType } = parsed.data;
 
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {
@@ -27,23 +28,32 @@ export async function POST(req: NextRequest) {
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  const user = await db.user.create({
+  const org = await db.organization.create({
     data: {
-      email,
-      name,
-      hashedPassword,
-      orgName,
+      name: orgName,
+      type: orgType,
       onboardingState: {
         create: { currentStep: 0, completedSteps: [] },
       },
+      users: {
+        create: {
+          email,
+          name,
+          hashedPassword,
+          role: "OWNER",
+        },
+      },
     },
+    include: { users: true },
   });
 
+  const user = org.users[0];
+
   try {
-    const groupId = await createClientGroup(orgName ?? name);
-    await db.user.update({ where: { id: user.id }, data: { arcgisGroupId: groupId } });
+    const groupId = await createClientGroup(orgName);
+    await db.organization.update({ where: { id: org.id }, data: { arcgisGroupId: groupId } });
   } catch (err) {
-    console.error(`Failed to create ArcGIS group for user ${user.id}:`, err);
+    console.error(`Failed to create ArcGIS group for org ${org.id}:`, err);
   }
 
   return NextResponse.json({ id: user.id }, { status: 201 });
