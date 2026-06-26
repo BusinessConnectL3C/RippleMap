@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -38,4 +39,43 @@ export async function getDownloadUrl(key: string): Promise<string> {
 /** Delete a file from S3. */
 export async function deleteFile(key: string): Promise<void> {
   await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+export interface S3FileInfo {
+  key: string;
+  filename: string;
+  size: number;
+  lastModified: Date;
+  downloadUrl: string;
+}
+
+/** List all objects under a prefix and return them with fresh presigned download URLs. */
+export async function listFiles(prefix: string): Promise<S3FileInfo[]> {
+  const results: S3FileInfo[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    });
+    const response = await client.send(command);
+
+    for (const obj of response.Contents ?? []) {
+      if (!obj.Key || obj.Key === prefix) continue; // skip the folder key itself
+      const downloadUrl = await getDownloadUrl(obj.Key);
+      results.push({
+        key: obj.Key,
+        filename: obj.Key.slice(prefix.length),
+        size: obj.Size ?? 0,
+        lastModified: obj.LastModified ?? new Date(),
+        downloadUrl,
+      });
+    }
+
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return results;
 }

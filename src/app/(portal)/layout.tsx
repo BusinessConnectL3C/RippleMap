@@ -15,9 +15,11 @@ export default async function PortalLayout({ children }: { children: React.React
 
   if (!state?.completed) redirect("/onboarding");
 
+  const showMedia = su.orgId === process.env.GOOD_JUSTICE_ORG_ID;
+
   return (
     <div className="flex h-full">
-      <Sidebar />
+      <Sidebar showMedia={showMedia} />
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
