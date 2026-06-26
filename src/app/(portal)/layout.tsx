@@ -8,14 +8,20 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!session?.user?.id) redirect("/login");
 
   const su = session.user as unknown as { orgId: string };
-  const state = await db.onboardingState.findUnique({
-    where: { orgId: su.orgId },
-    select: { completed: true },
-  });
+  const [state, org] = await Promise.all([
+    db.onboardingState.findUnique({
+      where: { orgId: su.orgId },
+      select: { completed: true },
+    }),
+    db.organization.findUnique({
+      where: { id: su.orgId },
+      select: { s3Bucket: true },
+    }),
+  ]);
 
   if (!state?.completed) redirect("/onboarding");
 
-  const showMedia = su.orgId === process.env.GOOD_JUSTICE_ORG_ID;
+  const showMedia = !!org?.s3Bucket;
 
   return (
     <div className="flex h-full">
