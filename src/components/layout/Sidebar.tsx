@@ -10,6 +10,7 @@ import {
   CreditCard,
   User,
   LogOut,
+  Images,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -23,8 +24,11 @@ const navItems = [
   { href: "/account", label: "Account", icon: User },
 ];
 
-export function Sidebar() {
+const mediaNavItem = { href: "/media", label: "Media", icon: Images };
+
+export function Sidebar({ showMedia = false }: { showMedia?: boolean }) {
   const pathname = usePathname();
+  const items = showMedia ? [...navItems, mediaNavItem] : navItems;
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white">
@@ -39,7 +43,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
           return (
