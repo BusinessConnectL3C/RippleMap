@@ -7,14 +7,15 @@ datasource db {
 }
 
 model Organization {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String
-  type          OrgType  @default(NONPROFIT)
+  type          OrgType      @default(NONPROFIT)
   arcgisGroupId String?
+  mediaSource   MediaSource?
   s3Bucket      String?
   s3Prefix      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   users           User[]
   onboardingState OnboardingState?
@@ -77,6 +78,11 @@ model OnboardingState {
 enum OrgType {
   NONPROFIT
   CORPORATE
+}
+
+enum MediaSource {
+  S3
+  ARCGIS
 }
 
 enum Role {

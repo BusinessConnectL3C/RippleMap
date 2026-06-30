@@ -15,13 +15,13 @@ export default async function PortalLayout({ children }: { children: React.React
     }),
     db.organization.findUnique({
       where: { id: su.orgId },
-      select: { s3Bucket: true },
+      select: { mediaSource: true },
     }),
   ]);
 
   if (!state?.completed) redirect("/onboarding");
 
-  const showMedia = !!org?.s3Bucket;
+  const showMedia = !!org?.mediaSource;
 
   return (
     <div className="flex h-full">

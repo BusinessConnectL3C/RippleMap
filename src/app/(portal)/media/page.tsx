@@ -12,20 +12,31 @@ export default async function MediaPage() {
   const su = session.user as unknown as { orgId: string };
   const org = await db.organization.findUnique({
     where: { id: su.orgId },
-    select: { s3Bucket: true, s3Prefix: true },
+    select: { mediaSource: true, s3Bucket: true, s3Prefix: true },
   });
 
-  if (!org?.s3Bucket) redirect("/dashboard");
+  if (!org?.mediaSource) redirect("/dashboard");
 
-  const prefix = org.s3Prefix ?? "";
-  const files = await listFiles(prefix, org.s3Bucket).catch(() => []);
+  let files: Awaited<ReturnType<typeof listFiles>> = [];
+
+  if (org.mediaSource === "S3") {
+    if (!org.s3Bucket) redirect("/dashboard");
+    files = await listFiles(org.s3Prefix ?? "", org.s3Bucket).catch(() => []);
+  }
+
+  // ARCGIS media support coming soon — mediaSource === "ARCGIS" falls through to empty gallery
 
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Media" />
       <div className="flex-1 overflow-auto p-6">
-        <div className="mb-4">
-          <p className="text-sm text-gray-500">{files.length} file{files.length !== 1 ? "s" : ""}</p>
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            {files.length} file{files.length !== 1 ? "s" : ""}
+          </p>
+          {org.mediaSource === "ARCGIS" && (
+            <span className="text-xs text-gray-400 italic">ArcGIS media coming soon</span>
+          )}
         </div>
         <MediaGallery files={files} />
       </div>
