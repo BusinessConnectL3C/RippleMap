@@ -21,7 +21,11 @@ export default async function MediaPage() {
 
   if (org.mediaSource === "S3") {
     if (!org.s3Bucket) redirect("/dashboard");
-    files = await listFiles(org.s3Prefix ?? "", org.s3Bucket).catch(() => []);
+    try {
+      files = await listFiles(org.s3Prefix ?? "", org.s3Bucket);
+    } catch (err) {
+      console.error("[MediaPage] listFiles failed:", err);
+    }
   }
 
   // ARCGIS media support coming soon — mediaSource === "ARCGIS" falls through to empty gallery
