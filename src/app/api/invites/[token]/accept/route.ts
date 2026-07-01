@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 const schema = z.object({
   name: z.string().min(2),
   password: z.string().min(8),
-  email: z.string().email().optional(),
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -24,16 +23,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   if (invite.status !== "PENDING" || invite.expiresAt < new Date()) {
     return NextResponse.json({ error: "This invite is no longer valid" }, { status: 410 });
   }
-
-  const email = invite.email ?? parsed.data.email;
-  if (!email) {
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
-  }
-  if (invite.email && parsed.data.email && invite.email.toLowerCase() !== parsed.data.email.toLowerCase()) {
-    return NextResponse.json({ error: "This invite is for a different email address" }, { status: 403 });
+  if (!invite.email) {
+    return NextResponse.json({ error: "This invite has no email on file — ask your admin to send a new one" }, { status: 400 });
   }
 
-  const existing = await db.user.findUnique({ where: { email } });
+  const existing = await db.user.findUnique({ where: { email: invite.email } });
   if (existing) {
     return NextResponse.json({ error: "This email is already registered" }, { status: 409 });
   }
@@ -43,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const user = await db.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
-        email,
+        email: invite.email!,
         name: parsed.data.name,
         hashedPassword,
         role: invite.role,

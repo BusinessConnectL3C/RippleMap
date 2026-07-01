@@ -10,7 +10,10 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
     include: { organization: { select: { name: true } } },
   });
 
-  const valid = invite && invite.status === "PENDING" && invite.expiresAt > new Date() ? invite : null;
+  const valid =
+    invite && invite.email && invite.status === "PENDING" && invite.expiresAt > new Date()
+      ? { ...invite, email: invite.email }
+      : null;
 
   let invalidReason = "This invite link is invalid.";
   if (invite && invite.status === "REVOKED") invalidReason = "This invite link has been revoked.";
