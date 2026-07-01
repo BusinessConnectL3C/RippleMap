@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { generateInviteToken, inviteExpiryDate } from "@/lib/invites";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.union([z.string().email(), z.literal("")]).optional(),
   role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),
 });
 
@@ -24,18 +24,21 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
-  const { email, role } = parsed.data;
+  const email = parsed.data.email || null;
+  const { role } = parsed.data;
 
-  const existingUser = await db.user.findUnique({ where: { email } });
-  if (existingUser) {
-    return NextResponse.json({ error: "This email is already registered" }, { status: 409 });
-  }
+  if (email) {
+    const existingUser = await db.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json({ error: "This email is already registered" }, { status: 409 });
+    }
 
-  const existingInvite = await db.orgInvite.findFirst({
-    where: { orgId: su.orgId, email, status: "PENDING" },
-  });
-  if (existingInvite) {
-    return NextResponse.json({ error: "An invite is already pending for this email" }, { status: 409 });
+    const existingInvite = await db.orgInvite.findFirst({
+      where: { orgId: su.orgId, email, status: "PENDING" },
+    });
+    if (existingInvite) {
+      return NextResponse.json({ error: "An invite is already pending for this email" }, { status: 409 });
+    }
   }
 
   const invite = await db.orgInvite.create({

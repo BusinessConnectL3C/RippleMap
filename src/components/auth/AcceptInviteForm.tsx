@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function AcceptInviteForm({ token, email }: { token: string; email: string }) {
+export function AcceptInviteForm({ token, email }: { token: string; email: string | null }) {
   const router = useRouter();
+  const [emailInput, setEmailInput] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,6 +21,10 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
 
     if (name.trim().length < 2) {
       setError("Name must be at least 2 characters");
+      return;
+    }
+    if (!email && !/^\S+@\S+\.\S+$/.test(emailInput)) {
+      setError("Enter a valid email");
       return;
     }
     if (password.length < 8) {
@@ -35,7 +40,11 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
     const res = await fetch(`/api/invites/${token}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), password }),
+      body: JSON.stringify({
+        name: name.trim(),
+        password,
+        ...(!email && { email: emailInput.trim() }),
+      }),
     });
     setSubmitting(false);
 
@@ -52,7 +61,17 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" value={email} disabled className="bg-gray-50 text-gray-500" />
+        {email ? (
+          <Input id="email" value={email} disabled className="bg-gray-50 text-gray-500" />
+        ) : (
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@org.com"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+          />
+        )}
       </div>
 
       <div className="space-y-2">

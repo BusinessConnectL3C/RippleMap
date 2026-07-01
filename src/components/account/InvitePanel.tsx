@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface PendingInvite {
   id: string;
-  email: string;
+  email: string | null;
   role: "ADMIN" | "MEMBER";
   expiresAt: string;
 }
@@ -62,7 +62,7 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="flex-1 space-y-2">
-          <Label htmlFor="inviteEmail">Email address</Label>
+          <Label htmlFor="inviteEmail">Email address (optional)</Label>
           <Input
             id="inviteEmail"
             type="email"
@@ -83,15 +83,14 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
             <option value="ADMIN">Admin</option>
           </select>
         </div>
-        <Button
-          onClick={handleInvite}
-          disabled={sending || !email.trim()}
-          className="bg-[#1B4F72] hover:bg-[#154060]"
-        >
+        <Button onClick={handleInvite} disabled={sending} className="bg-[#1B4F72] hover:bg-[#154060]">
           {sending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
           Invite
         </Button>
       </div>
+      <p className="text-xs text-gray-400">
+        Leave email blank to generate an open link anyone can use to join as {role === "ADMIN" ? "an Admin" : "a Member"}.
+      </p>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -119,7 +118,7 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
             {pendingInvites.map((invite) => (
               <li key={invite.id} className="flex items-center justify-between rounded-md border border-gray-100 px-3 py-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-900">{invite.email}</span>
+                  <span className="text-gray-900">{invite.email ?? "Open invite link"}</span>
                   <Badge variant="secondary" className="text-xs">
                     {invite.role === "ADMIN" ? "Admin" : "Member"}
                   </Badge>

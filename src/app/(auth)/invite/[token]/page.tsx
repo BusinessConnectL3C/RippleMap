@@ -12,6 +12,11 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
 
   const valid = invite && invite.status === "PENDING" && invite.expiresAt > new Date() ? invite : null;
 
+  let invalidReason = "This invite link is invalid.";
+  if (invite && invite.status === "REVOKED") invalidReason = "This invite link has been revoked.";
+  else if (invite && invite.status === "ACCEPTED") invalidReason = "This invite link has already been used.";
+  else if (invite && invite.expiresAt <= new Date()) invalidReason = "This invite link has expired.";
+
   return (
     <div className="flex min-h-full items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
@@ -40,10 +45,7 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
           ) : (
             <CardHeader>
               <CardTitle>Invite no longer valid</CardTitle>
-              <CardDescription>
-                This invite link has expired, been revoked, or already been used. Ask your organization admin to
-                send a new one.
-              </CardDescription>
+              <CardDescription>{invalidReason} Ask your organization admin to send a new one.</CardDescription>
             </CardHeader>
           )}
         </Card>
