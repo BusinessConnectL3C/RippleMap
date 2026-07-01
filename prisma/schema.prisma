@@ -20,6 +20,7 @@ model Organization {
   users           User[]
   onboardingState OnboardingState?
   supportTickets  SupportTicket[]
+  invites         OrgInvite[]
 }
 
 model User {
@@ -35,6 +36,25 @@ model User {
 
   organization Organization       @relation(fields: [orgId], references: [id])
   arcgisLink   ArcGISAccountLink?
+  sentInvites  OrgInvite[]        @relation("InvitedBy")
+}
+
+model OrgInvite {
+  id          String       @id @default(cuid())
+  orgId       String
+  email       String
+  role        Role         @default(MEMBER)
+  token       String       @unique
+  status      InviteStatus @default(PENDING)
+  invitedById String
+  createdAt   DateTime     @default(now())
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@index([orgId])
 }
 
 model ArcGISAccountLink {
@@ -90,6 +110,12 @@ enum Role {
   ADMIN
   MEMBER
   BC_STAFF
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
 }
 
 enum TicketStatus {
