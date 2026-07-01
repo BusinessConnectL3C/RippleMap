@@ -31,9 +31,20 @@ export async function getUploadUrl(
   return getSignedUrl(client, command, { expiresIn: 300 });
 }
 
-/** Generate a presigned URL to download a file from S3 (valid for 1 hour). */
-export async function getDownloadUrl(key: string, bucket = DEFAULT_BUCKET): Promise<string> {
+/** Generate a presigned URL to view a file from S3 in the browser (valid for 1 hour). */
+export async function getViewUrl(key: string, bucket = DEFAULT_BUCKET): Promise<string> {
   const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  return getSignedUrl(client, command, { expiresIn: 3600 });
+}
+
+/** Generate a presigned URL that forces a file download (Content-Disposition: attachment). */
+export async function getDownloadUrl(key: string, bucket = DEFAULT_BUCKET): Promise<string> {
+  const filename = key.split("/").pop() ?? key;
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${filename}"`,
+  });
   return getSignedUrl(client, command, { expiresIn: 3600 });
 }
 
@@ -45,12 +56,14 @@ export async function deleteFile(key: string, bucket = DEFAULT_BUCKET): Promise<
 export interface S3FileInfo {
   key: string;
   filename: string;
+  folder: string;
   size: number;
   lastModified: Date;
+  viewUrl: string;
   downloadUrl: string;
 }
 
-/** List all objects under a prefix and return them with fresh presigned download URLs. */
+/** List all objects under a prefix and return them with presigned view + download URLs. */
 export async function listFiles(prefix: string, bucket = DEFAULT_BUCKET): Promise<S3FileInfo[]> {
   const results: S3FileInfo[] = [];
   let continuationToken: string | undefined;
@@ -65,12 +78,20 @@ export async function listFiles(prefix: string, bucket = DEFAULT_BUCKET): Promis
 
     for (const obj of response.Contents ?? []) {
       if (!obj.Key || obj.Key === prefix) continue;
-      const downloadUrl = await getDownloadUrl(obj.Key, bucket);
+      const relativePath = obj.Key.slice(prefix.length);
+      const parts = relativePath.split("/");
+      const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
+      const [viewUrl, downloadUrl] = await Promise.all([
+        getViewUrl(obj.Key, bucket),
+        getDownloadUrl(obj.Key, bucket),
+      ]);
       results.push({
         key: obj.Key,
-        filename: obj.Key.slice(prefix.length),
+        filename: relativePath,
+        folder,
         size: obj.Size ?? 0,
         lastModified: obj.LastModified ?? new Date(),
+        viewUrl,
         downloadUrl,
       });
     }
