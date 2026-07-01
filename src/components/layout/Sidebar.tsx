@@ -26,19 +26,21 @@ const navItems = [
 
 const mediaNavItem = { href: "/media", label: "Media", icon: Images };
 
-export function Sidebar({ showMedia = false }: { showMedia?: boolean }) {
+export function Sidebar({ showMedia = false, orgName }: { showMedia?: boolean; orgName?: string }) {
   const pathname = usePathname();
   const items = showMedia ? [...navItems, mediaNavItem] : navItems;
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white">
       <div className="flex h-16 items-center gap-2 border-b border-gray-200 px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#1B4F72]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#1B4F72]">
           <span className="text-sm font-bold text-white">R</span>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-900">RippleMap</p>
-          <p className="text-xs text-gray-500">Client Portal</p>
+          <p className="truncate text-xs text-gray-500" title={orgName}>
+            {orgName ?? "Client Portal"}
+          </p>
         </div>
       </div>
 

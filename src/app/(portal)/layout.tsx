@@ -15,7 +15,7 @@ export default async function PortalLayout({ children }: { children: React.React
     }),
     db.organization.findUnique({
       where: { id: su.orgId },
-      select: { mediaSource: true },
+      select: { name: true, mediaSource: true },
     }),
   ]);
 
@@ -25,7 +25,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="flex h-full">
-      <Sidebar showMedia={showMedia} />
+      <Sidebar showMedia={showMedia} orgName={org?.name} />
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
