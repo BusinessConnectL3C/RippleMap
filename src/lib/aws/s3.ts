@@ -63,9 +63,57 @@ export interface S3FileInfo {
   downloadUrl: string;
 }
 
-/** List all objects under a prefix and return them with presigned view + download URLs. */
-export async function listFiles(prefix: string, bucket = DEFAULT_BUCKET): Promise<S3FileInfo[]> {
-  const results: S3FileInfo[] = [];
+export interface S3FilePage {
+  files: S3FileInfo[];
+  nextCursor: string | null;
+}
+
+/** Return one page of files with presigned URLs. Pass cursor for subsequent pages. */
+export async function listFilesPage(
+  prefix: string,
+  bucket: string,
+  limit = 50,
+  cursor?: string
+): Promise<S3FilePage> {
+  const command = new ListObjectsV2Command({
+    Bucket: bucket,
+    Prefix: prefix,
+    MaxKeys: limit + 10, // fetch a few extra to skip folder placeholder keys
+    ContinuationToken: cursor,
+  });
+  const response = await client.send(command);
+
+  const files: S3FileInfo[] = [];
+  for (const obj of response.Contents ?? []) {
+    if (!obj.Key || obj.Key === prefix || obj.Key.endsWith("/")) continue;
+    const relativePath = obj.Key.slice(prefix.length);
+    const parts = relativePath.split("/");
+    const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
+    const [viewUrl, downloadUrl] = await Promise.all([
+      getViewUrl(obj.Key, bucket),
+      getDownloadUrl(obj.Key, bucket),
+    ]);
+    files.push({
+      key: obj.Key,
+      filename: relativePath,
+      folder,
+      size: obj.Size ?? 0,
+      lastModified: obj.LastModified ?? new Date(),
+      viewUrl,
+      downloadUrl,
+    });
+    if (files.length === limit) break;
+  }
+
+  return {
+    files,
+    nextCursor: response.NextContinuationToken ?? null,
+  };
+}
+
+/** List all unique folder paths under a prefix (keys only, no presigned URLs — fast). */
+export async function listFolders(prefix: string, bucket: string): Promise<string[]> {
+  const folders = new Set<string>();
   let continuationToken: string | undefined;
 
   do {
@@ -77,27 +125,16 @@ export async function listFiles(prefix: string, bucket = DEFAULT_BUCKET): Promis
     const response = await client.send(command);
 
     for (const obj of response.Contents ?? []) {
-      if (!obj.Key || obj.Key === prefix) continue;
+      if (!obj.Key || obj.Key === prefix || obj.Key.endsWith("/")) continue;
       const relativePath = obj.Key.slice(prefix.length);
       const parts = relativePath.split("/");
-      const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
-      const [viewUrl, downloadUrl] = await Promise.all([
-        getViewUrl(obj.Key, bucket),
-        getDownloadUrl(obj.Key, bucket),
-      ]);
-      results.push({
-        key: obj.Key,
-        filename: relativePath,
-        folder,
-        size: obj.Size ?? 0,
-        lastModified: obj.LastModified ?? new Date(),
-        viewUrl,
-        downloadUrl,
-      });
+      if (parts.length > 1) {
+        folders.add(parts.slice(0, -1).join("/"));
+      }
     }
 
     continuationToken = response.NextContinuationToken;
   } while (continuationToken);
 
-  return results;
+  return Array.from(folders).sort();
 }
