@@ -25,7 +25,7 @@ export default async function MapsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <TopBar title="Maps" />
+      <TopBar title="Maps & Apps" />
       <div className="flex-1 p-6">
         <MapGallery maps={maps} />
       </div>

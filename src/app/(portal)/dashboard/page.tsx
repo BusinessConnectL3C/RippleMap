@@ -27,7 +27,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <TopBar title="Dashboard" />
+      <TopBar title="Home" />
       <div className="flex-1 p-6 space-y-6">
         <p className="text-gray-600">
           Welcome back, <span className="font-medium text-gray-900">{session.user.name}</span>

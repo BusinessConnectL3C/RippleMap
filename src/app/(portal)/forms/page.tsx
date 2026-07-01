@@ -24,7 +24,7 @@ export default async function FormsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <TopBar title="Forms & Data Collection" />
+      <TopBar title="Forms & Surveys" />
       <div className="flex-1 p-6">
         <FormList survey123Items={survey123Items} fieldmapsItems={fieldmapsItems} />
       </div>
