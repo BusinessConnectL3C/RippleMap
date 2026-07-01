@@ -32,20 +32,13 @@ export function MediaGallery() {
   const [loading, setLoading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Load folder list once on mount
+  // Load folder list and the first page once on mount
   useEffect(() => {
     fetch("/api/media/folders")
       .then((r) => r.json())
       .then((data) => setFolders(data.folders ?? []));
+    fetchPage(null, "", true);
   }, []);
-
-  // Load first page when active folder changes
-  useEffect(() => {
-    setFiles([]);
-    setNextCursor(null);
-    fetchPage(null, activeFolder === "all" ? "" : activeFolder + "/", true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFolder]);
 
   function fetchPage(cursor: string | null, prefix: string, replace: boolean) {
     setLoading(true);
@@ -58,6 +51,13 @@ export function MediaGallery() {
         setNextCursor(data.nextCursor ?? null);
       })
       .finally(() => setLoading(false));
+  }
+
+  function selectFolder(folder: string) {
+    setActiveFolder(folder);
+    setFiles([]);
+    setNextCursor(null);
+    fetchPage(null, folder === "all" ? "" : folder + "/", true);
   }
 
   function loadMore() {
@@ -92,9 +92,9 @@ export function MediaGallery() {
       {/* Folder tabs */}
       {folders.length > 0 && (
         <div className="mb-5 flex flex-wrap gap-2">
-          <FolderTab label="All" active={activeFolder === "all"} onClick={() => setActiveFolder("all")} />
+          <FolderTab label="All" active={activeFolder === "all"} onClick={() => selectFolder("all")} />
           {folders.map((f) => (
-            <FolderTab key={f} label={f} active={activeFolder === f} onClick={() => setActiveFolder(f)} />
+            <FolderTab key={f} label={f} active={activeFolder === f} onClick={() => selectFolder(f)} />
           ))}
         </div>
       )}
