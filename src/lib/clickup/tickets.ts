@@ -25,14 +25,8 @@ export async function createClickUpTicket(
 
   const body = {
     name: params.title,
-    description: params.description,
+    description: `${params.description}\n\n---\nSubmitted by: ${params.customerEmail}`,
     priority: PRIORITY_MAP[params.priority],
-    custom_fields: [
-      {
-        name: "Customer Email",
-        value: params.customerEmail,
-      },
-    ],
   };
 
   const res = await fetch(`${CLICKUP_BASE}/list/${listId}/task`, {
