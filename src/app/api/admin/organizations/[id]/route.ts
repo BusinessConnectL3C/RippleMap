@@ -7,6 +7,7 @@ const schema = z.object({
   name: z.string().min(2).optional(),
   type: z.enum(["NONPROFIT", "CORPORATE"]).optional(),
   arcgisGroupId: z.string().nullable().optional(),
+  clickupListId: z.string().nullable().optional(),
 });
 
 async function requireBCStaff() {
@@ -28,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { name, type, arcgisGroupId } = parsed.data;
+  const { name, type, arcgisGroupId, clickupListId } = parsed.data;
 
   const existing = await db.organization.findUnique({
     where: { id },
@@ -45,6 +46,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(name !== undefined && { name }),
         ...(type !== undefined && { type }),
         ...(arcgisGroupId !== undefined && { arcgisGroupId }),
+        ...(clickupListId !== undefined && { clickupListId }),
       },
     });
 

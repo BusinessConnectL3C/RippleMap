@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
+import { syncClickUpComments } from "@/lib/clickup/tickets";
 
 const STATUS_MAP: Record<string, "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED"> = {
   "open": "OPEN",
@@ -30,17 +31,24 @@ export async function POST(req: NextRequest) {
   }
 
   const body = JSON.parse(rawBody);
+  const taskId = body.task_id as string | undefined;
 
-  if (body.event === "taskStatusUpdated") {
-    const taskId = body.task_id as string;
+  if (taskId && body.event === "taskStatusUpdated") {
     const newStatus = (body.history_items?.[0]?.after?.status ?? "").toLowerCase();
     const mappedStatus = STATUS_MAP[newStatus];
 
-    if (taskId && mappedStatus) {
+    if (mappedStatus) {
       await db.supportTicket.updateMany({
         where: { clickupTaskId: taskId },
         data: { status: mappedStatus },
       });
+    }
+  }
+
+  if (taskId && body.event === "taskCommentPosted") {
+    const ticket = await db.supportTicket.findFirst({ where: { clickupTaskId: taskId } });
+    if (ticket) {
+      await syncClickUpComments(taskId, ticket.id);
     }
   }
 

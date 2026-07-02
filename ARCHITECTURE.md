@@ -147,28 +147,46 @@ POST /api/billing/portal
 ---
 
 ### 5. ClickUp — Support Tickets (Bidirectional)
-**Purpose**: Client-submitted support requests create tasks in the BC ClickUp workspace. Status updates in ClickUp sync back to the portal via webhook.
+**Purpose**: Each org gets its own ClickUp list, created automatically at registration inside a shared folder. Client-submitted support requests create tasks in the org's list. Status changes and comments in ClickUp sync back to the portal via webhook, and clients can reply from the portal, which posts back to ClickUp.
+
+**Per-org list creation (registration time)**:
+```
+POST /api/auth/register
+  → createClientGroup() (ArcGIS, existing)
+  → getOrCreateOrgList(orgName, orgId)
+      GET  /folder/{CLICKUP_SUPPORT_FOLDER_ID}/list — look for "{orgName} · {orgId prefix}"
+      POST /folder/{CLICKUP_SUPPORT_FOLDER_ID}/list — create it if missing
+      stores the list ID on Organization.clickupListId
+  (best-effort: logged and non-fatal on failure, same as the ArcGIS group step)
+```
+The org id is embedded in the list name so the lookup can never match a different org with the same display name. If an org has no `clickupListId` (creation failed, or the org predates this feature), ticket creation falls back to the shared `CLICKUP_SUPPORT_LIST_ID` list. BC staff can also set `clickupListId` manually from the admin org page, mirroring the existing `arcgisGroupId` override.
 
 **Outbound (portal → ClickUp)**:
 ```
 Client submits support form
   → POST /api/support/tickets
       creates SupportTicket in Neon DB
-      createClickUpTicket() → POST to ClickUp API
+      createClickUpTicket() → POST to org's ClickUp list (or the shared fallback list)
       stores returned ClickUp task ID on the ticket record
+
+Client replies on a ticket
+  → POST /api/support/tickets/[id]/comments
+      createClickUpComment() → POST to the ClickUp task, prefixed with the client's name/email
+      stores the reply locally (SupportTicketComment, source=CLIENT)
 ```
 
 **Inbound (ClickUp → portal via webhook)**:
 ```
-BC team updates task status in ClickUp
-  → ClickUp fires POST /api/support/webhook
-      validates x-webhook-secret header
-      maps ClickUp status → portal TicketStatus enum
-      updates SupportTicket.status in Neon DB
-  → Client sees updated status on /support page
+BC team updates task status or posts a comment in ClickUp
+  → ClickUp fires POST /api/support/webhook, signed with the webhook secret (HMAC-SHA256 over
+    the raw body, sent as the X-Signature header — verified before anything else runs)
+  → taskStatusUpdated: maps ClickUp status → portal TicketStatus enum, updates SupportTicket.status
+  → taskCommentPosted: syncClickUpComments() re-fetches all comments on the task and upserts them
+    keyed on clickupCommentId, so replays and our own outbound replies echoing back never duplicate
+  → Client sees the updated status/comment thread on /support/[id]
 ```
 
-**Env vars**: `CLICKUP_API_TOKEN`, `CLICKUP_SUPPORT_LIST_ID`, `CLICKUP_WEBHOOK_SECRET`
+**Env vars**: `CLICKUP_API_TOKEN`, `CLICKUP_SUPPORT_LIST_ID` (shared fallback list), `CLICKUP_SUPPORT_FOLDER_ID` (folder that holds per-org lists), `CLICKUP_WEBHOOK_SECRET`
 
 ---
 

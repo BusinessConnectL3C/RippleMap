@@ -30,7 +30,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - **Email confirmation on registration** — still no verification-token flow on registration itself. (Org-invite emails, however, now send via Resend — see below.)
 - **Admin panel** — no UI for BC staff to manage users, set arcgisGroupId manually if group creation fails, etc.
 - **Stripe billing integration** — replacing Salesforce. Existing Salesforce code (`src/lib/salesforce/`, `/api/salesforce/`, `SalesforceLink` table) to be removed. Stripe not yet implemented.
-- **ClickUp support ticket integration** — route exists (`/api/support/tickets`) but not tested end-to-end
+- **ClickUp support ticket integration** — per-org ClickUp lists (created at registration, one per org, with a shared fallback list), plus two-way comment sync (`/support/[id]` thread, webhook-driven inbound sync) are implemented but not yet verified end-to-end against the real BC ClickUp workspace (need to confirm `CLICKUP_SUPPORT_FOLDER_ID`, do a live registration + ticket + webhook round-trip)
 - **AWS S3** — dependency in package.json, not yet used in any feature
 - **Full onboarding completion** — the "explore" step and `api/onboarding/complete` route exist but haven't been tested through to dashboard
 
@@ -42,6 +42,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 
 ## Architecture Decisions
 - **Per-customer ArcGIS groups**: Each registered client gets their own private ArcGIS Online group created at registration. Group ID stored on `User.arcgisGroupId`. Maps and FieldMaps pages fetch from the user's own group, not a shared one.
+- **Per-org ClickUp lists**: Each org gets its own ClickUp list, created at registration inside `CLICKUP_SUPPORT_FOLDER_ID` (best-effort, non-fatal — same pattern as the ArcGIS group). List ID stored on `Organization.clickupListId`; the list name embeds the org id so the "does one already exist" lookup can't match a different org with the same display name. Tickets fall back to the shared `CLICKUP_SUPPORT_LIST_ID` list if an org has none yet. BC staff can set `clickupListId` manually from the admin org page.
 - **Prisma driver adapter**: Prisma 7 removed the native binary engine. Using `@prisma/adapter-pg` with `pg.Pool` for Neon compatibility.
 - **Split NextAuth config**: `auth.config.ts` is edge-safe (JWT only, no DB imports) for middleware. `auth.ts` has the full config with Prisma adapter for server components and API routes.
 - **Onboarding gate in portal layout**: Middleware can't reliably gate on `onboardingCompleted` (stale JWT). The portal layout server component checks the DB directly.
@@ -62,6 +63,10 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 | `DIRECT_URL` | Neon **non-pooled** connection string. Used only by `prisma.config.ts` for `migrate deploy` — advisory locks used to serialize migrations aren't reliable over the pooled connection. Same credentials as `DATABASE_URL`, host without `-pooler`. |
 | `RESEND_API_KEY` | Optional. Powers org-invite emails (`src/lib/email/resend.ts`). If unset, inviting a member falls back to a copyable link instead of sending anything — nothing breaks either way. |
 | `RESEND_FROM_EMAIL` | Optional, defaults to `RippleMap <invites@ripplemap.app>`. Requires that sending domain to be verified in Resend or emails won't deliver. |
+| `CLICKUP_API_TOKEN` | BC ClickUp workspace API token, used for all ticket/list/comment operations |
+| `CLICKUP_SUPPORT_FOLDER_ID` | ClickUp folder that holds one auto-created list per org |
+| `CLICKUP_SUPPORT_LIST_ID` | Shared fallback list used when an org has no `clickupListId` yet |
+| `CLICKUP_WEBHOOK_SECRET` | Shared secret ClickUp signs webhook payloads with (HMAC-SHA256 over the raw body, sent as `X-Signature`) — this is the `secret` returned when the webhook is created via ClickUp's API, not a value you invent |
 
 ## Key File Locations
 - Auth config (edge-safe): `src/lib/auth.config.ts`
@@ -69,6 +74,8 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Middleware: `src/middleware.ts`
 - ArcGIS auth/tokens: `src/lib/arcgis/auth.ts`
 - ArcGIS group management: `src/lib/arcgis/groups.ts`
+- ClickUp per-org lists: `src/lib/clickup/lists.ts`
+- ClickUp tickets/comments: `src/lib/clickup/tickets.ts`
 - DB client: `src/lib/db.ts`
 - Portal layout (onboarding gate): `src/app/(portal)/layout.tsx`
 - Onboarding steps: `src/app/(auth)/onboarding/[step]/steps/`
@@ -78,4 +85,4 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Provider: Neon (PostgreSQL)
 - Migrations in: `prisma/migrations/`
 - Do NOT truncate `_prisma_migrations` — only truncate application tables
-- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SalesforceLink", "User" CASCADE;`
+- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SupportTicketComment", "SalesforceLink", "User" CASCADE;`

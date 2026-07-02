@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { createClientGroup } from "@/lib/arcgis/groups";
+import { getOrCreateOrgList } from "@/lib/clickup/lists";
 
 const schema = z.object({
   email: z.string().email(),
@@ -54,6 +55,13 @@ export async function POST(req: NextRequest) {
     await db.organization.update({ where: { id: org.id }, data: { arcgisGroupId: groupId } });
   } catch (err) {
     console.error(`Failed to create ArcGIS group for org ${org.id}:`, err);
+  }
+
+  try {
+    const listId = await getOrCreateOrgList(orgName, org.id);
+    await db.organization.update({ where: { id: org.id }, data: { clickupListId: listId } });
+  } catch (err) {
+    console.error(`Failed to create ClickUp list for org ${org.id}:`, err);
   }
 
   return NextResponse.json({ id: user.id }, { status: 201 });
