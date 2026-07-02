@@ -22,6 +22,8 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newLink, setNewLink] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
@@ -29,10 +31,11 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
     setSending(true);
     setError(null);
     setNewLink(null);
+    const trimmedEmail = email.trim();
     const res = await fetch("/api/account/invites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), role }),
+      body: JSON.stringify({ email: trimmedEmail, role }),
     });
     const data = await res.json();
     setSending(false);
@@ -40,7 +43,9 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
       setError(data.error ?? "Could not send invite");
       return;
     }
-    setNewLink(data.inviteUrl);
+    setEmailSent(!!data.emailSent);
+    setSentTo(trimmedEmail);
+    setNewLink(data.emailSent ? null : data.inviteUrl);
     setEmail("");
     router.refresh();
   }
@@ -90,6 +95,12 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      {emailSent && sentTo && (
+        <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+          Invite sent to {sentTo}.
+        </div>
+      )}
 
       {newLink && (
         <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm space-y-2">

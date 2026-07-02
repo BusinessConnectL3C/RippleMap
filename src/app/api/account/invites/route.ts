@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateInviteToken, inviteExpiryDate } from "@/lib/invites";
+import { sendInviteEmail } from "@/lib/email/resend";
 
 const schema = z.object({
   email: z.string().email(),
@@ -38,6 +39,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "An invite is already pending for this email" }, { status: 409 });
   }
 
+  const org = await db.organization.findUnique({ where: { id: su.orgId }, select: { name: true } });
+
   const invite = await db.orgInvite.create({
     data: {
       orgId: su.orgId,
@@ -51,5 +54,13 @@ export async function POST(req: NextRequest) {
 
   const inviteUrl = new URL(`/invite/${invite.token}`, req.nextUrl.origin).toString();
 
-  return NextResponse.json({ invite, inviteUrl }, { status: 201 });
+  const result = await sendInviteEmail({
+    to: email,
+    orgName: org?.name ?? "your organization",
+    role,
+    inviteUrl,
+    expiresAt: invite.expiresAt,
+  });
+
+  return NextResponse.json({ invite, inviteUrl, emailSent: result.sent }, { status: 201 });
 }

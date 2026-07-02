@@ -27,7 +27,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Neon DB migrations applied (2 migrations)
 
 ### Not Yet Built / Pending
-- **Email confirmation on registration** — no transactional email service wired up yet. Needs Resend (or similar) + verification token flow.
+- **Email confirmation on registration** — still no verification-token flow on registration itself. (Org-invite emails, however, now send via Resend — see below.)
 - **Admin panel** — no UI for BC staff to manage users, set arcgisGroupId manually if group creation fails, etc.
 - **Stripe billing integration** — replacing Salesforce. Existing Salesforce code (`src/lib/salesforce/`, `/api/salesforce/`, `SalesforceLink` table) to be removed. Stripe not yet implemented.
 - **ClickUp support ticket integration** — route exists (`/api/support/tickets`) but not tested end-to-end
@@ -59,6 +59,9 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 | `ARCGIS_ORG_URL` | e.g. `https://businessconnect.maps.arcgis.com` |
 | `ARCGIS_ADMIN_USERNAME` | BC org admin ArcGIS username (for group management) |
 | `ARCGIS_ADMIN_PASSWORD` | BC org admin ArcGIS password |
+| `DIRECT_URL` | Neon **non-pooled** connection string. Used only by `prisma.config.ts` for `migrate deploy` — advisory locks used to serialize migrations aren't reliable over the pooled connection. Same credentials as `DATABASE_URL`, host without `-pooler`. |
+| `RESEND_API_KEY` | Optional. Powers org-invite emails (`src/lib/email/resend.ts`). If unset, inviting a member falls back to a copyable link instead of sending anything — nothing breaks either way. |
+| `RESEND_FROM_EMAIL` | Optional, defaults to `RippleMap <invites@ripplemap.app>`. Requires that sending domain to be verified in Resend or emails won't deliver. |
 
 ## Key File Locations
 - Auth config (edge-safe): `src/lib/auth.config.ts`
