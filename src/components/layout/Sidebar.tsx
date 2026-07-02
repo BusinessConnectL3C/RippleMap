@@ -18,14 +18,14 @@ import { cn } from "@/lib/utils";
 const primaryItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/maps", label: "Maps & Apps", icon: Map },
-  { href: "/media", label: "Media", icon: Images },
   { href: "/forms", label: "Forms & Surveys", icon: FileText },
-  { href: "/support", label: "Support", icon: HeadphonesIcon },
+  { href: "/media", label: "Media", icon: Images },
 ];
 
 const settingsItems = [
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/account", label: "Account", icon: User },
+  { href: "/support", label: "Support", icon: HeadphonesIcon },
 ];
 
 function NavLink({ href, label, icon: Icon, isActive }: { href: string; label: string; icon: typeof Home; isActive: boolean }) {
