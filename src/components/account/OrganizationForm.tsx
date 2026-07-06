@@ -2,22 +2,38 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-export function OrganizationForm({ initialName }: { initialName: string }) {
+interface Props {
+  initialName: string;
+  orgType: string;
+}
+
+export function OrganizationForm({ initialName, orgType }: Props) {
   const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(initialName);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+
+  function startEditing() {
+    setError(null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setName(initialName);
+    setError(null);
+    setIsEditing(false);
+  }
 
   async function handleSave() {
     setSaving(true);
     setError(null);
-    setSuccess(false);
     const res = await fetch("/api/account/organization", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -29,24 +45,50 @@ export function OrganizationForm({ initialName }: { initialName: string }) {
       setError(data.error ?? "Save failed");
       return;
     }
-    setSuccess(true);
+    setIsEditing(false);
     router.refresh();
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="orgName">Organization Name</Label>
-        <Input id="orgName" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
+    <>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle>Organization</CardTitle>
+        {!isEditing && (
+          <Button variant="outline" size="sm" onClick={startEditing} className="gap-1.5">
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!isEditing ? (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <span className="text-gray-500">Organization</span>
+            <span className="font-medium text-gray-900">{initialName || "—"}</span>
+            <span className="text-gray-500">Org Type</span>
+            <span className="font-medium text-gray-900">{orgType || "—"}</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="orgName">Organization Name</Label>
+              <Input id="orgName" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {success && <p className="text-sm text-green-600">Saved.</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button onClick={handleSave} disabled={saving || !name.trim()} className="bg-[#1B4F72] hover:bg-[#154060]">
-        {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-        Save changes
-      </Button>
-    </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSave} disabled={saving || !name.trim()} className="bg-[#1B4F72] hover:bg-[#154060]">
+                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Save changes
+              </Button>
+              <Button variant="outline" onClick={cancelEditing} disabled={saving}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </>
   );
 }

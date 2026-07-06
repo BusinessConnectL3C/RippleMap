@@ -9,7 +9,7 @@ import { CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { OrganizationForm } from "@/components/account/OrganizationForm";
 import { MembersTable } from "@/components/account/MembersTable";
-import { InvitePanel } from "@/components/account/InvitePanel";
+import { InviteMembersDialog } from "@/components/account/InviteMembersDialog";
 
 export default async function AccountPage() {
   const session = await auth();
@@ -45,58 +45,47 @@ export default async function AccountPage() {
       <TopBar title="Account" />
       <div className="flex-1 p-6 space-y-6 max-w-3xl">
         <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProfileForm initialName={user.name} email={user.email} />
-          </CardContent>
+          <ProfileForm initialName={user.name} email={user.email} />
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Organization</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {su.role === "OWNER" ? (
-              <OrganizationForm initialName={org?.name ?? ""} />
-            ) : (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <span className="text-gray-500">Organization</span>
-                <span className="font-medium text-gray-900">{org?.name ?? "—"}</span>
-                <span className="text-gray-500">Org Type</span>
-                <span className="font-medium text-gray-900">{org?.type ?? "—"}</span>
-              </div>
-            )}
-            <p className="text-xs text-gray-400">Only owners can edit organization info.</p>
-          </CardContent>
+          {su.role === "OWNER" ? (
+            <OrganizationForm initialName={org?.name ?? ""} orgType={org?.type ?? ""} />
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle>Organization</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <span className="text-gray-500">Organization</span>
+                  <span className="font-medium text-gray-900">{org?.name ?? "—"}</span>
+                  <span className="text-gray-500">Org Type</span>
+                  <span className="font-medium text-gray-900">{org?.type ?? "—"}</span>
+                </div>
+                <p className="text-xs text-gray-400">Only owners can edit organization info.</p>
+              </CardContent>
+            </>
+          )}
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Organization Members</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <MembersTable members={members} currentUserId={session.user.id} currentUserRole={su.role} />
-          </CardContent>
-        </Card>
-
-        {canManageMembers && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Invite Members</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InvitePanel
+            {canManageMembers && (
+              <InviteMembersDialog
                 pendingInvites={pendingInvites.map((i) => ({
                   ...i,
                   role: i.role as "ADMIN" | "MEMBER",
                   expiresAt: i.expiresAt.toISOString(),
                 }))}
               />
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardHeader>
+          <CardContent className="p-0">
+            <MembersTable members={members} currentUserId={session.user.id} currentUserRole={su.role} />
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
