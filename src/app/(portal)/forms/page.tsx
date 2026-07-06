@@ -15,18 +15,22 @@ export default async function FormsPage() {
     select: { arcgisGroupId: true },
   });
 
-  const [survey123Items, fieldmapsItems] = org?.arcgisGroupId
+  const [surveyForms, webMaps] = org?.arcgisGroupId
     ? await Promise.all([
         listGroupItems(org.arcgisGroupId, "Form", 50).catch(() => []),
-        listGroupItems(org.arcgisGroupId, "Feature Service", 50).catch(() => []),
+        listGroupItems(org.arcgisGroupId, "Web Map", 50).catch(() => []),
       ])
     : [[], []];
+
+  const items = [...surveyForms, ...webMaps].sort((a, b) =>
+    a.title.localeCompare(b.title)
+  );
 
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Forms & Surveys" />
       <div className="flex-1 p-6">
-        <FormList survey123Items={survey123Items} fieldmapsItems={fieldmapsItems} />
+        <FormList items={items} />
       </div>
     </div>
   );

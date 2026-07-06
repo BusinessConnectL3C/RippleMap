@@ -44,7 +44,7 @@ export async function listGroupItems(
   });
 
   const res = await fetch(
-    `${AGOL_BASE}/content/groups/${groupId}/items?${params}`
+    `${AGOL_BASE}/content/groups/${groupId}/search?${params}`
   );
   if (!res.ok) throw new Error(`Failed to list group items: ${res.statusText}`);
 
