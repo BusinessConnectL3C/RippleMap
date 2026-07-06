@@ -21,12 +21,12 @@ export interface ArcGISItem {
   snippet?: string;
 }
 
-export interface ArcGISGroupItemsResponse {
+export interface ArcGISSearchResponse {
   total: number;
   start: number;
   num: number;
   nextStart: number;
-  items: ArcGISItem[];
+  results: ArcGISItem[];
 }
 
 export interface FeatureServiceField {

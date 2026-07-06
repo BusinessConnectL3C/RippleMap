@@ -1,4 +1,4 @@
-import type { ArcGISGroupItemsResponse, ArcGISItem } from "@/types/arcgis";
+import type { ArcGISItem, ArcGISSearchResponse } from "@/types/arcgis";
 import { getAdminToken, getBCAppToken } from "./auth";
 
 const AGOL_BASE = "https://www.arcgis.com/sharing/rest";
@@ -36,20 +36,19 @@ export async function listGroupItems(
   num = 50
 ): Promise<ArcGISItem[]> {
   const token = await getAdminToken();
+  const q = type ? `group:${groupId} AND type:"${type}"` : `group:${groupId}`;
   const params = new URLSearchParams({
     f: "json",
     token,
     num: String(num),
-    ...(type ? { q: `type:"${type}"` } : {}),
+    q,
   });
 
-  const res = await fetch(
-    `${AGOL_BASE}/content/groups/${groupId}/search?${params}`
-  );
+  const res = await fetch(`${AGOL_BASE}/search?${params}`);
   if (!res.ok) throw new Error(`Failed to list group items: ${res.statusText}`);
 
-  const data: ArcGISGroupItemsResponse = await res.json();
-  return data.items ?? [];
+  const data: ArcGISSearchResponse = await res.json();
+  return data.results ?? [];
 }
 
 /** Add a user to an ArcGIS group using the BC admin account. */
