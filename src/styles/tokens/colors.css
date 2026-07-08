@@ -1,0 +1,92 @@
+/* RippleMap — Color tokens
+ * Ported from the RippleMap Design System (Claude Design), derived from the
+ * RippleMap Brand Style Guide (Tanner Thibert Studio, July 2026).
+ * Primary: Field Green #6c8042 · Secondary: Deep Grey #303030
+ * Accent: Organic Yellow #e4cd4b · plus White & Black.
+ * Scales below are harmonious tints/shades derived from those anchors. */
+
+:root {
+  /* ---- Brand anchors (verbatim from the guide) ---- */
+  --field-green: #6c8042;
+  --deep-grey: #303030;
+  --organic-yellow: #e4cd4b;
+  --white: #ffffff;
+  --black: #000000;
+
+  /* ---- Field Green scale ---- */
+  --green-50: #f2f4ec;
+  --green-100: #e3e8d5;
+  --green-200: #cbd5b0;
+  --green-300: #adbd83;
+  --green-400: #8fa25f;
+  --green-500: #6c8042; /* Field Green — primary */
+  --green-600: #586a37;
+  --green-700: #46542d;
+  --green-800: #384226;
+  --green-900: #2d341f;
+
+  /* ---- Organic Yellow scale ---- */
+  --yellow-50: #fdfaec;
+  --yellow-100: #faf1c9;
+  --yellow-200: #f2e494;
+  --yellow-300: #e4cd4b; /* Organic Yellow — accent */
+  --yellow-400: #d0b533;
+  --yellow-500: #ac9327;
+
+  /* ---- Neutral scale (warm grey, anchored on Deep Grey) ---- */
+  --neutral-0: #ffffff;
+  --neutral-50: #f7f7f6;
+  --neutral-100: #efefed;
+  --neutral-200: #e3e3df;
+  --neutral-300: #cbcbc6;
+  --neutral-400: #a4a49e;
+  --neutral-500: #7a7a74;
+  --neutral-600: #575754;
+  --neutral-700: #434342;
+  --neutral-800: #303030; /* Deep Grey */
+  --neutral-900: #1b1b1b;
+
+  /* ---- Status (earthy, brand-consistent — no cliché bright blue) ---- */
+  --success: #4f8a4a;
+  --success-subtle: #eaf3e6;
+  --warning: #d0a017;
+  --warning-subtle: #faf1c9;
+  --danger: #bc4a30;
+  --danger-subtle: #f7e6e0;
+  --info: #4b7d78;
+  --info-subtle: #e5efee;
+
+  /* ---- Semantic aliases ---- */
+  --brand: var(--green-500);
+  --brand-hover: var(--green-600);
+  --brand-active: var(--green-700);
+  --brand-subtle: var(--green-50);
+  --brand-border: var(--green-200);
+  --on-brand: var(--white);
+
+  --accent: var(--yellow-300);
+  --accent-hover: var(--yellow-400);
+  --accent-subtle: var(--yellow-50);
+  --on-accent: var(--deep-grey);
+
+  --text-primary: var(--neutral-800);
+  --text-secondary: var(--neutral-600);
+  --text-muted: var(--neutral-500);
+  --text-disabled: var(--neutral-400);
+  --text-inverse: var(--white);
+  --text-brand: var(--green-700);
+  --text-link: var(--green-700);
+  --text-link-hover: var(--green-800);
+
+  --surface-page: var(--neutral-50);
+  --surface-card: var(--white);
+  --surface-sunken: var(--neutral-100);
+  --surface-hover: var(--neutral-50);
+  --surface-inverse: var(--deep-grey);
+
+  --border: var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --border-focus: var(--green-500);
+
+  --overlay: rgba(27, 27, 27, 0.48);
+}

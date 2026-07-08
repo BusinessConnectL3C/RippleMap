@@ -78,7 +78,7 @@ export function OrganizationForm({ initialName, orgType }: Props) {
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving || !name.trim()} className="bg-[#1B4F72] hover:bg-[#154060]">
+              <Button onClick={handleSave} disabled={saving || !name.trim()}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Save changes
               </Button>

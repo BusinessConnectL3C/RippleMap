@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PendingInvite {
   id: string;
@@ -78,17 +79,17 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
         </div>
         <div className="space-y-2">
           <Label htmlFor="inviteRole">Role</Label>
-          <select
-            id="inviteRole"
-            value={role}
-            onChange={(e) => setRole(e.target.value as "ADMIN" | "MEMBER")}
-            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
-          >
-            <option value="MEMBER">Member</option>
-            <option value="ADMIN">Admin</option>
-          </select>
+          <Select value={role} onValueChange={(value) => setRole(value as "ADMIN" | "MEMBER")}>
+            <SelectTrigger id="inviteRole" className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MEMBER">Member</SelectItem>
+              <SelectItem value="ADMIN">Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Button onClick={handleInvite} disabled={sending || !email.trim()} className="bg-[#1B4F72] hover:bg-[#154060]">
+        <Button onClick={handleInvite} disabled={sending || !email.trim()}>
           {sending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
           Invite
         </Button>
@@ -103,12 +104,12 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
       )}
 
       {newLink && (
-        <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm space-y-2">
-          <p className="text-blue-800">
+        <div className="rounded-md bg-[var(--info-subtle)] border border-[var(--info)]/30 p-3 text-sm space-y-2">
+          <p className="text-[var(--info)]">
             No email service is connected yet — copy this link and send it to your teammate directly.
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 truncate rounded bg-white border border-blue-200 px-2 py-1 text-xs text-gray-700">
+            <code className="flex-1 truncate rounded bg-white border border-[var(--info)]/30 px-2 py-1 text-xs text-gray-700">
               {newLink}
             </code>
             <Button variant="outline" size="sm" onClick={() => copyLink(newLink)} className="gap-1">

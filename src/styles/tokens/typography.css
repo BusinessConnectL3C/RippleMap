@@ -1,0 +1,44 @@
+/* RippleMap — Typography tokens
+ * Display face carries brand personality (headings, logo-adjacent copy).
+ * Body face handles UI + long-form copy: clear, mature, unfussy.
+ * --font-display / --font-body / --font-mono are populated at runtime by the
+ * next/font variables applied on <html> in src/app/layout.tsx. */
+
+:root {
+  /* ---- Families (fallbacks only — next/font supplies the primary face) ---- */
+  --font-display: "Onest", "Also Sans", system-ui, sans-serif;
+  --font-body: "Hanken Grotesk", "Neue Haas Grotesk Display Pro", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* ---- Type scale (1.200 minor-third, 16px base) ---- */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-md: 1.125rem; /* 18px */
+  --text-lg: 1.375rem; /* 22px */
+  --text-xl: 1.75rem; /* 28px */
+  --text-2xl: 2.25rem; /* 36px */
+  --text-3xl: 2.875rem; /* 46px */
+  --text-4xl: 3.75rem; /* 60px */
+  --text-5xl: 4.75rem; /* 76px */
+
+  /* ---- Weights ---- */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* ---- Line heights ---- */
+  --leading-tight: 1.05;
+  --leading-snug: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* ---- Letter spacing ---- */
+  --tracking-tight: -0.02em;
+  --tracking-snug: -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.02em;
+  --tracking-caps: 0.08em; /* uppercase eyebrows / labels */
+}

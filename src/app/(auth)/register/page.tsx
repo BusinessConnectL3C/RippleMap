@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Logo } from "@/components/ui/logo";
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -28,7 +30,7 @@ type FormData = z.infer<typeof schema>;
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { orgType: "NONPROFIT" },
   });
@@ -60,11 +62,9 @@ export default function RegisterPage() {
     <div className="flex min-h-full items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1B4F72]">
-            <span className="text-xl font-bold text-white">R</span>
-          </div>
+          <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
           <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
-          <p className="text-gray-500">Join RippleMap Client Portal</p>
+          <p className="text-gray-500">Join the RippleMap client portal</p>
         </div>
 
         <Card>
@@ -94,14 +94,21 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="orgType">Organization Type</Label>
-                <select
-                  id="orgType"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
-                  {...register("orgType")}
-                >
-                  <option value="NONPROFIT">Nonprofit</option>
-                  <option value="CORPORATE">Corporate</option>
-                </select>
+                <Controller
+                  name="orgType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="orgType">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONPROFIT">Nonprofit</SelectItem>
+                        <SelectItem value="CORPORATE">Corporate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
@@ -127,7 +134,7 @@ export default function RegisterPage() {
 
             <p className="mt-4 text-center text-sm text-gray-500">
               Already have an account?{" "}
-              <Link href="/login" className="font-medium text-[#1B4F72] hover:underline">
+              <Link href="/login" className="font-medium text-link hover:text-link-hover hover:underline">
                 Sign in
               </Link>
             </p>

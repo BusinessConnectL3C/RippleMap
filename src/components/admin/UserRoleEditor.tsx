@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface User {
   id: string;
@@ -51,16 +52,20 @@ export function UserRoleEditor({ users }: { users: User[] }) {
             <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
             <td className="px-4 py-3 text-gray-600">{user.email}</td>
             <td className="px-4 py-3">
-              <select
+              <Select
                 value={user.role}
                 disabled={pending === user.id + ":role"}
-                onChange={(e) => updateRole(user.id, e.target.value)}
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
+                onValueChange={(value) => updateRole(user.id, value)}
               >
-                <option value="OWNER">Owner</option>
-                <option value="ADMIN">Admin</option>
-                <option value="MEMBER">Member</option>
-              </select>
+                <SelectTrigger className="h-8 w-28 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OWNER">Owner</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="MEMBER">Member</SelectItem>
+                </SelectContent>
+              </Select>
               {pending === user.id + ":role" && (
                 <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-400" />
               )}

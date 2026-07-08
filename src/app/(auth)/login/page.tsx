@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -46,11 +47,8 @@ export default function LoginPage() {
     <div className="flex min-h-full items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1B4F72]">
-            <span className="text-xl font-bold text-white">R</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">RippleMap</h2>
-          <p className="text-gray-500">Client Portal</p>
+          <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
+          <p className="text-gray-500">Client portal</p>
         </div>
 
         <Card>
@@ -83,7 +81,7 @@ export default function LoginPage() {
 
             <p className="mt-4 text-center text-sm text-gray-500">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="font-medium text-[#1B4F72] hover:underline">
+              <Link href="/register" className="font-medium text-link hover:text-link-hover hover:underline">
                 Register
               </Link>
             </p>

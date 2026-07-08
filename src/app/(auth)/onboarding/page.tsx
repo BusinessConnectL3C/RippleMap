@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getStepsForOrgType } from "@/lib/onboarding/steps";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
+import { Logo } from "@/components/ui/logo";
 
 export default async function OnboardingPage() {
   const session = await auth();
@@ -30,9 +31,7 @@ export default async function OnboardingPage() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1B4F72]">
-          <span className="text-xl font-bold text-white">R</span>
-        </div>
+        <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
         <h1 className="text-2xl font-bold text-gray-900">Welcome to RippleMap</h1>
         <p className="text-gray-500">
           Complete the steps below to get your {orgTypeLabel} account set up.

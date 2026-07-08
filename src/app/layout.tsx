@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Onest, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { Toaster } from "@/components/ui/toaster";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const fontDisplay = Onest({ subsets: ["latin"], variable: "--font-display" });
+const fontBody = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-body" });
+const fontMono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "RippleMap | Client Portal",
@@ -12,9 +15,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} h-full`}>
-      <body className="h-full bg-gray-50 font-sans antialiased">
+    <html lang="en" className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable} h-full`}>
+      <body className="h-full bg-surface-page font-sans antialiased">
         <SessionProvider>{children}</SessionProvider>
+        <Toaster />
       </body>
     </html>
   );

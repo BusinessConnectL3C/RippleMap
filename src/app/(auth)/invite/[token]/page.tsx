@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AcceptInviteForm } from "@/components/auth/AcceptInviteForm";
+import { Logo } from "@/components/ui/logo";
 
 export default async function AcceptInvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -24,11 +25,8 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
     <div className="flex min-h-full items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1B4F72]">
-            <span className="text-xl font-bold text-white">R</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">RippleMap</h2>
-          <p className="text-gray-500">Client Portal</p>
+          <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
+          <p className="text-gray-500">Client portal</p>
         </div>
 
         <Card>

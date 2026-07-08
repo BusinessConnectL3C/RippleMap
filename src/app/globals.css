@@ -1,26 +1,171 @@
 @import "tailwindcss";
+@import "../styles/tokens/colors.css";
+@import "../styles/tokens/typography.css";
+@import "../styles/tokens/spacing.css";
+@import "../styles/tokens/effects.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--surface-page);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
+  /* ---- Fonts (populated by next/font variables set on <html>) ---- */
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  /* ---- Base background/foreground (shadcn-style aliases) ---- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* ---- RippleMap brand + semantic tokens (net-new utilities: bg-brand, text-link, ...) ---- */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-active: var(--brand-active);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-link: var(--text-link);
+  --color-link-hover: var(--text-link-hover);
+  --color-surface-page: var(--surface-page);
+  --color-surface-card: var(--surface-card);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ring: var(--border-focus);
+
+  /* ---- Override Tailwind's default neutral scale with the DS's warm-grey scale ----
+   * 1:1 with tokens/colors.css --neutral-*, so every existing gray-* utility
+   * (bg-gray-50, text-gray-900, border-gray-200, ...) picks this up for free. */
+  --color-gray-50: #f7f7f6;
+  --color-gray-100: #efefed;
+  --color-gray-200: #e3e3df;
+  --color-gray-300: #cbcbc6;
+  --color-gray-400: #a4a49e;
+  --color-gray-500: #7a7a74;
+  --color-gray-600: #575754;
+  --color-gray-700: #434342;
+  --color-gray-800: #303030;
+  --color-gray-900: #1b1b1b;
+
+  /* ---- Override Tailwind's default red/green/yellow with earthy status ramps ----
+   * These are STATUS colors only (success/danger/warning), distinct from the
+   * Field Green brand ramp above. 50/100/500/600/700 come straight from the
+   * DS's --danger/--success/--warning (+ subtle) tokens; the remaining steps
+   * are interpolated to fill out a full Tailwind-style 10-step scale. */
+  --color-red-50: #f7e6e0;
+  --color-red-100: #f0d0c4;
+  --color-red-200: #e3ac99;
+  --color-red-300: #d5876d;
+  --color-red-400: #c86853;
+  --color-red-500: #bc4a30;
+  --color-red-600: #a53f28;
+  --color-red-700: #833321;
+  --color-red-800: #68291b;
+  --color-red-900: #532115;
+
+  --color-green-50: #eaf3e6;
+  --color-green-100: #d7e9d0;
+  --color-green-200: #b3d5a7;
+  --color-green-300: #8fc17e;
+  --color-green-400: #6ba659;
+  --color-green-500: #4f8a4a;
+  --color-green-600: #3f6f3b;
+  --color-green-700: #33592f;
+  --color-green-800: #294726;
+  --color-green-900: #21391e;
+
+  --color-yellow-50: #faf1c9;
+  --color-yellow-100: #f2e494;
+  --color-yellow-200: #e9d976;
+  --color-yellow-300: #ddc850;
+  --color-yellow-400: #d6b62a;
+  --color-yellow-500: #d0a017;
+  --color-yellow-600: #ac9327;
+  --color-yellow-700: #8a7620;
+  --color-yellow-800: #6d5c1a;
+  --color-yellow-900: #574a16;
+
+  /* ---- Radius (soft, human) — overrides Tailwind's default rounded-* scale ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+
+  /* ---- Shadow (soft, warm-grey) — overrides Tailwind's default shadow-* scale ---- */
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---- Base element styles (ported from the DS's tokens/base.css) ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--text-link-hover);
+  text-decoration: underline;
+}
+
+/* Uppercase eyebrow / label helper used across the brand */
+.rm-eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
 }
