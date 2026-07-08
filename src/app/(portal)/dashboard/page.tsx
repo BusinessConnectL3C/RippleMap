@@ -21,9 +21,12 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const recentMaps = org?.arcgisGroupId
-    ? await listGroupItems(org.arcgisGroupId, "Web Map", 6).catch(() => [])
-    : [];
+  const [recentMaps, activeForms] = org?.arcgisGroupId
+    ? await Promise.all([
+        listGroupItems(org.arcgisGroupId, "Web Map", 6).catch(() => []),
+        listGroupItems(org.arcgisGroupId, "Form", 50).catch(() => []),
+      ])
+    : [[], []];
 
   return (
     <div className="flex flex-col h-full">
@@ -41,9 +44,9 @@ export default async function DashboardPage() {
           />
           <SupportWidget openCount={openTickets} />
           <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm font-medium text-gray-500 mb-1">Active Forms</p>
-            <p className="text-2xl font-bold text-gray-900">—</p>
-            <p className="text-xs text-gray-400 mt-1">Survey123 forms available</p>
+            <p className="text-sm font-medium text-gray-600 mb-1">Active Forms</p>
+            <p className="text-2xl font-bold text-gray-900">{activeForms.length}</p>
+            <p className="text-xs text-gray-600 mt-1">Survey123 forms available</p>
           </div>
         </div>
 

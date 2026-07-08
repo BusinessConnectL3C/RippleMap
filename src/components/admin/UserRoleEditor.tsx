@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
@@ -13,26 +14,48 @@ interface User {
   role: string;
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
+};
+
 export function UserRoleEditor({ users }: { users: User[] }) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
 
-  async function updateRole(userId: string, role: string) {
+  async function updateRole(userId: string, name: string, role: string) {
+    if (
+      (role === "OWNER" || role === "ADMIN") &&
+      !confirm(`Give ${name} ${ROLE_LABEL[role]} access to this organization?`)
+    ) {
+      return;
+    }
     setPending(userId + ":role");
-    await fetch(`/api/admin/users/${userId}`, {
+    const res = await fetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role }),
     });
     setPending(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      toast({ variant: "danger", title: "Could not update role", description: data?.error ?? "Please try again." });
+      return;
+    }
     router.refresh();
   }
 
   async function removeUser(userId: string, name: string) {
     if (!confirm(`Remove ${name} from this organization?`)) return;
     setPending(userId + ":remove");
-    await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
     setPending(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      toast({ variant: "danger", title: "Could not remove user", description: data?.error ?? "Please try again." });
+      return;
+    }
     router.refresh();
   }
 
@@ -55,7 +78,7 @@ export function UserRoleEditor({ users }: { users: User[] }) {
               <Select
                 value={user.role}
                 disabled={pending === user.id + ":role"}
-                onValueChange={(value) => updateRole(user.id, value)}
+                onValueChange={(value) => updateRole(user.id, user.name, value)}
               >
                 <SelectTrigger className="h-8 w-28 text-xs">
                   <SelectValue />
@@ -67,7 +90,7 @@ export function UserRoleEditor({ users }: { users: User[] }) {
                 </SelectContent>
               </Select>
               {pending === user.id + ":role" && (
-                <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-400" />
+                <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-600" />
               )}
             </td>
             <td className="px-4 py-3 text-right">
@@ -76,6 +99,7 @@ export function UserRoleEditor({ users }: { users: User[] }) {
                 size="sm"
                 disabled={pending === user.id + ":remove"}
                 onClick={() => removeUser(user.id, user.name)}
+                aria-label={`Remove ${user.name}`}
                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
               >
                 {pending === user.id + ":remove" ? (

@@ -53,7 +53,7 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" value={email} disabled className="bg-gray-50 text-gray-500" />
+        <Input id="email" value={email} disabled className="bg-gray-50 text-gray-600" />
       </div>
 
       <div className="space-y-2">

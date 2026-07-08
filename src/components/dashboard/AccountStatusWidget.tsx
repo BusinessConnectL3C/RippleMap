@@ -15,7 +15,7 @@ export function AccountStatusWidget({ arcgisUsername, orgId, tokenExpiry }: Prop
   return (
     <Card>
       <CardContent className="p-6">
-        <p className="text-sm font-medium text-gray-500 mb-3">ArcGIS Connection</p>
+        <p className="text-sm font-medium text-gray-600 mb-3">ArcGIS Connection</p>
         {isLinked ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -29,12 +29,12 @@ export function AccountStatusWidget({ arcgisUsername, orgId, tokenExpiry }: Prop
               </Badge>
             </div>
             <p className="text-sm text-gray-700 font-medium">{arcgisUsername}</p>
-            <p className="text-xs text-gray-400">{orgId}</p>
+            <p className="text-xs text-gray-600">{orgId}</p>
           </div>
         ) : (
           <div className="space-y-2">
             <Badge variant="secondary">Not Connected</Badge>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-600">
               Complete onboarding to link your ArcGIS account.
             </p>
           </div>

@@ -19,8 +19,8 @@ export function MapWidget({ maps }: { maps: ArcGISItem[] }) {
         {maps.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Map className="h-10 w-10 text-gray-300 mb-2" />
-            <p className="text-sm text-gray-500">No maps available yet</p>
-            <p className="text-xs text-gray-400">Maps will appear here once added to your group</p>
+            <p className="text-sm text-gray-600">No maps available yet</p>
+            <p className="text-xs text-gray-600">Maps will appear here once added to your group</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

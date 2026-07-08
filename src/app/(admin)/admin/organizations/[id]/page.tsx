@@ -35,7 +35,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
       <div className="flex-1 p-6 space-y-6 max-w-3xl">
         <Link
           href="/admin/organizations"
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
+          className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800"
         >
           <ChevronLeft className="h-4 w-4" /> All organizations
         </Link>
@@ -66,7 +66,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               <Badge variant={org.onboardingState?.completed ? "success" : "secondary"}>
                 {org.onboardingState?.completed ? "Complete" : "In progress"}
               </Badge>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-600">
                 {completedSteps.length} / {totalSteps} steps done
               </span>
             </div>
@@ -92,7 +92,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
           </CardHeader>
           <CardContent className="p-0">
             {org.users.length === 0 ? (
-              <p className="p-4 text-sm text-gray-500">No users in this org.</p>
+              <p className="p-4 text-sm text-gray-600">No users in this org.</p>
             ) : (
               <UserRoleEditor
                 users={org.users.map((u) => ({

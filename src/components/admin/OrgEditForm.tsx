@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   orgId: string;
@@ -22,14 +23,12 @@ export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGrou
   const [arcgisGroupId, setArcgisGroupId] = useState(initialArcgisGroupId ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const typeChanged = type !== initialType;
 
   async function handleSave() {
     setSaving(true);
     setError(null);
-    setSuccess(false);
     const res = await fetch(`/api/admin/organizations/${orgId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -44,7 +43,7 @@ export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGrou
       const body = await res.json();
       setError(body.error ?? "Save failed");
     } else {
-      setSuccess(true);
+      toast({ variant: "success", title: "Organization saved" });
       router.refresh();
     }
   }
@@ -87,17 +86,12 @@ export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGrou
           placeholder="Paste group ID from ArcGIS Online"
           className="font-mono text-xs"
         />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-600">
           Found in ArcGIS Online → Groups → [Group] → Overview URL.
         </p>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
-      {success && (
-        <p className="text-sm text-green-600">Saved.</p>
-      )}
+      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       <Button onClick={handleSave} disabled={saving || !name.trim()}>
         {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

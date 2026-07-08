@@ -40,7 +40,7 @@ export function TicketList({ tickets }: Props) {
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <MessageSquare className="h-14 w-14 text-gray-300 mb-3" />
         <p className="text-lg font-medium text-gray-700">No support tickets yet</p>
-        <p className="text-sm text-gray-400 mt-1">Submit a ticket and our team will respond promptly.</p>
+        <p className="text-sm text-gray-600 mt-1">Submit a ticket and our team will respond promptly.</p>
       </div>
     );
   }
@@ -52,8 +52,8 @@ export function TicketList({ tickets }: Props) {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-gray-900">{ticket.title}</h3>
-              <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ticket.description}</p>
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{ticket.description}</p>
+              <p className="text-xs text-gray-600 mt-2">
                 {new Date(ticket.createdAt).toLocaleDateString()}
               </p>
             </div>

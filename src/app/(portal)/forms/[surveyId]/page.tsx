@@ -22,7 +22,7 @@ export default async function FormEditorPage({ params }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <TopBar title={item.title} />
+      <TopBar title={item.title} backHref="/forms" backLabel="Forms & Surveys" />
       <div className="flex-1 p-6">
         <FieldEditor
           surveyId={surveyId}
