@@ -45,7 +45,7 @@ export default async function AdminTicketsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/organizations/${ticket.organization.id}`}
-                      className="text-[#1B4F72] hover:underline font-medium"
+                      className="text-link hover:text-link-hover hover:underline font-medium"
                     >
                       {ticket.organization.name}
                     </Link>

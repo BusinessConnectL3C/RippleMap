@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Member {
   id: string;
@@ -86,18 +87,22 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
               <td className="px-4 py-3">
                 {canEditRow ? (
                   <>
-                    <select
+                    <Select
                       value={member.role}
                       disabled={pending === member.id + ":role"}
-                      onChange={(e) => updateRole(member.id, e.target.value)}
-                      className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
+                      onValueChange={(value) => updateRole(member.id, value)}
                     >
-                      {assignableRoles.map((r) => (
-                        <option key={r} value={r}>
-                          {ROLE_LABEL[r]}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-8 w-28 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignableRoles.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {ROLE_LABEL[r]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {pending === member.id + ":role" && (
                       <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-400" />
                     )}

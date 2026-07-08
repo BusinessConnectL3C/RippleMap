@@ -158,7 +158,7 @@ function FolderTab({ label, active, onClick }: { label: string; active: boolean;
     <button
       onClick={onClick}
       className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-        active ? "bg-[#1B4F72] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        active ? "bg-brand text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
       }`}
     >
       {label}

@@ -72,7 +72,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
             </div>
             {completedSteps.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {completedSteps.map((s) => (
+                {completedSteps.map((s: string) => (
                   <span
                     key={s}
                     className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 font-mono"

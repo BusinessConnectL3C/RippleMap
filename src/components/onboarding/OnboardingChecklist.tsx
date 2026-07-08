@@ -55,7 +55,7 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
               done
                 ? "border-green-200 bg-green-50"
                 : isActive
-                ? "border-[#1B4F72] bg-white shadow-sm"
+                ? "border-brand bg-white shadow-sm"
                 : "border-gray-200 bg-gray-50 opacity-60"
             }`}
           >
@@ -66,7 +66,7 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
                 ) : isLocked ? (
                   <Lock className="h-5 w-5 text-gray-400" />
                 ) : (
-                  <Circle className="h-5 w-5 text-[#1B4F72]" />
+                  <Circle className="h-5 w-5 text-brand" />
                 )}
               </div>
 
@@ -103,7 +103,7 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
 
                       {step.id === "arcgis_connect" && !arcgisConnected && (
                         <a href="/api/onboarding/link-arcgis">
-                          <Button size="sm" className="bg-[#1B4F72] hover:bg-[#154060] gap-1.5">
+                          <Button size="sm" className="gap-1.5">
                             <ExternalLink className="h-3.5 w-3.5" />
                             Connect ArcGIS Account
                           </Button>
@@ -113,7 +113,6 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
                       {step.selfReport && (
                         <Button
                           size="sm"
-                          className="bg-[#1B4F72] hover:bg-[#154060]"
                           disabled={completing === step.id}
                           onClick={() => markComplete(step.id)}
                         >

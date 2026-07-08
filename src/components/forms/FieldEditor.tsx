@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Layers, FileText } from "lucide-react";
 
 const SAFE_FIELD_TYPES = [
@@ -85,9 +86,9 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center gap-2">
         {isFieldMaps ? (
-          <Layers className="h-5 w-5 text-[#1B4F72]" />
+          <Layers className="h-5 w-5 text-brand" />
         ) : (
-          <FileText className="h-5 w-5 text-[#1B4F72]" />
+          <FileText className="h-5 w-5 text-brand" />
         )}
         <Badge variant="secondary">{isFieldMaps ? "FieldMaps Layer" : "Survey123 Form"}</Badge>
         {!serviceUrl && (
@@ -113,7 +114,7 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
         </CardHeader>
         <CardContent>
           {showAddForm && (
-            <div className="mb-4 rounded-lg border border-[#1B4F72]/30 bg-[#EBF5FB] p-4 space-y-3">
+            <div className="mb-4 rounded-lg border border-brand/30 bg-brand-subtle p-4 space-y-3">
               <p className="text-sm font-medium text-gray-900">New Field</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -137,16 +138,19 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
               </div>
               <div className="space-y-1">
                 <Label htmlFor="fieldType" className="text-xs">Type</Label>
-                <select
-                  id="fieldType"
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
+                <Select
                   value={newField.type}
-                  onChange={(e) => setNewField((f) => ({ ...f, type: e.target.value }))}
+                  onValueChange={(value) => setNewField((f) => ({ ...f, type: value }))}
                 >
-                  {SAFE_FIELD_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+                  <SelectTrigger id="fieldType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SAFE_FIELD_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleAddField} disabled={saving || !newField.name || !newField.alias}>

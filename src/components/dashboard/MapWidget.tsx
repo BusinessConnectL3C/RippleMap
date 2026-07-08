@@ -26,9 +26,9 @@ export function MapWidget({ maps }: { maps: ArcGISItem[] }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {maps.map((map) => (
               <Link key={map.id} href={`/maps/${map.id}`}>
-                <div className="group rounded-lg border border-gray-200 overflow-hidden hover:border-[#1B4F72] transition-colors cursor-pointer">
-                  <div className="h-20 bg-gradient-to-br from-[#1B4F72]/10 to-[#1B4F72]/20 flex items-center justify-center">
-                    <Map className="h-6 w-6 text-[#1B4F72]/60 group-hover:text-[#1B4F72] transition-colors" />
+                <div className="group rounded-lg border border-gray-200 overflow-hidden hover:border-brand transition-colors cursor-pointer">
+                  <div className="h-20 bg-gradient-to-br from-brand/10 to-brand/20 flex items-center justify-center">
+                    <Map className="h-6 w-6 text-brand/60 group-hover:text-brand transition-colors" />
                   </div>
                   <div className="p-2">
                     <p className="text-xs font-medium text-gray-900 truncate">{map.title}</p>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { TopBar } from "@/components/layout/TopBar";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const schema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters").max(200),
@@ -23,7 +24,7 @@ type FormData = z.infer<typeof schema>;
 export default function NewTicketPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { priority: "NORMAL" as const },
   });
@@ -78,16 +79,23 @@ export default function NewTicketPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <select
-                    id="priority"
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
-                    {...register("priority")}
-                  >
-                    <option value="LOW">Low — general question</option>
-                    <option value="NORMAL">Normal — something isn&apos;t working right</option>
-                    <option value="HIGH">High — blocking my work</option>
-                    <option value="URGENT">Urgent — critical data or access issue</option>
-                  </select>
+                  <Controller
+                    name="priority"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="priority">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="LOW">Low — general question</SelectItem>
+                          <SelectItem value="NORMAL">Normal — something isn&apos;t working right</SelectItem>
+                          <SelectItem value="HIGH">High — blocking my work</SelectItem>
+                          <SelectItem value="URGENT">Urgent — critical data or access issue</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
 
                 {error && (

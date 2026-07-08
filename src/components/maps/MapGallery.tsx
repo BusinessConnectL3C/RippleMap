@@ -3,9 +3,9 @@ import type { ArcGISItem } from "@/types/arcgis";
 import { Map, LayoutDashboard, ExternalLink, Layers } from "lucide-react";
 
 function ItemIcon({ type }: { type: string }) {
-  if (type === "Dashboard") return <LayoutDashboard className="h-10 w-10 text-[#1B4F72]/50 group-hover:text-[#1B4F72] transition-colors" />;
-  if (type === "Web Experience") return <Layers className="h-10 w-10 text-[#1B4F72]/50 group-hover:text-[#1B4F72] transition-colors" />;
-  return <Map className="h-10 w-10 text-[#1B4F72]/50 group-hover:text-[#1B4F72] transition-colors" />;
+  if (type === "Dashboard") return <LayoutDashboard className="h-10 w-10 text-brand/50 group-hover:text-brand transition-colors" />;
+  if (type === "Web Experience") return <Layers className="h-10 w-10 text-brand/50 group-hover:text-brand transition-colors" />;
+  return <Map className="h-10 w-10 text-brand/50 group-hover:text-brand transition-colors" />;
 }
 
 function externalUrl(item: ArcGISItem): string {
@@ -31,8 +31,8 @@ export function MapGallery({ maps }: { maps: ArcGISItem[] }) {
       {maps.map((item) => {
         const isExternal = item.type === "Web Experience";
         const cardContent = (
-          <div className="group rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md hover:border-[#1B4F72] transition-all cursor-pointer">
-            <div className="h-36 bg-gradient-to-br from-[#1B4F72]/10 via-[#1B4F72]/15 to-[#2E86C1]/20 flex items-center justify-center relative">
+          <div className="group rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md hover:border-brand transition-all cursor-pointer">
+            <div className="h-36 bg-gradient-to-br from-brand/10 via-brand/15 to-accent/20 flex items-center justify-center relative">
               <ItemIcon type={item.type} />
               {isExternal && (
                 <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs text-gray-500">

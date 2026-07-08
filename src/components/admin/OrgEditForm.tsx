@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -61,15 +62,15 @@ export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGrou
 
       <div className="space-y-2">
         <Label htmlFor="type">Organization Type</Label>
-        <select
-          id="type"
-          value={type}
-          onChange={(e) => setType(e.target.value as "NONPROFIT" | "CORPORATE")}
-          className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
-        >
-          <option value="NONPROFIT">Nonprofit</option>
-          <option value="CORPORATE">Corporate</option>
-        </select>
+        <Select value={type} onValueChange={(value) => setType(value as "NONPROFIT" | "CORPORATE")}>
+          <SelectTrigger id="type">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="NONPROFIT">Nonprofit</SelectItem>
+            <SelectItem value="CORPORATE">Corporate</SelectItem>
+          </SelectContent>
+        </Select>
         {typeChanged && (
           <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
             Changing the org type will reset this org&apos;s onboarding progress.
@@ -98,11 +99,7 @@ export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGrou
         <p className="text-sm text-green-600">Saved.</p>
       )}
 
-      <Button
-        onClick={handleSave}
-        disabled={saving || !name.trim()}
-        className="bg-[#1B4F72] hover:bg-[#154060]"
-      >
+      <Button onClick={handleSave} disabled={saving || !name.trim()}>
         {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
         Save changes
       </Button>

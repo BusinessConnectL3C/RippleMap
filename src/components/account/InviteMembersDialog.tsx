@@ -19,7 +19,7 @@ export function InviteMembersDialog({ pendingInvites }: { pendingInvites: Pendin
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5 bg-[#1B4F72] hover:bg-[#154060]">
+        <Button size="sm" className="gap-1.5">
           <UserPlus className="h-3.5 w-3.5" />
           Invite
         </Button>

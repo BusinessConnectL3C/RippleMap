@@ -18,7 +18,7 @@ export function TopBar({ title }: TopBarProps) {
           <Bell className="h-5 w-5" />
         </button>
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1B4F72] text-white text-sm font-medium">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-white text-sm font-medium">
             {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
           </div>
           <div className="hidden sm:block">

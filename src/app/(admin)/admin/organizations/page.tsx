@@ -66,7 +66,7 @@ export default async function AdminOrgsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/organizations/${org.id}`}
-                      className="flex items-center gap-1 text-[#1B4F72] hover:underline text-xs font-medium"
+                      className="flex items-center gap-1 text-link hover:text-link-hover hover:underline text-xs font-medium"
                     >
                       Manage <ChevronRight className="h-3 w-3" />
                     </Link>
