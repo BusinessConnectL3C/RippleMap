@@ -14,8 +14,8 @@ export function Hero() {
     <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-6 py-16 sm:px-12 sm:py-20 lg:grid-cols-[1.05fr_0.95fr]">
       <div>
         <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-brand-subtle px-3 py-1.5">
-          <Sparkles className="h-[15px] w-[15px] text-green-700" />
-          <span className="text-[13px] font-semibold text-green-700">Impact, made clear</span>
+          <Sparkles className="h-[15px] w-[15px] text-link" />
+          <span className="text-[13px] font-semibold text-link">Impact, made clear</span>
         </div>
         <h1 className="text-4xl leading-[1.05] sm:text-5xl">
           Understand, measure, and communicate your impact.
@@ -40,6 +40,7 @@ export function Hero() {
       <div className="relative overflow-hidden rounded-2xl border border-border bg-surface-card shadow-xl">
         <div
           className="relative h-80"
+          aria-hidden="true"
           style={{
             background:
               "radial-gradient(circle at 34% 40%, var(--green-100), transparent 40%), radial-gradient(circle at 70% 66%, var(--yellow-100), transparent 38%), var(--neutral-100)",

@@ -7,6 +7,7 @@ export function CTA() {
       <div className="relative overflow-hidden rounded-2xl bg-brand-hover px-8 py-14 text-center sm:px-12">
         <div
           className="absolute inset-0 opacity-50"
+          aria-hidden="true"
           style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px)", backgroundSize: "26px 26px" }}
         />
         <div className="relative">

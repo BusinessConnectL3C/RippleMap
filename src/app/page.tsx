@@ -9,10 +9,12 @@ export default function MarketingPage() {
   return (
     <div className="bg-surface-card">
       <Nav />
-      <Hero />
-      <Features />
-      <ImpactBand />
-      <CTA />
+      <main>
+        <Hero />
+        <Features />
+        <ImpactBand />
+        <CTA />
+      </main>
       <Footer />
     </div>
   );

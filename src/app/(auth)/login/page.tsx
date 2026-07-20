@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -60,18 +61,37 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@org.com" {...register("email")} />
-                {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@org.com"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "email-error" : undefined}
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p id="email-error" className="text-xs text-red-600">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" {...register("password")} />
-                {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? "password-error" : undefined}
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p id="password-error" className="text-xs text-red-600">{errors.password.message}</p>
+                )}
               </div>
 
               {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+                <div role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
               )}
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>

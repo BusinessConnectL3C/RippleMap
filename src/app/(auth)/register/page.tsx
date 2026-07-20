@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Logo } from "@/components/ui/logo";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -63,33 +64,54 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
-          <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
           <p className="text-gray-500">Join the RippleMap client portal</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Register</CardTitle>
+            <CardTitle>Create your account</CardTitle>
             <CardDescription>Your BC team will complete your setup after registration</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" placeholder="Jane Smith" {...register("name")} />
-                {errors.name && <p className="text-xs text-red-600">{errors.name.message}</p>}
+                <Input
+                  id="name"
+                  placeholder="Jane Smith"
+                  autoComplete="name"
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? "name-error" : undefined}
+                  {...register("name")}
+                />
+                {errors.name && <p id="name-error" className="text-xs text-red-600">{errors.name.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="jane@org.com" {...register("email")} />
-                {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="jane@org.com"
+                  autoComplete="email"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "email-error" : undefined}
+                  {...register("email")}
+                />
+                {errors.email && <p id="email-error" className="text-xs text-red-600">{errors.email.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="orgName">Organization Name</Label>
-                <Input id="orgName" placeholder="Acme Nonprofit" {...register("orgName")} />
-                {errors.orgName && <p className="text-xs text-red-600">{errors.orgName.message}</p>}
+                <Input
+                  id="orgName"
+                  placeholder="Acme Nonprofit"
+                  autoComplete="organization"
+                  aria-invalid={!!errors.orgName}
+                  aria-describedby={errors.orgName ? "orgName-error" : undefined}
+                  {...register("orgName")}
+                />
+                {errors.orgName && <p id="orgName-error" className="text-xs text-red-600">{errors.orgName.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -113,18 +135,36 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="Min. 8 characters" {...register("password")} />
-                {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+                <PasswordInput
+                  id="password"
+                  placeholder="Min. 8 characters"
+                  autoComplete="new-password"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? "password-error" : undefined}
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p id="password-error" className="text-xs text-red-600">{errors.password.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input id="confirmPassword" type="password" placeholder="••••••••" {...register("confirmPassword")} />
-                {errors.confirmPassword && <p className="text-xs text-red-600">{errors.confirmPassword.message}</p>}
+                <PasswordInput
+                  id="confirmPassword"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  aria-invalid={!!errors.confirmPassword}
+                  aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+                  {...register("confirmPassword")}
+                />
+                {errors.confirmPassword && (
+                  <p id="confirmPassword-error" className="text-xs text-red-600">{errors.confirmPassword.message}</p>
+                )}
               </div>
 
               {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+                <div role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
               )}
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>

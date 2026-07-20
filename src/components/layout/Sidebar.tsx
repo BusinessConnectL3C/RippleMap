@@ -33,6 +33,7 @@ function NavLink({ href, label, icon: Icon, isActive }: { href: string; label: s
   return (
     <Link
       href={href}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
         isActive
@@ -53,7 +54,9 @@ export function Sidebar({ showMedia = false, orgName }: { showMedia?: boolean; o
   return (
     <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white">
       <div className="flex h-16 flex-col justify-center gap-0.5 border-b border-gray-200 px-6">
-        <Logo type="secondary" tone="black" height={22} />
+        <Link href="/dashboard">
+          <Logo type="secondary" tone="black" height={22} />
+        </Link>
         <p className="truncate text-xs text-gray-500" title={orgName}>
           {orgName ?? "Client Portal"}
         </p>
