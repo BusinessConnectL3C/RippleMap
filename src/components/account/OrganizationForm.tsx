@@ -65,10 +65,10 @@ export function OrganizationForm({ initialName, orgType }: Props) {
       <CardContent className="space-y-3">
         {!isEditing ? (
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <span className="text-gray-600">Organization</span>
-            <span className="font-medium text-gray-900">{initialName || "—"}</span>
-            <span className="text-gray-600">Org Type</span>
-            <span className="font-medium text-gray-900">{orgType || "—"}</span>
+            <span className="rm-eyebrow">Organization</span>
+            <span className="font-medium text-text-primary">{initialName || "—"}</span>
+            <span className="rm-eyebrow">Org Type</span>
+            <span className="font-medium text-text-primary">{orgType || "—"}</span>
           </div>
         ) : (
           <div className="space-y-4">
@@ -77,7 +77,7 @@ export function OrganizationForm({ initialName, orgType }: Props) {
               <Input id="orgName" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
 
-            {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            {error && <div className="rounded-md bg-[var(--danger-subtle)] p-3 text-sm text-[var(--danger)]">{error}</div>}
 
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={saving || !name.trim()}>

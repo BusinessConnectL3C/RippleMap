@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Download, X, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, Search, FolderOpen } from "lucide-react";
 import { S3FileInfo } from "@/lib/aws/s3";
 import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "avif", "svg"]);
 const VIDEO_EXTS = new Set(["mp4", "mov", "webm"]);
@@ -108,7 +110,7 @@ export function MediaGallery() {
       {/* Search */}
       {files.length > 6 && (
         <div className="relative mb-4 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -121,15 +123,19 @@ export function MediaGallery() {
 
       {/* Grid */}
       {files.length === 0 && loading ? (
-        <div className="flex items-center justify-center py-24 text-gray-600">
+        <div className="flex items-center justify-center py-24 text-text-muted">
           <p className="text-sm">Loading...</p>
         </div>
       ) : files.length === 0 ? (
-        <div className="flex items-center justify-center py-24 text-gray-600">
-          <p className="text-sm">No files found.</p>
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-sunken mb-3">
+            <FolderOpen className="h-7 w-7 text-text-muted" />
+          </div>
+          <p className="text-text-secondary font-medium">No files found</p>
+          <p className="text-sm text-text-muted mt-1">Files uploaded to your media library will appear here.</p>
         </div>
       ) : visibleFiles.length === 0 ? (
-        <p className="py-10 text-center text-sm text-gray-600">No files match &ldquo;{query}&rdquo;.</p>
+        <p className="py-10 text-center text-sm text-text-muted">No files match &ldquo;{query}&rdquo;.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -147,7 +153,7 @@ export function MediaGallery() {
               <button
                 onClick={loadMore}
                 disabled={loading}
-                className="rounded-md border border-gray-300 px-6 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                className="rounded-md border border-border px-6 py-2 text-sm font-medium text-text-secondary hover:bg-surface-hover disabled:opacity-50 transition-colors"
               >
                 {loading ? "Loading..." : "Load more"}
               </button>
@@ -155,7 +161,7 @@ export function MediaGallery() {
           )}
 
           {!nextCursor && visibleFiles.length > 0 && (
-            <p className="mt-6 text-center text-xs text-gray-600">{visibleFiles.length} file{visibleFiles.length !== 1 ? "s" : ""}</p>
+            <p className="mt-6 text-center text-xs text-text-muted">{visibleFiles.length} file{visibleFiles.length !== 1 ? "s" : ""}</p>
           )}
         </>
       )}
@@ -180,7 +186,7 @@ function FolderTab({ label, active, onClick }: { label: string; active: boolean;
     <button
       onClick={onClick}
       className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-        active ? "bg-brand text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        active ? "bg-brand text-white" : "bg-surface-sunken text-text-secondary hover:bg-surface-hover"
       }`}
     >
       {label}
@@ -189,33 +195,43 @@ function FolderTab({ label, active, onClick }: { label: string; active: boolean;
 }
 
 function MediaCard({ file, onPreview }: { file: S3FileInfo; onPreview?: () => void }) {
+  const previewableType = isImage(file.filename) ? "Image" : isVideo(file.filename) ? "Video" : null;
+
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-      <div className="relative aspect-square cursor-pointer overflow-hidden bg-gray-100" onClick={onPreview}>
+    <Card interactive className="group flex flex-col overflow-hidden p-0">
+      <div className="relative aspect-square cursor-pointer overflow-hidden bg-surface-sunken" onClick={onPreview}>
         {isImage(file.filename) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={file.viewUrl} alt={basename(file.filename)} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
         ) : isVideo(file.filename) ? (
           <video src={file.viewUrl} className="h-full w-full object-cover" muted playsInline />
         ) : (
-          <div className="flex h-full items-center justify-center text-gray-600">
+          <div className="flex h-full items-center justify-center text-text-muted">
             <div className="text-center">
               <div className="text-2xl font-bold uppercase">{ext(file.filename) || "?"}</div>
               <div className="text-xs">file</div>
             </div>
           </div>
         )}
+        {previewableType && (
+          <Badge
+            variant={previewableType === "Video" ? "accent" : "brand"}
+            className="absolute left-2 top-2 shadow-xs"
+          >
+            {previewableType}
+          </Badge>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2 p-2">
         <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-gray-800" title={file.filename}>{basename(file.filename)}</p>
-          <p className="text-xs text-gray-600">{formatBytes(file.size)} · {formatDate(file.lastModified)}</p>
+          <p className="truncate text-xs font-medium text-text-primary" title={file.filename}>{basename(file.filename)}</p>
+          <p className="text-xs text-text-muted">{formatBytes(file.size)} · {formatDate(file.lastModified)}</p>
         </div>
-        <a href={file.downloadUrl} className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-colors" title="Download" onClick={(e) => e.stopPropagation()}>
+        <a href={file.downloadUrl} className="shrink-0 rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-secondary transition-colors" title="Download" onClick={(e) => e.stopPropagation()}>
           <Download className="h-4 w-4" />
         </a>
       </div>
-    </div>
+    </Card>
   );
 }
 

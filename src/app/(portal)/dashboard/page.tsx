@@ -32,8 +32,8 @@ export default async function DashboardPage() {
     <div className="flex flex-col h-full">
       <TopBar title="Home" />
       <div className="flex-1 p-6 space-y-6">
-        <p className="text-gray-600">
-          Welcome back, <span className="font-medium text-gray-900">{session.user.name}</span>
+        <p className="text-text-secondary">
+          Welcome back, <span className="font-medium text-text-primary">{session.user.name}</span>
         </p>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -43,10 +43,10 @@ export default async function DashboardPage() {
             tokenExpiry={arcgisLink?.tokenExpiry ?? null}
           />
           <SupportWidget openCount={openTickets} />
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm font-medium text-gray-600 mb-1">Active Forms</p>
-            <p className="text-2xl font-bold text-gray-900">{activeForms.length}</p>
-            <p className="text-xs text-gray-600 mt-1">Survey123 forms available</p>
+          <div className="rounded-lg border border-border bg-surface-card p-6">
+            <p className="rm-eyebrow mb-1">Active Forms</p>
+            <p className="font-display text-3xl font-extrabold text-text-primary">{activeForms.length}</p>
+            <p className="text-xs text-text-muted mt-1">Survey123 forms available</p>
           </div>
         </div>
 

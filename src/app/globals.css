@@ -174,6 +174,59 @@ a:hover {
   border-radius: var(--radius-sm);
 }
 
+/* RippleMap signature visualization — concentric ripples emanating from
+ * connected field-site nodes ("calm from chaos"). Used by RippleViz. */
+@keyframes rm-ripple {
+  0% {
+    transform: scale(0.28);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+@keyframes rm-node-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.14);
+  }
+}
+@keyframes rm-dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+@keyframes rm-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rm-pulse-dot {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

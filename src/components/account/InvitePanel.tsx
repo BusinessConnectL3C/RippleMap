@@ -95,10 +95,10 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
         </Button>
       </div>
 
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-md bg-[var(--danger-subtle)] p-3 text-sm text-[var(--danger)]">{error}</div>}
 
       {emailSent && sentTo && (
-        <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+        <div className="rounded-md bg-[var(--success-subtle)] border border-[var(--success)]/30 p-3 text-sm text-[var(--success)]">
           Invite sent to {sentTo}.
         </div>
       )}
@@ -109,7 +109,7 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
             No email service is connected yet — copy this link and send it to your teammate directly.
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 truncate rounded bg-white border border-[var(--info)]/30 px-2 py-1 text-xs text-gray-700">
+            <code className="flex-1 truncate rounded bg-surface-card border border-[var(--info)]/30 px-2 py-1 text-xs text-text-secondary font-mono">
               {newLink}
             </code>
             <Button variant="outline" size="sm" onClick={() => copyLink(newLink)} className="gap-1">
@@ -121,17 +121,17 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
       )}
 
       {pendingInvites.length > 0 && (
-        <div className="border-t border-gray-100 pt-4">
-          <p className="mb-2 text-sm font-medium text-gray-700">Pending invites</p>
+        <div className="border-t border-border pt-4">
+          <p className="rm-eyebrow mb-2">Pending invites</p>
           <ul className="space-y-2">
             {pendingInvites.map((invite) => (
-              <li key={invite.id} className="flex items-center justify-between rounded-md border border-gray-100 px-3 py-2 text-sm">
+              <li key={invite.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-900">{invite.email ?? "Open invite link"}</span>
+                  <span className="text-text-primary">{invite.email ?? "Open invite link"}</span>
                   <Badge variant="secondary" className="text-xs">
                     {invite.role === "ADMIN" ? "Admin" : "Member"}
                   </Badge>
-                  <span className="text-xs text-gray-600">
+                  <span className="text-xs text-text-muted">
                     Expires {new Date(invite.expiresAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -140,7 +140,7 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
                   size="sm"
                   disabled={pendingAction === invite.id}
                   onClick={() => revokeInvite(invite.id)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="text-[var(--danger)] hover:bg-[var(--danger-subtle)] hover:text-[var(--danger)]"
                 >
                   {pendingAction === invite.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -70,26 +70,33 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="border-b border-gray-100 bg-gray-50">
-          <th className="px-4 py-3 text-left font-medium text-gray-700">Name</th>
-          <th className="px-4 py-3 text-left font-medium text-gray-700">Email</th>
-          <th className="px-4 py-3 text-left font-medium text-gray-700">Role</th>
+        <tr className="border-b border-border bg-surface-sunken">
+          <th className="px-4 py-3 text-left rm-eyebrow">Name</th>
+          <th className="px-4 py-3 text-left rm-eyebrow">Email</th>
+          <th className="px-4 py-3 text-left rm-eyebrow">Role</th>
           <th className="px-4 py-3" />
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-100">
+      <tbody className="divide-y divide-border">
         {members.map((member) => {
           const isSelf = member.id === currentUserId;
           const isOwnerLockedForAdmin = member.role === "OWNER" && currentUserRole !== "OWNER";
           const canEditRow = canManage && !isSelf && !isOwnerLockedForAdmin;
 
           return (
-            <tr key={member.id}>
-              <td className="px-4 py-3 font-medium text-gray-900">
-                {member.name}
-                {isSelf && <span className="ml-1 text-xs text-gray-600">(you)</span>}
+            <tr key={member.id} className="hover:bg-surface-hover">
+              <td className="px-4 py-3 font-medium text-text-primary">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--green-600)] text-xs font-semibold text-white">
+                    {member.name?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                  <span>
+                    {member.name}
+                    {isSelf && <span className="ml-1 text-xs text-text-muted">(you)</span>}
+                  </span>
+                </div>
               </td>
-              <td className="px-4 py-3 text-gray-600">{member.email}</td>
+              <td className="px-4 py-3 text-text-secondary">{member.email}</td>
               <td className="px-4 py-3">
                 {canEditRow ? (
                   <>
@@ -110,7 +117,7 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
                       </SelectContent>
                     </Select>
                     {pending === member.id + ":role" && (
-                      <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-600" />
+                      <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-text-muted" />
                     )}
                   </>
                 ) : (
@@ -125,7 +132,7 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
                     disabled={pending === member.id + ":remove"}
                     onClick={() => removeMember(member.id, member.name)}
                     aria-label={`Remove ${member.name}`}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    className="text-[var(--danger)] hover:bg-[var(--danger-subtle)] hover:text-[var(--danger)]"
                   >
                     {pending === member.id + ":remove" ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

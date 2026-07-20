@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface Props {
   itemId: string;
@@ -33,7 +33,10 @@ export function ArcGISMapEmbed({ itemId, token, title }: Props) {
               </p>
             </>
           ) : (
-            <>
+            <div className="flex flex-col items-center gap-2 px-4 text-center max-w-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--danger-subtle)]">
+                <AlertCircle className="h-6 w-6 text-[var(--danger)]" aria-hidden="true" />
+              </div>
               <p className="text-sm font-medium text-text-primary" role="alert">
                 This map couldn&apos;t be loaded.
               </p>
@@ -43,7 +46,7 @@ export function ArcGISMapEmbed({ itemId, token, title }: Props) {
                   Reconnect your ArcGIS account
                 </Link>
               </p>
-            </>
+            </div>
           )}
         </div>
       )}
