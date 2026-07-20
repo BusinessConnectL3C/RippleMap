@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,10 +24,21 @@ type FormData = z.infer<typeof schema>;
 export default function NewTicketPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, control, handleSubmit, formState: { errors, isSubmitting, isDirty, isSubmitSuccessful } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { priority: "NORMAL" as const },
+    mode: "onBlur",
   });
+
+  useEffect(() => {
+    if (!isDirty || isSubmitSuccessful) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty, isSubmitSuccessful]);
 
   const onSubmit = async (data: FormData) => {
     setError(null);

@@ -14,7 +14,7 @@ export default async function BillingPage() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <CreditCard className="h-14 w-14 text-gray-300 mb-3" />
           <p className="text-lg font-medium text-gray-700">Billing coming soon</p>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Contact your BC account manager for billing inquiries.
           </p>
         </div>

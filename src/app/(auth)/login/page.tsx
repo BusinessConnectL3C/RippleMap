@@ -26,6 +26,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: "onBlur",
   });
 
   const onSubmit = async (data: FormData) => {
@@ -49,7 +50,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
-          <p className="text-gray-500">Client portal</p>
+          <h1 className="text-gray-600">Client portal</h1>
         </div>
 
         <Card>
@@ -99,7 +100,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <p className="mt-4 text-center text-sm text-gray-500">
+            <p className="mt-4 text-center text-sm text-gray-600">
               Don&apos;t have an account?{" "}
               <Link href="/register" className="font-medium text-link hover:text-link-hover hover:underline">
                 Register

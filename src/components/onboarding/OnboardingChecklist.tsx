@@ -64,7 +64,7 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
                 {done ? (
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 ) : isLocked ? (
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-600" />
                 ) : (
                   <Circle className="h-5 w-5 text-brand" />
                 )}
@@ -77,7 +77,7 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
                       ? "text-green-800 line-through"
                       : isActive
                       ? "text-gray-900"
-                      : "text-gray-500"
+                      : "text-gray-600"
                   }`}
                 >
                   {index + 1}. {step.title}

@@ -61,10 +61,10 @@ export default async function AdminTicketsPage() {
                       {ticket.priority}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                  <td className="px-4 py-3 text-gray-600 font-mono text-xs">
                     {ticket.clickupTaskId ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 text-gray-600">
                     {new Date(ticket.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
@@ -73,7 +73,7 @@ export default async function AdminTicketsPage() {
           </table>
 
           {tickets.length === 0 && (
-            <div className="py-16 text-center text-gray-500 text-sm">No tickets yet.</div>
+            <div className="py-16 text-center text-gray-600 text-sm">No tickets yet.</div>
           )}
         </div>
       </div>

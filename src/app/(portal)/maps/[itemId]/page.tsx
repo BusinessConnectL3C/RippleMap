@@ -27,7 +27,7 @@ export default async function MapViewPage({ params }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <TopBar title={item.title} />
+      <TopBar title={item.title} backHref="/maps" backLabel="Maps & Apps" />
       <div className="flex-1 p-0 overflow-hidden">
         {item.type === "Dashboard" ? (
           <DashboardEmbed itemId={itemId} token={token} title={item.title} />

@@ -34,7 +34,13 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
   const assignableRoles: Member["role"][] =
     currentUserRole === "OWNER" ? ["OWNER", "ADMIN", "MEMBER"] : ["ADMIN", "MEMBER"];
 
-  async function updateRole(userId: string, role: string) {
+  async function updateRole(userId: string, name: string, role: string) {
+    if (
+      (role === "OWNER" || role === "ADMIN") &&
+      !confirm(`Give ${name} ${ROLE_LABEL[role as Member["role"]]} access to this organization?`)
+    ) {
+      return;
+    }
     setPending(userId + ":role");
     const res = await fetch(`/api/account/members/${userId}`, {
       method: "PATCH",
@@ -81,7 +87,7 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
             <tr key={member.id}>
               <td className="px-4 py-3 font-medium text-gray-900">
                 {member.name}
-                {isSelf && <span className="ml-1 text-xs text-gray-400">(you)</span>}
+                {isSelf && <span className="ml-1 text-xs text-gray-600">(you)</span>}
               </td>
               <td className="px-4 py-3 text-gray-600">{member.email}</td>
               <td className="px-4 py-3">
@@ -90,7 +96,7 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
                     <Select
                       value={member.role}
                       disabled={pending === member.id + ":role"}
-                      onValueChange={(value) => updateRole(member.id, value)}
+                      onValueChange={(value) => updateRole(member.id, member.name, value)}
                     >
                       <SelectTrigger className="h-8 w-28 text-xs">
                         <SelectValue />
@@ -104,7 +110,7 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
                       </SelectContent>
                     </Select>
                     {pending === member.id + ":role" && (
-                      <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-400" />
+                      <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-600" />
                     )}
                   </>
                 ) : (
@@ -118,6 +124,7 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
                     size="sm"
                     disabled={pending === member.id + ":remove"}
                     onClick={() => removeMember(member.id, member.name)}
+                    aria-label={`Remove ${member.name}`}
                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
                   >
                     {pending === member.id + ":remove" ? (

@@ -8,11 +8,11 @@ export function SupportWidget({ openCount }: { openCount: number }) {
     <Card>
       <CardContent className="p-6 flex flex-col h-full">
         <div className="flex items-center gap-2 mb-1">
-          <MessageSquare className="h-4 w-4 text-gray-400" />
-          <p className="text-sm font-medium text-gray-500">Open Tickets</p>
+          <MessageSquare className="h-4 w-4 text-gray-600" />
+          <p className="text-sm font-medium text-gray-600">Open Tickets</p>
         </div>
         <p className="text-2xl font-bold text-gray-900">{openCount}</p>
-        <p className="text-xs text-gray-400 mb-4">
+        <p className="text-xs text-gray-600 mb-4">
           {openCount === 1 ? "ticket needs attention" : "tickets need attention"}
         </p>
         <div className="flex gap-2 mt-auto">

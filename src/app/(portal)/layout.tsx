@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { MobileNavProvider } from "@/components/layout/MobileNavContext";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -24,9 +25,11 @@ export default async function PortalLayout({ children }: { children: React.React
   const showMedia = !!org?.mediaSource;
 
   return (
-    <div className="flex h-full">
-      <Sidebar showMedia={showMedia} orgName={org?.name} />
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+    <MobileNavProvider>
+      <div className="flex h-full">
+        <Sidebar showMedia={showMedia} orgName={org?.name} />
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </MobileNavProvider>
   );
 }

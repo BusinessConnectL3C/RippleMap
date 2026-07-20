@@ -2,21 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Building2, Ticket, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
+import { useMobileNav } from "@/components/layout/MobileNavContext";
 
 const navItems = [
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/tickets", label: "Support Tickets", icon: Ticket },
 ];
 
-export function AdminSidebar() {
+function AdminSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white">
+    <>
       <div className="flex h-16 flex-col justify-center gap-0.5 border-b border-gray-200 px-6">
         <Link href="/admin/organizations">
           <Logo type="secondary" tone="black" height={22} />
@@ -32,6 +34,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -56,6 +59,31 @@ export function AdminSidebar() {
           Sign Out
         </button>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function AdminSidebar() {
+  const { open, setOpen } = useMobileNav();
+
+  return (
+    <>
+      <aside className="hidden md:flex h-full w-64 flex-col border-r border-gray-200 bg-white">
+        <AdminSidebarContent />
+      </aside>
+
+      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[var(--overlay)] md:hidden" />
+          <DialogPrimitive.Content
+            className="fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col bg-white shadow-xl md:hidden"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
+            <AdminSidebarContent onNavigate={() => setOpen(false)} />
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    </>
   );
 }
