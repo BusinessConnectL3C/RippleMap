@@ -95,7 +95,7 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {emailSent && sentTo && (
         <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
@@ -131,7 +131,7 @@ export function InvitePanel({ pendingInvites }: { pendingInvites: PendingInvite[
                   <Badge variant="secondary" className="text-xs">
                     {invite.role === "ADMIN" ? "Admin" : "Member"}
                   </Badge>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-600">
                     Expires {new Date(invite.expiresAt).toLocaleDateString()}
                   </span>
                 </div>

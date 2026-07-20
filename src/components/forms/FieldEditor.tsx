@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FeatureServiceField } from "@/types/arcgis";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,17 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
   const [success, setSuccess] = useState<string | null>(null);
 
   const isFieldMaps = itemType === "Feature Service";
+  const hasUnsavedField = showAddForm && !!(newField.name || newField.alias);
+
+  useEffect(() => {
+    if (!hasUnsavedField) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedField]);
 
   const handleAddField = async () => {
     if (!newField.name || !newField.alias) return;
@@ -164,14 +175,14 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
           )}
 
           {editableFields.length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">No editable fields found</p>
+            <p className="text-sm text-gray-600 py-4 text-center">No editable fields found</p>
           ) : (
             <div className="divide-y divide-gray-100">
               {editableFields.map((field) => (
                 <div key={field.name} className="flex items-center justify-between py-3">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{field.alias || field.name}</p>
-                    <p className="text-xs text-gray-400">{field.name} · {field.type.replace("esriFieldType", "")}</p>
+                    <p className="text-xs text-gray-600">{field.name} · {field.type.replace("esriFieldType", "")}</p>
                   </div>
                   {field.domain && (
                     <Badge variant="secondary" className="text-xs">

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getStepsForOrgType } from "@/lib/onboarding/steps";
+import { orgTypeLabel } from "@/types/portal";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { Logo } from "@/components/ui/logo";
 
@@ -26,15 +27,15 @@ export default async function OnboardingPage() {
   const completedSteps = org.onboardingState?.completedSteps ?? [];
   const arcgisConnected = !!arcgisLink;
 
-  const orgTypeLabel = org.type === "NONPROFIT" ? "Nonprofit" : "Corporate";
+  const orgLabel = orgTypeLabel(org.type);
 
   return (
     <div className="space-y-8">
       <div className="text-center">
         <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
         <h1 className="text-2xl font-bold text-gray-900">Welcome to RippleMap</h1>
-        <p className="text-gray-500">
-          Complete the steps below to get your {orgTypeLabel} account set up.
+        <p className="text-gray-600">
+          Complete the steps below to get your {orgLabel} account set up.
         </p>
         <p className="mt-1 text-xs text-gray-600">Each step must be completed in order.</p>
       </div>

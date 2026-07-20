@@ -10,6 +10,7 @@ import { ProfileForm } from "@/components/account/ProfileForm";
 import { OrganizationForm } from "@/components/account/OrganizationForm";
 import { MembersTable } from "@/components/account/MembersTable";
 import { InviteMembersDialog } from "@/components/account/InviteMembersDialog";
+import { orgTypeLabel } from "@/types/portal";
 
 export default async function AccountPage() {
   const session = await auth();
@@ -50,7 +51,7 @@ export default async function AccountPage() {
 
         <Card>
           {su.role === "OWNER" ? (
-            <OrganizationForm initialName={org?.name ?? ""} orgType={org?.type ?? ""} />
+            <OrganizationForm initialName={org?.name ?? ""} orgType={org?.type ? orgTypeLabel(org.type) : "—"} />
           ) : (
             <>
               <CardHeader>
@@ -58,12 +59,12 @@ export default async function AccountPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <span className="text-gray-500">Organization</span>
+                  <span className="text-gray-600">Organization</span>
                   <span className="font-medium text-gray-900">{org?.name ?? "—"}</span>
-                  <span className="text-gray-500">Org Type</span>
-                  <span className="font-medium text-gray-900">{org?.type ?? "—"}</span>
+                  <span className="text-gray-600">Org Type</span>
+                  <span className="font-medium text-gray-900">{org?.type ? orgTypeLabel(org.type) : "—"}</span>
                 </div>
-                <p className="text-xs text-gray-400">Only owners can edit organization info.</p>
+                <p className="text-xs text-gray-600">Only owners can edit organization info.</p>
               </CardContent>
             </>
           )}
@@ -92,7 +93,7 @@ export default async function AccountPage() {
             <CardTitle>Connections</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-3 text-xs text-gray-400">
+            <p className="mb-3 text-xs text-gray-600">
               Each member connects their own ArcGIS account to preserve their individual ArcGIS permissions.
             </p>
             {arcgisLink ? (
@@ -108,11 +109,11 @@ export default async function AccountPage() {
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <span className="text-gray-500">Username</span>
+                  <span className="text-gray-600">Username</span>
                   <span className="font-medium text-gray-900">{arcgisLink.username}</span>
-                  <span className="text-gray-500">Organization</span>
+                  <span className="text-gray-600">Organization</span>
                   <span className="font-medium text-gray-900">{arcgisLink.orgId}</span>
-                  <span className="text-gray-500">Token expires</span>
+                  <span className="text-gray-600">Token expires</span>
                   <span className="font-medium text-gray-900">
                     {arcgisLink.tokenExpiry.toLocaleDateString()}
                   </span>
@@ -126,7 +127,7 @@ export default async function AccountPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-gray-500">No ArcGIS account linked.</p>
+                <p className="text-sm text-gray-600">No ArcGIS account linked.</p>
                 <a href="/api/onboarding/link-arcgis">
                   <Button size="sm" className="gap-1">
                     <ExternalLink className="h-3 w-3" />

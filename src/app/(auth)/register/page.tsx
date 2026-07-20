@@ -34,6 +34,7 @@ export default function RegisterPage() {
   const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { orgType: "NONPROFIT" },
+    mode: "onBlur",
   });
 
   const onSubmit = async (data: FormData) => {
@@ -64,12 +65,13 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
-          <p className="text-gray-500">Join the RippleMap client portal</p>
+          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
+          <p className="text-gray-600">Join the RippleMap client portal</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Create your account</CardTitle>
+            <CardTitle>Register</CardTitle>
             <CardDescription>Your BC team will complete your setup after registration</CardDescription>
           </CardHeader>
           <CardContent>
@@ -131,6 +133,9 @@ export default function RegisterPage() {
                     </Select>
                   )}
                 />
+                <p className="text-xs text-gray-600">
+                  Nonprofits get discounted Esri licensing but require an extra verification step during onboarding.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -172,7 +177,7 @@ export default function RegisterPage() {
               </Button>
             </form>
 
-            <p className="mt-4 text-center text-sm text-gray-500">
+            <p className="mt-4 text-center text-sm text-gray-600">
               Already have an account?{" "}
               <Link href="/login" className="font-medium text-link hover:text-link-hover hover:underline">
                 Sign in

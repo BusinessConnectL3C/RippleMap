@@ -26,7 +26,7 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Logo type="secondary" tone="black" height={30} className="mx-auto mb-5" />
-          <p className="text-gray-500">Client portal</p>
+          <h1 className="text-gray-600">Client portal</h1>
         </div>
 
         <Card>

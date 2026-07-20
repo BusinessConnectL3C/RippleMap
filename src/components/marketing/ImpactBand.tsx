@@ -12,7 +12,7 @@ export function ImpactBand() {
         {STATS.map(([value, label]) => (
           <div key={label}>
             <div className="font-display text-4xl font-extrabold tracking-tight text-white sm:text-5xl">{value}</div>
-            <div className="mt-2 text-sm text-gray-400">{label}</div>
+            <div className="mt-2 text-sm text-gray-300">{label}</div>
           </div>
         ))}
       </div>

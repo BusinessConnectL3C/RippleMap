@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   initialName: string;
@@ -66,6 +67,7 @@ export function ProfileForm({ initialName, email }: Props) {
     setNewPassword("");
     setConfirmPassword("");
     setIsEditing(false);
+    toast({ variant: "success", title: "Profile saved" });
     router.refresh();
   }
 
@@ -83,9 +85,9 @@ export function ProfileForm({ initialName, email }: Props) {
       <CardContent>
         {!isEditing ? (
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <span className="text-gray-500">Name</span>
+            <span className="text-gray-600">Name</span>
             <span className="font-medium text-gray-900">{initialName}</span>
-            <span className="text-gray-500">Email</span>
+            <span className="text-gray-600">Email</span>
             <span className="font-medium text-gray-900">{email}</span>
           </div>
         ) : (
@@ -97,7 +99,7 @@ export function ProfileForm({ initialName, email }: Props) {
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" value={email} disabled className="bg-gray-50 text-gray-500" />
+              <Input id="email" value={email} disabled className="bg-gray-50 text-gray-600" />
             </div>
 
             <div className="space-y-2 border-t border-gray-100 pt-4">
@@ -132,7 +134,7 @@ export function ProfileForm({ initialName, email }: Props) {
               />
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={saving || !name.trim()}>

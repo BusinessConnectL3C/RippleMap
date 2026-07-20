@@ -60,7 +60,7 @@ export default async function AdminOrgsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{org._count.users}</td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 text-gray-600">
                     {new Date(org.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
@@ -77,7 +77,7 @@ export default async function AdminOrgsPage() {
           </table>
 
           {orgs.length === 0 && (
-            <div className="py-16 text-center text-gray-500 text-sm">No organizations yet.</div>
+            <div className="py-16 text-center text-gray-600 text-sm">No organizations yet.</div>
           )}
         </div>
       </div>

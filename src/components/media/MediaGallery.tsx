@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Download, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { S3FileInfo } from "@/lib/aws/s3";
+import { Input } from "@/components/ui/input";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "avif", "svg"]);
 const VIDEO_EXTS = new Set(["mp4", "mov", "webm"]);
@@ -31,6 +32,7 @@ export function MediaGallery() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
 
   // Load folder list and the first page once on mount
   useEffect(() => {
@@ -65,7 +67,11 @@ export function MediaGallery() {
     fetchPage(nextCursor, activeFolder === "all" ? "" : activeFolder + "/", false);
   }
 
-  const previewable = files.filter((f) => isImage(f.filename) || isVideo(f.filename));
+  const visibleFiles = query.trim()
+    ? files.filter((f) => basename(f.filename).toLowerCase().includes(query.trim().toLowerCase()))
+    : files;
+
+  const previewable = visibleFiles.filter((f) => isImage(f.filename) || isVideo(f.filename));
 
   function openLightbox(file: S3FileInfo) {
     const idx = previewable.findIndex((f) => f.key === file.key);
@@ -99,19 +105,35 @@ export function MediaGallery() {
         </div>
       )}
 
+      {/* Search */}
+      {files.length > 6 && (
+        <div className="relative mb-4 max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search files…"
+            className="pl-9"
+            aria-label="Search files"
+          />
+        </div>
+      )}
+
       {/* Grid */}
       {files.length === 0 && loading ? (
-        <div className="flex items-center justify-center py-24 text-gray-400">
+        <div className="flex items-center justify-center py-24 text-gray-600">
           <p className="text-sm">Loading...</p>
         </div>
       ) : files.length === 0 ? (
-        <div className="flex items-center justify-center py-24 text-gray-400">
+        <div className="flex items-center justify-center py-24 text-gray-600">
           <p className="text-sm">No files found.</p>
         </div>
+      ) : visibleFiles.length === 0 ? (
+        <p className="py-10 text-center text-sm text-gray-600">No files match &ldquo;{query}&rdquo;.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {files.map((file) => (
+            {visibleFiles.map((file) => (
               <MediaCard
                 key={file.key}
                 file={file}
@@ -132,8 +154,8 @@ export function MediaGallery() {
             </div>
           )}
 
-          {!nextCursor && files.length > 0 && (
-            <p className="mt-6 text-center text-xs text-gray-400">{files.length} file{files.length !== 1 ? "s" : ""}</p>
+          {!nextCursor && visibleFiles.length > 0 && (
+            <p className="mt-6 text-center text-xs text-gray-600">{visibleFiles.length} file{visibleFiles.length !== 1 ? "s" : ""}</p>
           )}
         </>
       )}
@@ -176,7 +198,7 @@ function MediaCard({ file, onPreview }: { file: S3FileInfo; onPreview?: () => vo
         ) : isVideo(file.filename) ? (
           <video src={file.viewUrl} className="h-full w-full object-cover" muted playsInline />
         ) : (
-          <div className="flex h-full items-center justify-center text-gray-400">
+          <div className="flex h-full items-center justify-center text-gray-600">
             <div className="text-center">
               <div className="text-2xl font-bold uppercase">{ext(file.filename) || "?"}</div>
               <div className="text-xs">file</div>
@@ -187,9 +209,9 @@ function MediaCard({ file, onPreview }: { file: S3FileInfo; onPreview?: () => vo
       <div className="flex items-center justify-between gap-2 p-2">
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-gray-800" title={file.filename}>{basename(file.filename)}</p>
-          <p className="text-xs text-gray-400">{formatBytes(file.size)} · {formatDate(file.lastModified)}</p>
+          <p className="text-xs text-gray-600">{formatBytes(file.size)} · {formatDate(file.lastModified)}</p>
         </div>
-        <a href={file.downloadUrl} className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors" title="Download" onClick={(e) => e.stopPropagation()}>
+        <a href={file.downloadUrl} className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-colors" title="Download" onClick={(e) => e.stopPropagation()}>
           <Download className="h-4 w-4" />
         </a>
       </div>

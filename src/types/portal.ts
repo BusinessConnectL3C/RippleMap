@@ -1,5 +1,9 @@
 export type OrgType = "NONPROFIT" | "CORPORATE";
 
+export function orgTypeLabel(type: OrgType | string): string {
+  return type === "NONPROFIT" ? "Nonprofit" : "Corporate";
+}
+
 export type Role = "OWNER" | "ADMIN" | "MEMBER" | "BC_STAFF";
 
 export type TicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";

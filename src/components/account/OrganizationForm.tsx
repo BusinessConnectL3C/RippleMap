@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   initialName: string;
@@ -46,6 +47,7 @@ export function OrganizationForm({ initialName, orgType }: Props) {
       return;
     }
     setIsEditing(false);
+    toast({ variant: "success", title: "Organization saved" });
     router.refresh();
   }
 
@@ -63,9 +65,9 @@ export function OrganizationForm({ initialName, orgType }: Props) {
       <CardContent className="space-y-3">
         {!isEditing ? (
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <span className="text-gray-500">Organization</span>
+            <span className="text-gray-600">Organization</span>
             <span className="font-medium text-gray-900">{initialName || "—"}</span>
-            <span className="text-gray-500">Org Type</span>
+            <span className="text-gray-600">Org Type</span>
             <span className="font-medium text-gray-900">{orgType || "—"}</span>
           </div>
         ) : (
@@ -75,7 +77,7 @@ export function OrganizationForm({ initialName, orgType }: Props) {
               <Input id="orgName" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={saving || !name.trim()}>

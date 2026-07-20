@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { MobileNavProvider } from "@/components/layout/MobileNavContext";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -9,9 +10,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session?.user?.id || su?.role !== "BC_STAFF") redirect("/dashboard");
 
   return (
-    <div className="flex h-full">
-      <AdminSidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+    <MobileNavProvider>
+      <div className="flex h-full">
+        <AdminSidebar />
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </MobileNavProvider>
   );
 }
