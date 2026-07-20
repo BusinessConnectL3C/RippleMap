@@ -7,7 +7,7 @@ const STATS: [string, string][] = [
 
 export function ImpactBand() {
   return (
-    <section className="mt-8 bg-[var(--deep-grey)] px-6 py-14 sm:px-12">
+    <section id="impact" className="mt-8 bg-[var(--deep-grey)] px-6 py-14 sm:px-12">
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 sm:grid-cols-4">
         {STATS.map(([value, label]) => (
           <div key={label}>

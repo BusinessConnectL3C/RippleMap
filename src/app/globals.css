@@ -43,13 +43,17 @@
 
   /* ---- Override Tailwind's default neutral scale with the DS's warm-grey scale ----
    * 1:1 with tokens/colors.css --neutral-*, so every existing gray-* utility
-   * (bg-gray-50, text-gray-900, border-gray-200, ...) picks this up for free. */
+   * (bg-gray-50, text-gray-900, border-gray-200, ...) picks this up for free.
+   * gray-400/500 are darkened one step versus the raw --neutral-400/500 tokens —
+   * the raw values measure ~2.5:1 and ~4.3:1 against white, both failing WCAG AA
+   * for normal text (4.5:1), and these two shades carry most of the app's
+   * secondary/muted copy (CardDescription, hints, captions). */
   --color-gray-50: #f7f7f6;
   --color-gray-100: #efefed;
   --color-gray-200: #e3e3df;
   --color-gray-300: #cbcbc6;
-  --color-gray-400: #a4a49e;
-  --color-gray-500: #7a7a74;
+  --color-gray-400: #8a8a83;
+  --color-gray-500: #6b6b65;
   --color-gray-600: #575754;
   --color-gray-700: #434342;
   --color-gray-800: #303030;
@@ -168,4 +172,15 @@ a:hover {
   outline: none;
   box-shadow: var(--shadow-focus);
   border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

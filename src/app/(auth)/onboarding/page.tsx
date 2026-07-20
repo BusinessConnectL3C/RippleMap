@@ -36,7 +36,7 @@ export default async function OnboardingPage() {
         <p className="text-gray-500">
           Complete the steps below to get your {orgTypeLabel} account set up.
         </p>
-        <p className="mt-1 text-xs text-gray-400">Each step must be completed in order.</p>
+        <p className="mt-1 text-xs text-gray-600">Each step must be completed in order.</p>
       </div>
 
       <OnboardingChecklist

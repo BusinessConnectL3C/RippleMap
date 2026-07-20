@@ -26,16 +26,16 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
 
 export function Features() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-16 sm:px-12">
+    <section id="features" className="mx-auto max-w-6xl px-6 py-16 sm:px-12">
       <div className="mb-10 max-w-xl">
         <p className="rm-eyebrow mb-3">Why RippleMap</p>
         <h2 className="text-3xl sm:text-4xl">Everything you need to see your impact clearly.</h2>
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {FEATURES.map(({ icon: Icon, title, body }) => (
-          <Card key={title} className="p-6 transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md">
+          <Card key={title} className="p-6">
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-brand-subtle">
-              <Icon className="h-[22px] w-[22px] text-green-700" />
+              <Icon className="h-[22px] w-[22px] text-link" />
             </div>
             <h3 className="mb-2 text-lg">{title}</h3>
             <p className="text-[15px] leading-relaxed text-text-secondary">{body}</p>
