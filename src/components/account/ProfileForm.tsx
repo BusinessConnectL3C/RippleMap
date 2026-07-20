@@ -85,10 +85,10 @@ export function ProfileForm({ initialName, email }: Props) {
       <CardContent>
         {!isEditing ? (
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <span className="text-gray-600">Name</span>
-            <span className="font-medium text-gray-900">{initialName}</span>
-            <span className="text-gray-600">Email</span>
-            <span className="font-medium text-gray-900">{email}</span>
+            <span className="rm-eyebrow">Name</span>
+            <span className="font-medium text-text-primary">{initialName}</span>
+            <span className="rm-eyebrow">Email</span>
+            <span className="font-medium text-text-primary">{email}</span>
           </div>
         ) : (
           <div className="space-y-4">
@@ -99,11 +99,11 @@ export function ProfileForm({ initialName, email }: Props) {
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" value={email} disabled className="bg-gray-50 text-gray-600" />
+              <Input id="email" value={email} disabled className="bg-surface-sunken text-text-muted" />
             </div>
 
-            <div className="space-y-2 border-t border-gray-100 pt-4">
-              <p className="text-sm font-medium text-gray-700">Change password</p>
+            <div className="space-y-2 border-t border-border pt-4">
+              <p className="rm-eyebrow">Change password</p>
               <Label htmlFor="currentPassword">Current password</Label>
               <Input
                 id="currentPassword"
@@ -134,7 +134,7 @@ export function ProfileForm({ initialName, email }: Props) {
               />
             </div>
 
-            {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            {error && <div className="rounded-md bg-[var(--danger-subtle)] p-3 text-sm text-[var(--danger)]">{error}</div>}
 
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={saving || !name.trim()}>

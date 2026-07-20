@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Layers, FileText } from "lucide-react";
+import { Plus, Layers, FileText, CheckCircle2, AlertCircle, Calendar, Hash, Type as TypeIcon } from "lucide-react";
 
 const SAFE_FIELD_TYPES = [
   { value: "esriFieldTypeString", label: "Text" },
@@ -16,6 +16,12 @@ const SAFE_FIELD_TYPES = [
   { value: "esriFieldTypeDouble", label: "Decimal" },
   { value: "esriFieldTypeDate", label: "Date" },
 ];
+
+function fieldIcon(type: string) {
+  if (type.includes("Date")) return Calendar;
+  if (type.includes("Integer") || type.includes("Double") || type.includes("Single")) return Hash;
+  return TypeIcon;
+}
 
 interface Props {
   surveyId: string;
@@ -101,17 +107,23 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
         ) : (
           <FileText className="h-5 w-5 text-brand" />
         )}
-        <Badge variant="secondary">{isFieldMaps ? "FieldMaps Layer" : "Survey123 Form"}</Badge>
+        <Badge variant="brand">{isFieldMaps ? "FieldMaps Layer" : "Survey123 Form"}</Badge>
         {!serviceUrl && (
           <Badge variant="destructive">No feature service URL — editing unavailable</Badge>
         )}
       </div>
 
       {success && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{success}</div>
+        <div className="flex items-center gap-2 rounded-md bg-[var(--success-subtle)] p-3 text-sm text-[var(--success)]">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {success}
+        </div>
       )}
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="flex items-center gap-2 rounded-md bg-[var(--danger-subtle)] p-3 text-sm text-[var(--danger)]">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
       )}
 
       <Card>
@@ -126,7 +138,7 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
         <CardContent>
           {showAddForm && (
             <div className="mb-4 rounded-lg border border-brand/30 bg-brand-subtle p-4 space-y-3">
-              <p className="text-sm font-medium text-gray-900">New Field</p>
+              <p className="rm-eyebrow">New Field</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="fieldAlias" className="text-xs">Display Name</Label>
@@ -175,22 +187,36 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
           )}
 
           {editableFields.length === 0 ? (
-            <p className="text-sm text-gray-600 py-4 text-center">No editable fields found</p>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-sunken mb-2">
+                <Layers className="h-6 w-6 text-text-muted" />
+              </div>
+              <p className="text-sm text-text-secondary">No editable fields found</p>
+            </div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {editableFields.map((field) => (
-                <div key={field.name} className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{field.alias || field.name}</p>
-                    <p className="text-xs text-gray-600">{field.name} · {field.type.replace("esriFieldType", "")}</p>
+            <div className="divide-y divide-border">
+              {editableFields.map((field) => {
+                const FieldIcon = fieldIcon(field.type);
+                return (
+                  <div
+                    key={field.name}
+                    className="flex items-center gap-3 py-3 px-2 -mx-2 rounded-md hover:bg-surface-hover transition-colors"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-subtle">
+                      <FieldIcon className="h-4 w-4 text-brand" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-text-primary">{field.alias || field.name}</p>
+                      <p className="text-xs text-text-muted">{field.name} · {field.type.replace("esriFieldType", "")}</p>
+                    </div>
+                    {field.domain && (
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        {field.domain.codedValues.length} options
+                      </Badge>
+                    )}
                   </div>
-                  {field.domain && (
-                    <Badge variant="secondary" className="text-xs">
-                      {field.domain.codedValues.length} options
-                    </Badge>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

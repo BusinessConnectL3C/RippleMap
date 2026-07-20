@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Home,
@@ -13,7 +14,6 @@ import {
   LogOut,
   Images,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
 import { useMobileNav } from "@/components/layout/MobileNavContext";
@@ -64,6 +64,7 @@ function NavLink({
 
 function SidebarContent({ showMedia, orgName, onNavigate }: { showMedia: boolean; orgName?: string; onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const items = showMedia ? primaryItems : primaryItems.filter((item) => item.href !== "/media");
 
   return (
@@ -91,9 +92,18 @@ function SidebarContent({ showMedia, orgName, onNavigate }: { showMedia: boolean
       </div>
 
       <div className="border-t border-gray-200 p-4">
+        <div className="flex items-center gap-2.5 rounded-md px-1 py-1.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--green-600)] font-display text-sm font-bold text-white">
+            {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-gray-900">{session?.user?.name ?? "Account"}</p>
+            <p className="truncate text-xs text-gray-600">{orgName ?? session?.user?.email}</p>
+          </div>
+        </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          className="mt-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
         >
           <LogOut className="h-4 w-4" />
           Sign Out

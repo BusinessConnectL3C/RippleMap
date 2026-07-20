@@ -74,7 +74,7 @@ export default function NewTicketPage() {
                 <div className="space-y-2">
                   <Label htmlFor="title">Subject</Label>
                   <Input id="title" placeholder="Brief description of the issue" {...register("title")} />
-                  {errors.title && <p className="text-xs text-red-600">{errors.title.message}</p>}
+                  {errors.title && <p className="text-xs text-[var(--danger)]">{errors.title.message}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -85,7 +85,7 @@ export default function NewTicketPage() {
                     placeholder="Describe the issue in detail — steps to reproduce, what you expected, what happened..."
                     {...register("description")}
                   />
-                  {errors.description && <p className="text-xs text-red-600">{errors.description.message}</p>}
+                  {errors.description && <p className="text-xs text-[var(--danger)]">{errors.description.message}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -110,7 +110,7 @@ export default function NewTicketPage() {
                 </div>
 
                 {error && (
-                  <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+                  <div className="rounded-md bg-[var(--danger-subtle)] p-3 text-sm text-[var(--danger)]">{error}</div>
                 )}
 
                 <div className="flex gap-3">

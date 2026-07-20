@@ -1,6 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertCircle } from "lucide-react";
 
 interface Props {
   arcgisUsername: string | null;
@@ -15,26 +14,19 @@ export function AccountStatusWidget({ arcgisUsername, orgId, tokenExpiry }: Prop
   return (
     <Card>
       <CardContent className="p-6">
-        <p className="text-sm font-medium text-gray-600 mb-3">ArcGIS Connection</p>
+        <p className="rm-eyebrow mb-3">ArcGIS Connection</p>
         {isLinked ? (
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              {isExpired ? (
-                <AlertCircle className="h-4 w-4 text-yellow-500" />
-              ) : (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              )}
-              <Badge variant={isExpired ? "warning" : "success"}>
-                {isExpired ? "Token Expired" : "Connected"}
-              </Badge>
-            </div>
-            <p className="text-sm text-gray-700 font-medium">{arcgisUsername}</p>
-            <p className="text-xs text-gray-600">{orgId}</p>
+            <Badge variant={isExpired ? "warning" : "success"} dot>
+              {isExpired ? "Token Expired" : "Connected"}
+            </Badge>
+            <p className="text-sm text-text-primary font-medium">{arcgisUsername}</p>
+            <p className="text-xs text-text-muted">{orgId}</p>
           </div>
         ) : (
           <div className="space-y-2">
             <Badge variant="secondary">Not Connected</Badge>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-text-muted">
               Complete onboarding to link your ArcGIS account.
             </p>
           </div>

@@ -5,7 +5,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { OrganizationForm } from "@/components/account/OrganizationForm";
 import { MembersTable } from "@/components/account/MembersTable";
@@ -59,12 +59,12 @@ export default async function AccountPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <span className="text-gray-600">Organization</span>
-                  <span className="font-medium text-gray-900">{org?.name ?? "—"}</span>
-                  <span className="text-gray-600">Org Type</span>
-                  <span className="font-medium text-gray-900">{org?.type ? orgTypeLabel(org.type) : "—"}</span>
+                  <span className="rm-eyebrow">Organization</span>
+                  <span className="font-medium text-text-primary">{org?.name ?? "—"}</span>
+                  <span className="rm-eyebrow">Org Type</span>
+                  <span className="font-medium text-text-primary">{org?.type ? orgTypeLabel(org.type) : "—"}</span>
                 </div>
-                <p className="text-xs text-gray-600">Only owners can edit organization info.</p>
+                <p className="text-xs text-text-muted">Only owners can edit organization info.</p>
               </CardContent>
             </>
           )}
@@ -93,28 +93,21 @@ export default async function AccountPage() {
             <CardTitle>Connections</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-3 text-xs text-gray-600">
+            <p className="mb-3 text-xs text-text-muted">
               Each member connects their own ArcGIS account to preserve their individual ArcGIS permissions.
             </p>
             {arcgisLink ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  {tokenExpired ? (
-                    <AlertCircle className="h-4 w-4 text-yellow-500" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  )}
-                  <Badge variant={tokenExpired ? "warning" : "success"}>
-                    {tokenExpired ? "Token Expired" : "Connected"}
-                  </Badge>
-                </div>
+                <Badge variant={tokenExpired ? "warning" : "success"} dot>
+                  {tokenExpired ? "Token Expired" : "Connected"}
+                </Badge>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <span className="text-gray-600">Username</span>
-                  <span className="font-medium text-gray-900">{arcgisLink.username}</span>
-                  <span className="text-gray-600">Organization</span>
-                  <span className="font-medium text-gray-900">{arcgisLink.orgId}</span>
-                  <span className="text-gray-600">Token expires</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="rm-eyebrow">Username</span>
+                  <span className="font-medium text-text-primary">{arcgisLink.username}</span>
+                  <span className="rm-eyebrow">Organization</span>
+                  <span className="font-medium text-text-primary">{arcgisLink.orgId}</span>
+                  <span className="rm-eyebrow">Token expires</span>
+                  <span className="font-medium text-text-primary">
                     {arcgisLink.tokenExpiry.toLocaleDateString()}
                   </span>
                 </div>
@@ -127,7 +120,7 @@ export default async function AccountPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-gray-600">No ArcGIS account linked.</p>
+                <p className="text-sm text-text-secondary">No ArcGIS account linked.</p>
                 <a href="/api/onboarding/link-arcgis">
                   <Button size="sm" className="gap-1">
                     <ExternalLink className="h-3 w-3" />
