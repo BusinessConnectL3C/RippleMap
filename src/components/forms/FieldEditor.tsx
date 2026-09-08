@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FeatureServiceField } from "@/types/arcgis";
+import type { FeatureServiceField, FormKind } from "@/types/arcgis";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,10 +27,10 @@ interface Props {
   surveyId: string;
   serviceUrl: string;
   initialFields: FeatureServiceField[];
-  itemType: string;
+  kind: FormKind;
 }
 
-export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: Props) {
+export function FieldEditor({ surveyId, serviceUrl, initialFields, kind }: Props) {
   const [fields, setFields] = useState<FeatureServiceField[]>(initialFields);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newField, setNewField] = useState({ name: "", alias: "", type: "esriFieldTypeString" });
@@ -38,7 +38,7 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, itemType }: P
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const isFieldMaps = itemType === "Feature Service";
+  const isFieldMaps = kind !== "survey123";
   const hasUnsavedField = showAddForm && !!(newField.name || newField.alias);
 
   useEffect(() => {

@@ -4,8 +4,36 @@ import type {
 } from "@/types/arcgis";
 import { getBCAppToken } from "./auth";
 
+const AGOL_BASE = "https://www.arcgis.com/sharing/rest";
+
 /**
- * Fetch the field definitions from a Survey123-backed Feature Service.
+ * Resolve the Feature Service backing a Survey123 "Form" item.
+ * Form items don't carry a service URL themselves — the data lives in a
+ * separate, related Feature Service item found via the Survey2Service
+ * relationship.
+ */
+export async function getSurveyServiceUrl(formItemId: string): Promise<string | null> {
+  const token = await getBCAppToken();
+  const params = new URLSearchParams({
+    relationshipType: "Survey2Service",
+    direction: "forward",
+    f: "json",
+    token,
+  });
+
+  const res = await fetch(
+    `${AGOL_BASE}/content/items/${formItemId}/relatedItems?${params}`
+  );
+  if (!res.ok) throw new Error(`Failed to fetch related items: ${res.statusText}`);
+
+  const data = await res.json();
+  const related: { url?: string }[] = data.relatedItems ?? [];
+  return related[0]?.url ?? null;
+}
+
+/**
+ * Fetch the field definitions from a Feature Service (Survey123's backing
+ * service or a Field Maps layer — both expose the same REST shape).
  * The serviceUrl should be the full REST endpoint (without /0).
  */
 export async function getSurveyFields(

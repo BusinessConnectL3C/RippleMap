@@ -1,7 +1,9 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getItem } from "@/lib/arcgis/items";
-import { getSurveyFields } from "@/lib/arcgis/survey123";
+import { classifyFormItem } from "@/lib/arcgis/formKind";
+import { getSurveyFields, getSurveyServiceUrl } from "@/lib/arcgis/survey123";
+import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
 import { TopBar } from "@/components/layout/TopBar";
 import { FieldEditor } from "@/components/forms/FieldEditor";
 
@@ -15,10 +17,17 @@ export default async function FormEditorPage({ params }: Props) {
 
   const { surveyId } = await params;
   const item = await getItem(surveyId);
+  const kind = classifyFormItem(item);
 
-  const fields = item.url
-    ? await getSurveyFields(item.url).catch(() => [])
-    : [];
+  let serviceUrl = item.url ?? "";
+  if (kind === "survey123" && !serviceUrl) {
+    serviceUrl = (await getSurveyServiceUrl(surveyId).catch(() => null)) ?? "";
+  } else if (kind === "fieldmaps-webmap") {
+    const layers = await getWebMapLayers(surveyId).catch(() => []);
+    serviceUrl = layers[0]?.url ?? "";
+  }
+
+  const fields = serviceUrl ? await getSurveyFields(serviceUrl).catch(() => []) : [];
 
   return (
     <div className="flex flex-col h-full">
@@ -26,9 +35,9 @@ export default async function FormEditorPage({ params }: Props) {
       <div className="flex-1 p-6">
         <FieldEditor
           surveyId={surveyId}
-          serviceUrl={item.url ?? ""}
+          serviceUrl={serviceUrl}
           initialFields={fields}
-          itemType={item.type}
+          kind={kind}
         />
       </div>
     </div>
