@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { ArcGISItem } from "@/types/arcgis";
-import { FileText, Map as MapIcon, ChevronRight, Search } from "lucide-react";
+import type { ArcGISItem, FormKind } from "@/types/arcgis";
+import { classifyFormItem } from "@/lib/arcgis/formKind";
+import { FileText, Map as MapIcon, Layers, ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,13 +13,15 @@ interface Props {
   items: ArcGISItem[];
 }
 
-const TYPE_BADGES: Record<string, { label: string; icon: React.ElementType }> = {
-  Form: { label: "Survey123", icon: FileText },
-  "Web Map": { label: "Web Map", icon: MapIcon },
+const KIND_BADGES: Record<FormKind, { label: string; icon: React.ElementType }> = {
+  survey123: { label: "Survey123", icon: FileText },
+  "fieldmaps-webmap": { label: "Field Maps", icon: MapIcon },
+  "fieldmaps-layer": { label: "Field Maps", icon: Layers },
+  unknown: { label: "Form", icon: FileText },
 };
 
 function ItemRow({ item }: { item: ArcGISItem }) {
-  const { label, icon: Icon } = TYPE_BADGES[item.type] ?? { label: item.type, icon: FileText };
+  const { label, icon: Icon } = KIND_BADGES[classifyFormItem(item)];
 
   return (
     <Link href={`/forms/${item.id}`}>

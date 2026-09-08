@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getItem } from "@/lib/arcgis/items";
-import { getSurveyFields, addSurveyField, updateSurveyField } from "@/lib/arcgis/survey123";
+import { classifyFormItem } from "@/lib/arcgis/formKind";
+import { getSurveyFields, getSurveyServiceUrl, addSurveyField, updateSurveyField } from "@/lib/arcgis/survey123";
+import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
 import { z } from "zod";
 
 const fieldSchema = z.object({
@@ -40,12 +42,22 @@ export async function GET(
 
   const { surveyId } = await params;
   const item = await getItem(surveyId);
-  if (!item.url) {
+  const kind = classifyFormItem(item);
+
+  let serviceUrl = item.url ?? "";
+  if (kind === "survey123" && !serviceUrl) {
+    serviceUrl = (await getSurveyServiceUrl(surveyId).catch(() => null)) ?? "";
+  } else if (kind === "fieldmaps-webmap") {
+    const layers = await getWebMapLayers(surveyId).catch(() => []);
+    serviceUrl = layers[0]?.url ?? "";
+  }
+
+  if (!serviceUrl) {
     return NextResponse.json({ error: "Feature service URL not found" }, { status: 404 });
   }
 
-  const fields = await getSurveyFields(item.url);
-  return NextResponse.json({ fields, serviceUrl: item.url });
+  const fields = await getSurveyFields(serviceUrl);
+  return NextResponse.json({ fields, serviceUrl });
 }
 
 export async function POST(
