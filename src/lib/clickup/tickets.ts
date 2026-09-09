@@ -71,7 +71,7 @@ export async function createClickUpTicket(
 
   const data = await res.json();
   return {
-    taskId: data.id as string,
+    taskId: String(data.id),
     clickupStatus: data.status?.status ?? null,
     status: mapClickUpStatusType(data.status?.type ?? "open"),
   };
@@ -114,7 +114,11 @@ export async function createClickUpComment(
   }
 
   const data = await res.json();
-  return data.id as string;
+  // ClickUp's create-comment response returns `id` as a JSON number (unlike the
+  // list-comments endpoint, which returns it as a string) — coerce explicitly rather
+  // than relying on `as string`, which is a type assertion, not a runtime conversion,
+  // and Prisma validates the actual runtime type against the schema's String column.
+  return String(data.id);
 }
 
 /**
@@ -138,18 +142,21 @@ export async function syncClickUpComments(
 
   const data = await res.json();
   const comments: Array<{
-    id: string;
+    id: string | number;
     comment_text?: string;
     user?: { username?: string };
     date?: string;
   }> = data.comments ?? [];
 
   for (const comment of comments) {
+    // ClickUp's id typing isn't consistent across endpoints (see createClickUpComment) —
+    // always coerce to string before it reaches Prisma's strict-typed String column.
+    const clickupCommentId = String(comment.id);
     await db.supportTicketComment.upsert({
-      where: { clickupCommentId: comment.id },
+      where: { clickupCommentId },
       create: {
         ticketId,
-        clickupCommentId: comment.id,
+        clickupCommentId,
         authorName: comment.user?.username ?? "ClickUp",
         body: comment.comment_text ?? "",
         source: "BC_STAFF",
