@@ -25,9 +25,14 @@ export default async function SupportPage() {
       <TopBar title="Support" />
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-text-secondary">
-            <span className="font-mono font-semibold text-text-primary">{tickets.length}</span> total tickets
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-text-secondary">
+              <span className="font-mono font-semibold text-text-primary">{tickets.length}</span> total tickets
+            </p>
+            <p className="text-sm text-text-secondary">
+              Please allow 24-48 hours for normal replies, and 12-24 hours for urgent requests.
+            </p>
+          </div>
           <Link href="/support/new">
             <Button size="sm" className="gap-1">
               <Plus className="h-4 w-4" /> New Ticket
@@ -35,16 +40,14 @@ export default async function SupportPage() {
           </Link>
         </div>
 
-        <p className="text-sm text-text-secondary">
-          Please allow 24-48 hours for normal replies, and 12-24 hours for urgent requests.
-        </p>
-
         {tickets.length === 0 ? (
           <TicketList tickets={[]} />
         ) : (
           <>
-            <div className="space-y-3">
-              <h2 className="font-display text-base font-semibold text-text-primary">Open Tickets</h2>
+            <div className="space-y-4">
+              <h2 className="font-display text-base font-semibold text-text-primary">
+                Open Tickets ({openTickets.length})
+              </h2>
               {openTickets.length > 0 ? (
                 <TicketList tickets={openTickets} />
               ) : (
@@ -53,9 +56,11 @@ export default async function SupportPage() {
             </div>
 
             {completedTickets.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="font-display text-base font-semibold text-text-primary">Completed Tickets</h2>
-                <TicketList tickets={completedTickets} />
+              <div className="space-y-4">
+                <h2 className="font-display text-base font-semibold text-text-primary">
+                  Completed Tickets ({completedTickets.length})
+                </h2>
+                <TicketList tickets={completedTickets} variant="completed" />
               </div>
             )}
           </>

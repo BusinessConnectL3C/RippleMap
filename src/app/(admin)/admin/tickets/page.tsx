@@ -4,11 +4,11 @@ import { ticketStatusLabel } from "@/types/portal";
 import { TopBar } from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "destructive"> = {
-  OPEN: "default",
-  IN_PROGRESS: "default",
+const STATUS_VARIANT: Record<string, "secondary" | "info" | "success"> = {
+  OPEN: "secondary",
+  IN_PROGRESS: "info",
   RESOLVED: "success",
-  CLOSED: "secondary",
+  CLOSED: "success",
 };
 
 const PRIORITY_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {

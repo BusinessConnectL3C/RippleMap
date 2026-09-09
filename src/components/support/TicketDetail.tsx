@@ -10,11 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 
-const STATUS_VARIANTS: Record<string, "default" | "warning" | "success" | "secondary"> = {
-  OPEN: "default",
-  IN_PROGRESS: "warning",
+const STATUS_VARIANTS: Record<string, "secondary" | "info" | "success"> = {
+  OPEN: "secondary",
+  IN_PROGRESS: "info",
   RESOLVED: "success",
-  CLOSED: "secondary",
+  CLOSED: "success",
 };
 
 const PRIORITY_VARIANTS: Record<string, "secondary" | "warning" | "destructive" | "outline"> = {

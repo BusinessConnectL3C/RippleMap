@@ -5,11 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 
-const STATUS_VARIANTS: Record<TicketStatus, "default" | "warning" | "success" | "secondary"> = {
-  OPEN: "default",
-  IN_PROGRESS: "warning",
+const STATUS_VARIANTS: Record<TicketStatus, "secondary" | "info" | "success"> = {
+  OPEN: "secondary",
+  IN_PROGRESS: "info",
   RESOLVED: "success",
-  CLOSED: "secondary",
+  CLOSED: "success",
 };
 
 const PRIORITY_LABELS: Record<Priority, string> = {
@@ -28,9 +28,11 @@ const PRIORITY_VARIANTS: Record<Priority, "secondary" | "warning" | "destructive
 
 interface Props {
   tickets: SupportTicket[];
+  /** "completed" renders a muted, simplified card (title, date, status only) for past tickets. */
+  variant?: "default" | "completed";
 }
 
-export function TicketList({ tickets }: Props) {
+export function TicketList({ tickets, variant = "default" }: Props) {
   if (tickets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -45,11 +47,13 @@ export function TicketList({ tickets }: Props) {
     <div className="space-y-2">
       {tickets.map((ticket) => (
         <Link key={ticket.id} href={`/support/${ticket.id}`} className="block">
-          <Card interactive className="p-4">
+          <Card interactive className={variant === "completed" ? "p-4 opacity-70" : "p-4"}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-text-primary">{ticket.title}</h3>
-                <p className="text-sm text-text-secondary mt-1 line-clamp-2">{ticket.description}</p>
+                {variant === "default" && (
+                  <p className="text-sm text-text-secondary mt-1 line-clamp-2">{ticket.description}</p>
+                )}
                 <p className="text-xs text-text-muted mt-2">
                   {new Date(ticket.createdAt).toLocaleDateString()}
                 </p>
@@ -58,9 +62,11 @@ export function TicketList({ tickets }: Props) {
                 <Badge variant={STATUS_VARIANTS[ticket.status]} dot>
                   {ticketStatusLabel(ticket)}
                 </Badge>
-                <Badge variant={PRIORITY_VARIANTS[ticket.priority]} dot>
-                  {PRIORITY_LABELS[ticket.priority]}
-                </Badge>
+                {variant === "default" && (
+                  <Badge variant={PRIORITY_VARIANTS[ticket.priority]} dot>
+                    {PRIORITY_LABELS[ticket.priority]}
+                  </Badge>
+                )}
               </div>
             </div>
           </Card>
