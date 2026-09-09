@@ -44,10 +44,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Failed to send reply" }, { status: 502 });
   }
 
-  const comment = await db.supportTicketComment.create({
-    data: {
+  // ClickUp's taskCommentPosted webhook fires for this same comment and can reach
+  // syncClickUpComments before this request reaches this point, inserting it as an
+  // unattributed BC_STAFF row (it has no way to know this comment is actually ours).
+  // upsert so our authoritative CLIENT attribution always wins, regardless of order.
+  const comment = await db.supportTicketComment.upsert({
+    where: { clickupCommentId },
+    create: {
       ticketId: ticket.id,
       clickupCommentId,
+      authorName: user.name,
+      body: parsed.data.body,
+      source: "CLIENT",
+    },
+    update: {
       authorName: user.name,
       body: parsed.data.body,
       source: "CLIENT",
