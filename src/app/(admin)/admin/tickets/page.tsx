@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { ticketStatusLabel } from "@/types/portal";
 import { TopBar } from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
+import { DeleteTicketButton } from "@/components/admin/DeleteTicketButton";
 
 const STATUS_VARIANT: Record<string, "secondary" | "info" | "success"> = {
   OPEN: "secondary",
@@ -38,6 +39,7 @@ export default async function AdminTicketsPage() {
                 <th className="px-4 py-3 text-left font-medium text-gray-700">Priority</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700">ClickUp</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700">Created</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -67,6 +69,9 @@ export default async function AdminTicketsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {new Date(ticket.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <DeleteTicketButton ticketId={ticket.id} title={ticket.title} />
                   </td>
                 </tr>
               ))}
