@@ -1,15 +1,9 @@
 import Link from "next/link";
 import type { SupportTicket, TicketStatus, Priority } from "@/types/portal";
+import { ticketStatusLabel } from "@/types/portal";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
-
-const STATUS_LABELS: Record<TicketStatus, string> = {
-  OPEN: "Open",
-  IN_PROGRESS: "In Progress",
-  RESOLVED: "Resolved",
-  CLOSED: "Closed",
-};
 
 const STATUS_VARIANTS: Record<TicketStatus, "default" | "warning" | "success" | "secondary"> = {
   OPEN: "default",
@@ -62,7 +56,7 @@ export function TicketList({ tickets }: Props) {
               </div>
               <div className="flex flex-col gap-1 items-end shrink-0">
                 <Badge variant={STATUS_VARIANTS[ticket.status]} dot>
-                  {STATUS_LABELS[ticket.status]}
+                  {ticketStatusLabel(ticket)}
                 </Badge>
                 <Badge variant={PRIORITY_VARIANTS[ticket.priority]} dot>
                   {PRIORITY_LABELS[ticket.priority]}
