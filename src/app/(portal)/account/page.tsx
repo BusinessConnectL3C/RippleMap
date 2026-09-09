@@ -39,8 +39,6 @@ export default async function AccountPage() {
 
   if (!user) redirect("/login");
 
-  const tokenExpired = arcgisLink && arcgisLink.tokenExpiry < new Date();
-
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Account" />
@@ -98,18 +96,14 @@ export default async function AccountPage() {
             </p>
             {arcgisLink ? (
               <div className="space-y-3">
-                <Badge variant={tokenExpired ? "warning" : "success"} dot>
-                  {tokenExpired ? "Token Expired" : "Connected"}
+                <Badge variant="success" dot>
+                  Connected
                 </Badge>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <span className="rm-eyebrow">Username</span>
                   <span className="font-medium text-text-primary">{arcgisLink.username}</span>
                   <span className="rm-eyebrow">Organization</span>
                   <span className="font-medium text-text-primary">{arcgisLink.orgId}</span>
-                  <span className="rm-eyebrow">Token expires</span>
-                  <span className="font-medium text-text-primary">
-                    {arcgisLink.tokenExpiry.toLocaleDateString()}
-                  </span>
                 </div>
                 <a href="/api/onboarding/link-arcgis">
                   <Button variant="outline" size="sm" className="gap-1 mt-2">

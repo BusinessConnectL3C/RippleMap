@@ -40,7 +40,6 @@ export default async function DashboardPage() {
           <AccountStatusWidget
             arcgisUsername={arcgisLink?.username ?? null}
             orgId={arcgisLink?.orgId ?? null}
-            tokenExpiry={arcgisLink?.tokenExpiry ?? null}
           />
           <SupportWidget openCount={openTickets} />
           <div className="rounded-lg border border-border bg-surface-card p-6">
