@@ -1,4 +1,4 @@
-import type { Priority } from "@/types/portal";
+import type { Priority, TicketStatus } from "@/types/portal";
 import { db } from "@/lib/db";
 
 const CLICKUP_BASE = "https://api.clickup.com/api/v2";
@@ -10,6 +10,24 @@ const PRIORITY_MAP: Record<Priority, number> = {
   LOW: 4,
 };
 
+/**
+ * ClickUp statuses are custom per list/space (e.g. "waiting for info", "ready for
+ * review") and can be renamed at any time, so we never match on the literal status
+ * name. Every status does carry a stable `type` — open | custom | done | closed —
+ * and that's what we bucket into our own coarse status for filtering/business logic.
+ * The literal name is stored separately (`clickupStatus`) purely for display.
+ */
+const STATUS_TYPE_MAP: Record<string, TicketStatus> = {
+  open: "OPEN",
+  custom: "IN_PROGRESS",
+  done: "RESOLVED",
+  closed: "CLOSED",
+};
+
+export function mapClickUpStatusType(type: string): TicketStatus {
+  return STATUS_TYPE_MAP[type] ?? "IN_PROGRESS";
+}
+
 interface CreateTicketParams {
   title: string;
   description: string;
@@ -19,10 +37,16 @@ interface CreateTicketParams {
   listId?: string;
 }
 
-/** Create a support task in the BC ClickUp workspace and return the task ID. */
+interface CreateTicketResult {
+  taskId: string;
+  clickupStatus: string | null;
+  status: TicketStatus;
+}
+
+/** Create a support task in the BC ClickUp workspace and return its ID and initial status. */
 export async function createClickUpTicket(
   params: CreateTicketParams
-): Promise<string> {
+): Promise<CreateTicketResult> {
   const listId = params.listId ?? process.env.CLICKUP_SUPPORT_LIST_ID!;
   const token = process.env.CLICKUP_API_TOKEN!;
 
@@ -46,13 +70,17 @@ export async function createClickUpTicket(
   }
 
   const data = await res.json();
-  return data.id as string;
+  return {
+    taskId: data.id as string,
+    clickupStatus: data.status?.status ?? null,
+    status: mapClickUpStatusType(data.status?.type ?? "open"),
+  };
 }
 
-/** Fetch a ClickUp task to get its current status. */
+/** Fetch a ClickUp task's current status (name and type). */
 export async function getClickUpTaskStatus(
   taskId: string
-): Promise<string | null> {
+): Promise<{ status: string; type: string } | null> {
   const token = process.env.CLICKUP_API_TOKEN!;
 
   const res = await fetch(`${CLICKUP_BASE}/task/${taskId}`, {
@@ -61,7 +89,8 @@ export async function getClickUpTaskStatus(
 
   if (!res.ok) return null;
   const data = await res.json();
-  return data.status?.status ?? null;
+  if (!data.status?.status || !data.status?.type) return null;
+  return { status: data.status.status, type: data.status.type };
 }
 
 /** Post a comment on a ClickUp task and return the new comment's ID. */

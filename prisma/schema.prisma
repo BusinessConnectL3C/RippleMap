@@ -76,6 +76,7 @@ model SupportTicket {
   id            String       @id @default(cuid())
   orgId         String
   clickupTaskId String?
+  clickupStatus String?
   title         String
   description   String
   status        TicketStatus @default(OPEN)

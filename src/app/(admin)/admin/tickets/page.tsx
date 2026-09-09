@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { ticketStatusLabel } from "@/types/portal";
 import { TopBar } from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
 
@@ -53,7 +54,7 @@ export default async function AdminTicketsPage() {
                   <td className="px-4 py-3 text-gray-900 max-w-xs truncate">{ticket.title}</td>
                   <td className="px-4 py-3">
                     <Badge variant={STATUS_VARIANT[ticket.status] ?? "secondary"}>
-                      {ticket.status.replace("_", " ")}
+                      {ticketStatusLabel(ticket)}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">

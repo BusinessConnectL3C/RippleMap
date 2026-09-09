@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SupportTicketWithComments } from "@/types/portal";
+import { ticketStatusLabel } from "@/types/portal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 const STATUS_VARIANTS: Record<string, "default" | "warning" | "success" | "secondary"> = {
   OPEN: "default",
@@ -51,6 +53,7 @@ export function TicketDetail({ ticket }: Props) {
     }
 
     setReply("");
+    toast({ variant: "success", title: "Reply sent" });
     router.refresh();
   }
 
@@ -65,7 +68,7 @@ export function TicketDetail({ ticket }: Props) {
             </p>
           </div>
           <div className="flex flex-col gap-1 items-end shrink-0">
-            <Badge variant={STATUS_VARIANTS[ticket.status]}>{ticket.status.replace("_", " ")}</Badge>
+            <Badge variant={STATUS_VARIANTS[ticket.status]}>{ticketStatusLabel(ticket)}</Badge>
             <Badge variant={PRIORITY_VARIANTS[ticket.priority]}>{ticket.priority}</Badge>
           </div>
         </CardHeader>

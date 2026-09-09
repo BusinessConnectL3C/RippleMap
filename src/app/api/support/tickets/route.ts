@@ -47,14 +47,19 @@ export async function POST(req: NextRequest) {
   }
 
   let clickupTaskId: string | undefined;
+  let clickupStatus: string | undefined;
+  let status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | undefined;
   try {
-    clickupTaskId = await createClickUpTicket({
+    const result = await createClickUpTicket({
       title: parsed.data.title,
       description: parsed.data.description,
       priority: parsed.data.priority,
       customerEmail: user.email,
       listId: org?.clickupListId ?? undefined,
     });
+    clickupTaskId = result.taskId;
+    clickupStatus = result.clickupStatus ?? undefined;
+    status = result.status;
   } catch (err) {
     console.error("ClickUp ticket creation failed:", err);
   }
@@ -66,6 +71,8 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
       priority: parsed.data.priority,
       clickupTaskId: clickupTaskId ?? null,
+      clickupStatus: clickupStatus ?? null,
+      ...(status ? { status } : {}),
     },
   });
 

@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
-import { syncClickUpComments } from "@/lib/clickup/tickets";
-
-const STATUS_MAP: Record<string, "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED"> = {
-  "open": "OPEN",
-  "in progress": "IN_PROGRESS",
-  "resolved": "RESOLVED",
-  "closed": "CLOSED",
-  "complete": "RESOLVED",
-};
+import { getClickUpTaskStatus, mapClickUpStatusType, syncClickUpComments } from "@/lib/clickup/tickets";
 
 /** ClickUp signs webhook payloads with the webhook's `secret` (returned when the
  * webhook is created via their API) as an HMAC-SHA256 hex digest of the raw body,
@@ -34,13 +26,14 @@ export async function POST(req: NextRequest) {
   const taskId = body.task_id as string | undefined;
 
   if (taskId && body.event === "taskStatusUpdated") {
-    const newStatus = (body.history_items?.[0]?.after?.status ?? "").toLowerCase();
-    const mappedStatus = STATUS_MAP[newStatus];
-
-    if (mappedStatus) {
+    // Re-fetch the task rather than trust the webhook's embedded history_item: it's
+    // the only place guaranteed to carry the status's `type` (open/custom/done/closed),
+    // which is what lets us bucket a custom, renameable ClickUp status correctly.
+    const current = await getClickUpTaskStatus(taskId);
+    if (current) {
       await db.supportTicket.updateMany({
         where: { clickupTaskId: taskId },
-        data: { status: mappedStatus },
+        data: { status: mapClickUpStatusType(current.type), clickupStatus: current.status },
       });
     }
   }
