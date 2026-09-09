@@ -4,12 +4,10 @@ import { Badge } from "@/components/ui/badge";
 interface Props {
   arcgisUsername: string | null;
   orgId: string | null;
-  tokenExpiry: Date | null;
 }
 
-export function AccountStatusWidget({ arcgisUsername, orgId, tokenExpiry }: Props) {
+export function AccountStatusWidget({ arcgisUsername, orgId }: Props) {
   const isLinked = !!arcgisUsername;
-  const isExpired = tokenExpiry ? new Date(tokenExpiry) < new Date() : false;
 
   return (
     <Card>
@@ -17,8 +15,8 @@ export function AccountStatusWidget({ arcgisUsername, orgId, tokenExpiry }: Prop
         <p className="rm-eyebrow mb-3">ArcGIS Connection</p>
         {isLinked ? (
           <div className="space-y-2">
-            <Badge variant={isExpired ? "warning" : "success"} dot>
-              {isExpired ? "Token Expired" : "Connected"}
+            <Badge variant="success" dot>
+              Connected
             </Badge>
             <p className="text-sm text-text-primary font-medium">{arcgisUsername}</p>
             <p className="text-xs text-text-muted">{orgId}</p>
