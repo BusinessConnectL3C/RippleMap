@@ -63,7 +63,7 @@ export function TicketDetail({ ticket }: Props) {
         <CardHeader className="flex flex-row items-start justify-between space-y-0">
           <div>
             <p className="text-sm text-gray-500 whitespace-pre-wrap">{ticket.description}</p>
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs text-gray-400 mt-2" suppressHydrationWarning>
               Submitted {new Date(ticket.createdAt).toLocaleString()}
             </p>
           </div>
@@ -91,7 +91,7 @@ export function TicketDetail({ ticket }: Props) {
                 <span className="text-xs font-medium text-gray-700">
                   {comment.source === "CLIENT" ? comment.authorName : "RippleMap Support"}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400" suppressHydrationWarning>
                   {new Date(comment.createdAt).toLocaleString()}
                 </span>
               </div>
