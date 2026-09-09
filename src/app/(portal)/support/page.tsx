@@ -17,10 +17,13 @@ export default async function SupportPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const openTickets = tickets.filter((t) => t.status === "OPEN" || t.status === "IN_PROGRESS");
+  const completedTickets = tickets.filter((t) => t.status === "RESOLVED" || t.status === "CLOSED");
+
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Support" />
-      <div className="flex-1 p-6 space-y-4">
+      <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-text-secondary">
             <span className="font-mono font-semibold text-text-primary">{tickets.length}</span> total tickets
@@ -31,7 +34,32 @@ export default async function SupportPage() {
             </Button>
           </Link>
         </div>
-        <TicketList tickets={tickets} />
+
+        <p className="text-sm text-text-secondary">
+          Please allow 24-48 hours for normal replies, and 12-24 hours for urgent requests.
+        </p>
+
+        {tickets.length === 0 ? (
+          <TicketList tickets={[]} />
+        ) : (
+          <>
+            <div className="space-y-3">
+              <h2 className="font-display text-base font-semibold text-text-primary">Open Tickets</h2>
+              {openTickets.length > 0 ? (
+                <TicketList tickets={openTickets} />
+              ) : (
+                <p className="text-sm text-text-secondary">No open tickets right now.</p>
+              )}
+            </div>
+
+            {completedTickets.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="font-display text-base font-semibold text-text-primary">Completed Tickets</h2>
+                <TicketList tickets={completedTickets} />
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
