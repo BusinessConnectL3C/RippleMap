@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { SupportTicket, TicketStatus, Priority } from "@/types/portal";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -49,25 +50,27 @@ export function TicketList({ tickets }: Props) {
   return (
     <div className="space-y-2">
       {tickets.map((ticket) => (
-        <Card key={ticket.id} className="p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-text-primary">{ticket.title}</h3>
-              <p className="text-sm text-text-secondary mt-1 line-clamp-2">{ticket.description}</p>
-              <p className="text-xs text-text-muted mt-2">
-                {new Date(ticket.createdAt).toLocaleDateString()}
-              </p>
+        <Link key={ticket.id} href={`/support/${ticket.id}`} className="block">
+          <Card interactive className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-text-primary">{ticket.title}</h3>
+                <p className="text-sm text-text-secondary mt-1 line-clamp-2">{ticket.description}</p>
+                <p className="text-xs text-text-muted mt-2">
+                  {new Date(ticket.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex flex-col gap-1 items-end shrink-0">
+                <Badge variant={STATUS_VARIANTS[ticket.status]} dot>
+                  {STATUS_LABELS[ticket.status]}
+                </Badge>
+                <Badge variant={PRIORITY_VARIANTS[ticket.priority]} dot>
+                  {PRIORITY_LABELS[ticket.priority]}
+                </Badge>
+              </div>
             </div>
-            <div className="flex flex-col gap-1 items-end shrink-0">
-              <Badge variant={STATUS_VARIANTS[ticket.status]} dot>
-                {STATUS_LABELS[ticket.status]}
-              </Badge>
-              <Badge variant={PRIORITY_VARIANTS[ticket.priority]} dot>
-                {PRIORITY_LABELS[ticket.priority]}
-              </Badge>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </Link>
       ))}
     </div>
   );

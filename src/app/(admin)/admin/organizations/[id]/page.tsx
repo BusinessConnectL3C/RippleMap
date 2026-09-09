@@ -51,6 +51,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               initialName={org.name}
               initialType={org.type as "NONPROFIT" | "CORPORATE"}
               initialArcgisGroupId={org.arcgisGroupId}
+              initialClickupListId={org.clickupListId}
             />
           </CardContent>
         </Card>

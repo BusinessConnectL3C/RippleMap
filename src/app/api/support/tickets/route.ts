@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
   }
 
   const su = session.user as unknown as { orgId: string };
-  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { email: true } });
+  const [user, org] = await Promise.all([
+    db.user.findUnique({ where: { id: session.user.id }, select: { email: true } }),
+    db.organization.findUnique({ where: { id: su.orgId }, select: { clickupListId: true } }),
+  ]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -50,6 +53,7 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
       priority: parsed.data.priority,
       customerEmail: user.email,
+      listId: org?.clickupListId ?? undefined,
     });
   } catch (err) {
     console.error("ClickUp ticket creation failed:", err);

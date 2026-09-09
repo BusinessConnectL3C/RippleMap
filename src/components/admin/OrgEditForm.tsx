@@ -14,13 +14,21 @@ interface Props {
   initialName: string;
   initialType: "NONPROFIT" | "CORPORATE";
   initialArcgisGroupId: string | null;
+  initialClickupListId: string | null;
 }
 
-export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGroupId }: Props) {
+export function OrgEditForm({
+  orgId,
+  initialName,
+  initialType,
+  initialArcgisGroupId,
+  initialClickupListId,
+}: Props) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [type, setType] = useState(initialType);
   const [arcgisGroupId, setArcgisGroupId] = useState(initialArcgisGroupId ?? "");
+  const [clickupListId, setClickupListId] = useState(initialClickupListId ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +44,7 @@ export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGrou
         name: name.trim(),
         type,
         arcgisGroupId: arcgisGroupId.trim() || null,
+        clickupListId: clickupListId.trim() || null,
       }),
     });
     setSaving(false);
@@ -88,6 +97,20 @@ export function OrgEditForm({ orgId, initialName, initialType, initialArcgisGrou
         />
         <p className="text-xs text-gray-600">
           Found in ArcGIS Online → Groups → [Group] → Overview URL.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="clickupListId">ClickUp List ID</Label>
+        <Input
+          id="clickupListId"
+          value={clickupListId}
+          onChange={(e) => setClickupListId(e.target.value)}
+          placeholder="Paste list ID from ClickUp"
+          className="font-mono text-xs"
+        />
+        <p className="text-xs text-gray-600">
+          Support tickets for this org are sent here. Found in ClickUp → List → Settings.
         </p>
       </div>
 

@@ -19,6 +19,16 @@ export interface SessionUser {
   onboardingCompleted: boolean;
 }
 
+export type CommentSource = "CLIENT" | "BC_STAFF";
+
+export interface TicketComment {
+  id: string;
+  authorName: string;
+  body: string;
+  source: CommentSource;
+  createdAt: Date | string;
+}
+
 export interface SupportTicket {
   id: string;
   title: string;
@@ -28,6 +38,10 @@ export interface SupportTicket {
   clickupTaskId: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface SupportTicketWithComments extends SupportTicket {
+  comments: TicketComment[];
 }
 
 export interface DashboardStats {
