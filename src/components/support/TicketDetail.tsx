@@ -89,7 +89,7 @@ export function TicketDetail({ ticket }: Props) {
             >
               <div className="flex items-center justify-between gap-4 mb-1">
                 <span className="text-xs font-medium text-gray-700">
-                  {comment.source === "CLIENT" ? comment.authorName : `${comment.authorName} · Business Connect`}
+                  {comment.source === "CLIENT" ? comment.authorName : "RippleMap Support"}
                 </span>
                 <span className="text-xs text-gray-400">
                   {new Date(comment.createdAt).toLocaleString()}
