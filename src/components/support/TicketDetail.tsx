@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 const STATUS_VARIANTS: Record<string, "default" | "warning" | "success" | "secondary"> = {
   OPEN: "default",
@@ -52,6 +53,7 @@ export function TicketDetail({ ticket }: Props) {
     }
 
     setReply("");
+    toast({ variant: "success", title: "Reply sent" });
     router.refresh();
   }
 
