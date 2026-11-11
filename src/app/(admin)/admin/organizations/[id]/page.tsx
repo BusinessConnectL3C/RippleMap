@@ -11,6 +11,8 @@ import { FeltMapsPanel } from "@/components/admin/FeltMapsPanel";
 import { isFeltConfigured } from "@/lib/felt/client";
 import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
 import { DeleteOrgButton } from "@/components/admin/DeleteOrgButton";
+import { BillingEditForm } from "@/components/admin/BillingEditForm";
+import { toDateInput } from "@/lib/billing";
 import { ChevronLeft } from "lucide-react";
 
 interface Props {
@@ -26,6 +28,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
       onboardingState: true,
       users: { orderBy: { createdAt: "asc" } },
       feltMaps: { orderBy: { title: "asc" }, include: { _count: { select: { grants: true } } } },
+      billing: true,
     },
   });
 
@@ -60,6 +63,31 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               initialClickupListId={org.clickupListId}
               initialFeltProjectId={org.feltProjectId}
               initialArcgisEnabled={org.arcgisEnabled}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Billing */}
+        <Card id="billing">
+          <CardHeader>
+            <CardTitle>Billing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BillingEditForm
+              orgId={org.id}
+              isNew={!org.billing}
+              initial={{
+                plan: org.billing?.plan ?? "",
+                status: org.billing?.status ?? "TRIAL",
+                cycle: org.billing?.cycle ?? "",
+                amount: org.billing?.amountCents != null ? String(org.billing.amountCents / 100) : "",
+                feltSeats: String(org.billing?.feltSeats ?? 1),
+                startDate: toDateInput(org.billing?.startDate),
+                renewalDate: toDateInput(org.billing?.renewalDate),
+                billingContactName: org.billing?.billingContactName ?? "",
+                billingContactEmail: org.billing?.billingContactEmail ?? "",
+                staffNotes: org.billing?.staffNotes ?? "",
+              }}
             />
           </CardContent>
         </Card>
