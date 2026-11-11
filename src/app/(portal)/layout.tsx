@@ -9,7 +9,7 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!session?.user?.id) redirect("/login");
 
   const su = session.user as unknown as { orgId: string };
-  const [state, org] = await Promise.all([
+  const [state, org, user] = await Promise.all([
     db.onboardingState.findUnique({
       where: { orgId: su.orgId },
       select: { completed: true },
@@ -18,6 +18,7 @@ export default async function PortalLayout({ children }: { children: React.React
       where: { id: su.orgId },
       select: { name: true, mediaSource: true },
     }),
+    db.user.findUnique({ where: { id: session.user.id }, select: { role: true } }),
   ]);
 
   if (!state?.completed) redirect("/onboarding");
@@ -27,7 +28,7 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <MobileNavProvider>
       <div className="flex h-full">
-        <Sidebar showMedia={showMedia} orgName={org?.name} />
+        <Sidebar showMedia={showMedia} orgName={org?.name} isStaff={user?.role === "BC_STAFF"} />
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </MobileNavProvider>
