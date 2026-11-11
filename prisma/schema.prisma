@@ -29,6 +29,7 @@ model Organization {
   supportTickets  SupportTicket[]
   invites         OrgInvite[]
   feltMaps        FeltMap[]
+  billing         OrgBilling?
 }
 
 model User {
@@ -159,6 +160,33 @@ model FeltMapGrant {
   @@index([userId])
 }
 
+/// Billing terms for an org, maintained by BC staff in the admin portal until a
+/// payment provider (Stripe) is integrated. Classification: Confidential
+/// (pricing) plus PII (billing contact). Never store card numbers, bank account
+/// numbers, or other financial account data here — BC policy prohibits it.
+model OrgBilling {
+  id                  String        @id @default(cuid())
+  orgId               String        @unique
+  plan                String?
+  status              BillingStatus @default(TRIAL)
+  cycle               BillingCycle?
+  /// Price per billing cycle, in cents (USD).
+  amountCents         Int?
+  /// Felt seats included in the plan (Field Editors).
+  feltSeats           Int           @default(1)
+  startDate           DateTime?
+  renewalDate         DateTime?
+  billingContactName  String?
+  billingContactEmail String?
+  /// Internal BC notes. Never shown to the client.
+  staffNotes          String?
+  updatedById         String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
 model OnboardingState {
   id             String   @id @default(cuid())
   orgId          String   @unique
@@ -172,6 +200,18 @@ model OnboardingState {
 enum OrgType {
   NONPROFIT
   CORPORATE
+}
+
+enum BillingStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
 }
 
 enum FeltMapKind {

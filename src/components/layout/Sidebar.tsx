@@ -99,9 +99,12 @@ function SidebarContent({
 
       <div className="border-t border-gray-200 p-4 space-y-1">
         <p className="rm-eyebrow px-3 mb-1">Settings</p>
-        {settingsItems.map((item) => (
-          <NavLink key={item.href} {...item} isActive={pathname.startsWith(item.href)} onNavigate={onNavigate} />
-        ))}
+        {/* BC staff handle billing and support in the admin portal instead. */}
+        {settingsItems
+          .filter((item) => !isStaff || item.href === "/account")
+          .map((item) => (
+            <NavLink key={item.href} {...item} isActive={pathname.startsWith(item.href)} onNavigate={onNavigate} />
+          ))}
         {isStaff && (
           <NavLink href="/admin" label="Admin" icon={ShieldCheck} isActive={pathname.startsWith("/admin")} onNavigate={onNavigate} />
         )}

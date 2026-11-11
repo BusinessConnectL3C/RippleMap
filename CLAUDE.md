@@ -29,6 +29,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 ### Not Yet Built / Pending
 - **Email confirmation on registration** — still no verification-token flow on registration itself. (Org-invite emails, however, now send via Resend — see below.)
 - **Admin panel** — no UI for BC staff to manage users, set arcgisGroupId manually if group creation fails, etc.
+- **Billing (manual, live):** `OrgBilling` holds each org's plan, status, price, cycle, dates, Felt seats and billing contact. BC staff edit it in admin (org page → Billing; overview at `/admin/billing`); org OWNER/ADMIN see it read-only at `/billing`. Never store card or bank account numbers there (BC policy). BC staff accounts don't see the portal Billing/Support pages (redirected to admin).
 - **Stripe billing integration** — replacing Salesforce. Existing Salesforce code (`src/lib/salesforce/`, `/api/salesforce/`, `SalesforceLink` table) to be removed. Stripe not yet implemented.
 - **ClickUp support ticket integration** — per-org ClickUp lists (created at registration, one per org, with a shared fallback list), plus two-way comment sync (`/support/[id]` thread, webhook-driven inbound sync) are implemented but not yet verified end-to-end against the real BC ClickUp workspace (need to confirm `CLICKUP_SUPPORT_FOLDER_ID`, do a live registration + ticket + webhook round-trip)
 - **AWS S3** — dependency in package.json, not yet used in any feature
@@ -91,4 +92,4 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Provider: Neon (PostgreSQL)
 - Migrations in: `prisma/migrations/`
 - Do NOT truncate `_prisma_migrations` — only truncate application tables
-- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SupportTicketComment", "FeltMapGrant", "FeltMap", "User" CASCADE;` (this does not delete the orgs' Felt projects or maps in Felt)
+- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SupportTicketComment", "FeltMapGrant", "FeltMap", "OrgBilling", "User" CASCADE;` (this does not delete the orgs' Felt projects or maps in Felt)
