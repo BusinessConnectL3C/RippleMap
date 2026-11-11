@@ -7,6 +7,7 @@ export interface MapWidgetItem {
   key: string;
   title: string;
   href: string;
+  thumbnailUrl?: string;
 }
 
 export function MapWidget({ maps }: { maps: MapWidgetItem[] }) {
@@ -32,9 +33,14 @@ export function MapWidget({ maps }: { maps: MapWidgetItem[] }) {
             {maps.map((map) => (
               <Link key={map.key} href={map.href}>
                 <Card interactive className="group overflow-hidden">
-                  <div className="h-20 bg-gradient-to-br from-brand/10 to-brand/20 flex items-center justify-center">
-                    <Map className="h-6 w-6 text-brand/60 group-hover:text-brand transition-colors" />
-                  </div>
+                  {map.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- same-origin redirect to a signed S3 URL
+                    <img src={map.thumbnailUrl} alt="" loading="lazy" className="h-20 w-full bg-surface-page object-cover" />
+                  ) : (
+                    <div className="h-20 bg-gradient-to-br from-brand/10 to-brand/20 flex items-center justify-center">
+                      <Map className="h-6 w-6 text-brand/60 group-hover:text-brand transition-colors" />
+                    </div>
+                  )}
                   <div className="p-2">
                     <p className="text-xs font-medium text-text-primary truncate">{map.title}</p>
                   </div>

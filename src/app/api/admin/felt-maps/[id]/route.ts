@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireStaffViewer } from "@/lib/staff";
+import { deleteFile } from "@/lib/aws/s3";
 
 const patchSchema = z
   .object({
@@ -35,7 +36,14 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  const deleted = await db.feltMap.deleteMany({ where: { id } });
-  if (deleted.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const map = await db.feltMap.findUnique({ where: { id }, select: { thumbnailKey: true } });
+  if (!map) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await db.feltMap.delete({ where: { id } });
+  if (map.thumbnailKey) {
+    await deleteFile(map.thumbnailKey).catch((err) =>
+      console.error(`Failed to delete thumbnail ${map.thumbnailKey}:`, err)
+    );
+  }
   return NextResponse.json({ ok: true });
 }

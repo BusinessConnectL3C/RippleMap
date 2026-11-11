@@ -62,6 +62,9 @@ export default async function MapsPage() {
       href: `/maps/f/${m.feltMapId}`,
       provider: "felt",
       updatedAt: m.updatedAt.getTime(),
+      thumbnailUrl: m.thumbnailKey
+        ? `/api/felt/maps/${m.feltMapId}/thumbnail?v=${m.updatedAt.getTime()}`
+        : undefined,
     })),
     ...arcgisItems.map(arcgisGalleryItem),
   ];

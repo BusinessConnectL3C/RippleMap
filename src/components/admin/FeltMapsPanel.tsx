@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { ExternalLink, ImageIcon, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ interface MapRow {
   kind: Kind;
   visibility: Visibility;
   grantCount: number;
+  hasThumbnail: boolean;
 }
 
 interface Props {
@@ -179,7 +180,28 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Pr
                     </Badge>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="px-3 py-2 text-right whitespace-nowrap">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy === m.id + ":thumb"}
+                    aria-label={`${m.hasThumbnail ? "Refresh" : "Create"} thumbnail for ${m.title}`}
+                    title={m.hasThumbnail ? "Refresh thumbnail" : "No thumbnail yet: create one"}
+                    className={m.hasThumbnail ? "text-gray-500" : "text-amber-600"}
+                    onClick={() =>
+                      run(
+                        m.id + ":thumb",
+                        () => fetch(`/api/admin/felt-maps/${m.id}/thumbnail`, { method: "POST" }),
+                        async () => "Thumbnail updated"
+                      )
+                    }
+                  >
+                    {busy === m.id + ":thumb" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"

@@ -138,3 +138,13 @@ export async function listFolders(prefix: string, bucket: string): Promise<strin
 
   return Array.from(folders).sort();
 }
+
+/** Upload a file from the server (for server-generated assets, e.g. map thumbnails). */
+export async function putFile(
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+  bucket = DEFAULT_BUCKET
+): Promise<void> {
+  await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+}
