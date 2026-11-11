@@ -183,6 +183,71 @@ BC Felt workspace
 
 Every client field collector needs a seat (§2.4). One seat per org therefore means **one Field App user per org**. That is the main commercial constraint: see §6 and the pricing question in §9.
 
+### 3.1 Org / User / Seat model
+
+Two permission systems sit side by side, and they don't sync:
+
+| Layer | Who | Controls | Managed by |
+|---|---|---|---|
+| **Felt** | The org's **Field Editor**: one named person with a Felt seat | Editing maps, layers, forms and dashboards; Field App capture | BC staff, in the Felt UI (no API) |
+| **RippleMap** | Every org user, including the Field Editor | Which org maps each user can **view** in the portal (via embed tokens) | Org OWNER/ADMIN in the portal |
+
+#### The Felt seat is one named person, not a shared login
+Felt's Terms of Service, "unless otherwise expressly set forth on an Order Form":
+- each seat is "designated for use only by a single, specifically identified natural person";
+- it "may not be shared… whether concurrently or otherwise";
+- it can be reassigned **only** when that person's engagement ends;
+- any other use is a **material breach**.
+
+A shared org login is therefore not allowed under the standard terms. It would also break:
+- edit attribution ("Created by" / "Modified by");
+- offboarding (a password rotation every time someone leaves);
+- SSO and MFA.
+
+**Model:**
+- Each org designates **one Field Editor**, an individual using their own email and Felt account.
+- That person is invited to the org's private Felt project only, as an external collaborator with workspace access None.
+- They are flagged as the Field Editor in RippleMap.
+- **Swapping the Field Editor** happens only when that person leaves the org, processed by BC staff. Otherwise it needs Felt's written OK.
+- **More collectors** need more seats (one seat each) or the Phase-2 RippleMap forms (§6).
+
+#### Confirm with Felt before relying on this model (§9)
+The terms define an Authorized User as someone "employed or otherwise engaged by **Customer**", and BC is the customer. Client-org staff holding BC seats may need **written authorization in BC's order form**. That covers:
+- external client users holding seats;
+- reassigning a seat when a client org churns;
+- (ideally) a role-based seat ("Acme Field Editor") instead of a named one.
+
+This is a contractual question, not a product setting. Get it in writing before onboarding the first client.
+
+#### Field Editor's Felt access level: Edit on their project, with guardrails
+Edit access (needed to change forms, layers and dashboards) also lets the Field Editor:
+- invite people, and inviting Contribute/Edit users **consumes BC's seats**;
+- change a map's **public link access**, which **bypasses RippleMap permissions entirely**.
+
+Contribute avoids both, but it can't edit forms or dashboards.
+
+**Recommendation:** give **Edit**, with these guardrails:
+1. **Client agreement:** the client agreement says the Field Editor may not invite people or change sharing in Felt. Requests go to BC.
+2. **Webhook reconciler:** a webhook on each org map. On `map:update`, `GET /maps/{id}` checks access settings, and anything non-private alerts BC staff (and is auto-reverted via `POST /maps/{id}/update`).
+3. **Seat audit:** a monthly manual audit of Felt workspace members against `User.feltSeat` (there is no members API).
+
+Orgs that only need field capture can get **Contribute** instead.
+
+#### RippleMap view permissions (portal-side only)
+Felt never sees these. The portal simply refuses to mint an embed token.
+
+| RippleMap role | Sees |
+|---|---|
+| `BC_STAFF` | All maps, all orgs (support) |
+| `OWNER`, `ADMIN` | All of their org's maps; grant and revoke member access |
+| `MEMBER` | Maps whose visibility is **All members**, plus maps explicitly granted to them |
+
+- **New maps default to Restricted** (admins only, least privilege). An admin either switches a map to **All members** or grants specific users.
+- **One check enforces it everywhere:** `canViewMap(user, map)` gates the Maps list, the map page, the embed-token route, data/export routes, Home widgets and Forms (SURVEY maps).
+- **Revoking access** stops new tokens immediately. An already-open embed can last up to 12 h (§2.3).
+- **Data export** is a separate per-grant flag (`canExport`), off by default, because export moves data out of the map.
+- **Later, if orgs grow:** named groups ("Field team", "Board") instead of per-user grants. Per-user grants are enough for typical org sizes.
+
 ---
 
 ## 4. Data model changes (Prisma)
@@ -197,26 +262,47 @@ model Organization {
 
 model User {
   // existing …
-  feltSeat   Boolean  @default(false)  // BC staff record who holds a Felt seat (assigned manually in Felt)
-  feltEmail  String?                   // Felt account email if different from login email
+  feltSeat        Boolean   @default(false)  // Field Editor: holds a named Felt seat (assigned manually in Felt by BC staff)
+  feltAccess      FeltAccess?                // Edit or Contribute on the org's Felt project, as set in Felt
+  feltEmail       String?                    // Felt account email if different from login email
+  feltSeatSince   DateTime?                  // audit trail for seat reassignment (§3.1)
+  mapGrants       FeltMapGrant[]
 }
 
 model FeltMap {
-  id                 String      @id @default(cuid())
+  id                 String        @id @default(cuid())
   orgId              String
-  feltMapId          String      @unique
+  feltMapId          String        @unique
   title              String
-  kind               FeltMapKind @default(MAP)
-  thumbnailKey       String?     // S3 key of cached image export
-  webhookSecretEnc   String?     // per-map webhook signing key, encrypted with lib/encryption
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  kind               FeltMapKind   @default(MAP)
+  visibility         MapVisibility @default(RESTRICTED)
+  thumbnailKey       String?       // S3 key of cached image export
+  webhookSecretEnc   String?       // per-map webhook signing key, encrypted with lib/encryption
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  grants       FeltMapGrant[]
   @@index([orgId])
 }
 
-enum FeltMapKind { MAP DASHBOARD SURVEY }
+model FeltMapGrant {
+  id          String   @id @default(cuid())
+  feltMapId   String   // FK to FeltMap.id
+  userId      String
+  canExport   Boolean  @default(false)
+  grantedById String?
+  createdAt   DateTime @default(now())
+  map  FeltMap @relation(fields: [feltMapId], references: [id], onDelete: Cascade)
+  user User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([feltMapId, userId])
+}
+
+enum FeltMapKind   { MAP DASHBOARD SURVEY }
+enum MapVisibility { RESTRICTED ALL_MEMBERS }   // OWNER/ADMIN always see every org map
+enum FeltAccess    { EDIT CONTRIBUTE }
 ```
+
+A grant must only reference a user and a map in the **same org**. Enforce this in the grant API, because Prisma can't express the constraint.
 
 **How `FeltMap` is populated:**
 - Admin "Create from template".
@@ -275,9 +361,16 @@ On the org page:
 - Felt project id (view/set).
 - Map registry: create from template, add by URL, sync from project, set kind, remove.
 - Per-map webhook signing key (paste once, stored encrypted).
-- Seat-holder flag per user.
+- Field Editor flag per user (`feltSeat`, `feltAccess`), with a reassignment log.
 - `arcgisEnabled` toggle.
 - "Refresh thumbnail" action.
+- Alerts from the sharing reconciler (§3.1).
+
+### 5.4a Org admin (OWNER/ADMIN, Account → Map access)
+- A per-map visibility toggle: **Restricted** / **All members**.
+- Grant or revoke access to specific members, with an optional **Can export** flag.
+- A per-member view of which maps they can see.
+- The Field Editor is shown read-only. Changing it is a request to BC (support ticket).
 
 ### 5.5 Webhooks
 `POST /api/felt/webhook`:
@@ -347,6 +440,9 @@ Felt can serve images natively. Choose by sensitivity:
 
 1. **Platform add-on:** active. What will it cost after the 3 free months? Budget for it.
 2. **Seats:** What does each additional seat cost, and are there Contribute-only seat tiers? Field collectors need seats, so this sets per-org pricing.
+   - **Order-form terms (contractual):** written authorization for client-org staff (not BC employees) to hold BC seats as Authorized Users.
+   - Reassigning a seat when a client org churns, or when its Field Editor changes.
+   - Ideally, role-based seats per org. The standard ToS forbids seat sharing and limits reassignment (§3.1).
 3. **`user_email` alternatives:** May we pass a stable pseudonymous address per portal user (e.g. `u_<id>@viewers.ripplemap.app`) instead of real emails? This minimizes PII sent to Felt.
 4. **Image attribute values:** What do they look like in GeoJSON export and SDK `getFeatures`? Are they signed, expiring or public URLs?
 5. **Roadmap:** Are REST endpoints planned for layer schema/form editing and feature edits?
@@ -380,7 +476,7 @@ Felt can serve images natively. Choose by sensitivity:
 
 | Phase | Scope | Depends on |
 |---|---|---|
-| **0. Confirm** | Seat pricing (§9.2), DPA/SOC 2, Tech Ops vendor review (Business + Platform confirmed) | — |
+| **0. Confirm** | Seat pricing and order-form seat terms (§9.2), DPA/SOC 2, Tech Ops vendor review (Business + Platform confirmed) | — |
 | **1. Security fix** | §8 ArcGIS ownership checks | — (do now) |
 | **2. Foundation** | `src/lib/felt/` (`client.ts`: auth, error envelope, 429 backoff; `projects.ts`; `maps.ts`; `embed.ts`; `images.ts`); Prisma migration (§4); registration creates the project; template map; admin org page (§5.4) | 0 |
 | **3. Maps & Dashboards** | Embed-token route, `<FeltMapEmbed>`, `/maps/f/[id]`, merged gallery, data table and export | 2 |
