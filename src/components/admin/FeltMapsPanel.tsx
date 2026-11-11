@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 
 type Kind = "MAP" | "DASHBOARD" | "SURVEY";
-type Visibility = "RESTRICTED" | "ALL_MEMBERS";
+type Visibility = "RESTRICTED" | "ALL_MEMBERS" | "PUBLIC";
 
 interface MapRow {
   id: string;
@@ -21,6 +21,7 @@ interface MapRow {
   visibility: Visibility;
   grantCount: number;
   hasThumbnail: boolean;
+  madePublicInFelt: boolean;
 }
 
 interface Props {
@@ -105,8 +106,9 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Pr
     <div className="space-y-5">
       <p className="text-xs text-gray-600">
         Felt project <code className="font-mono">{feltProjectId}</code>. Maps registered here are visible in the
-        portal; new maps are <strong>Restricted</strong> (org owners/admins only) until access is granted. Every map
-        is forced to private sharing in Felt when added.
+        portal; new maps are <strong>Restricted</strong> (org owners/admins only) until access is granted. Private
+        maps get viewer export turned off in Felt. A map already public in Felt stays public and is flagged for review.
+        New maps are also picked up automatically when the org&apos;s owners or admins open their map pages.
       </p>
 
       {maps.length === 0 ? (
@@ -162,9 +164,15 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Pr
                   <Select
                     value={m.visibility}
                     disabled={busy === m.id}
-                    onValueChange={(visibility) =>
-                      run(m.id, () => patchMap(m.id, { visibility }), async () => "Visibility updated")
-                    }
+                    onValueChange={(visibility) => {
+                      if (
+                        visibility === "PUBLIC" &&
+                        !confirm(`Make "${m.title}" public? Anyone with the link can view it without signing in.`)
+                      ) {
+                        return;
+                      }
+                      run(m.id, () => patchMap(m.id, { visibility }), async () => "Visibility updated");
+                    }}
                   >
                     <SelectTrigger className="h-8 w-36 text-xs">
                       <SelectValue />
@@ -172,8 +180,33 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Pr
                     <SelectContent>
                       <SelectItem value="RESTRICTED">Restricted</SelectItem>
                       <SelectItem value="ALL_MEMBERS">All members</SelectItem>
+                      <SelectItem value="PUBLIC">Public</SelectItem>
                     </SelectContent>
                   </Select>
+                  {m.madePublicInFelt && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1 text-xs">
+                      <Badge variant="warning">Made public in Felt</Badge>
+                      <button
+                        type="button"
+                        className="text-link hover:underline"
+                        disabled={busy === m.id}
+                        onClick={() => run(m.id, () => patchMap(m.id, { approvePublic: true }), async () => "Kept public")}
+                      >
+                        Keep
+                      </button>
+                      <span className="text-gray-400">·</span>
+                      <button
+                        type="button"
+                        className="text-link hover:underline"
+                        disabled={busy === m.id}
+                        onClick={() =>
+                          run(m.id, () => patchMap(m.id, { visibility: "RESTRICTED" }), async () => "Made private")
+                        }
+                      >
+                        Make private
+                      </button>
+                    </div>
+                  )}
                   {m.visibility === "RESTRICTED" && (
                     <Badge variant="secondary" className="ml-2">
                       {m.grantCount} granted
@@ -297,7 +330,8 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Pr
           run("sync", () => post({ action: "sync" }), async (res) => {
             const data = await res.json();
             const parts = [`${data.added} added`];
-            if (data.secured) parts.push(`${data.secured} set back to private`);
+            if (data.madePublic) parts.push(`${data.madePublic} public in Felt (flagged)`);
+            if (data.madePrivate) parts.push(`${data.madePrivate} made private in Felt`);
             if (data.conflicts?.length) parts.push(`${data.conflicts.length} registered to another org`);
             return `Synced: ${parts.join(", ")}`;
           })

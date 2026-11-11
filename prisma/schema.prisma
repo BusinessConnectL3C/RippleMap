@@ -15,6 +15,9 @@ model Organization {
   // Private Felt project holding this org's maps (one per org, created at
   // registration, best-effort — same pattern as arcgisGroupId/clickupListId).
   feltProjectId String?
+  /// Last time the org's Felt project was checked for new or changed maps
+  /// (throttles the automatic check when owners/admins open map pages).
+  feltSyncedAt  DateTime?
   // Whether this org also uses ArcGIS/Esri (Survey123, Field Maps, hosted
   // feature services). Felt is the default; ArcGIS is opt-in per org.
   arcgisEnabled Boolean      @default(false)
@@ -130,6 +133,11 @@ model FeltMap {
   title            String
   kind             FeltMapKind   @default(MAP)
   visibility       MapVisibility @default(RESTRICTED)
+  /// When the map became PUBLIC (portal or Felt).
+  publicSince      DateTime?
+  /// Someone made the map public directly in Felt rather than from the portal.
+  /// It stays public; this flags it for the org's admins and BC staff to review.
+  madePublicInFelt Boolean       @default(false)
   thumbnailKey     String?
   // Per-map webhook signing key, encrypted with src/lib/encryption.ts.
   webhookSecretEnc String?
@@ -223,6 +231,8 @@ enum FeltMapKind {
 enum MapVisibility {
   RESTRICTED
   ALL_MEMBERS
+  /// Anyone with the link can view, no sign-in (Felt public_access view_only).
+  PUBLIC
 }
 
 enum FeltAccess {

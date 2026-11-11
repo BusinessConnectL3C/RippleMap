@@ -1,6 +1,7 @@
 import "server-only";
 import type { FeltMap as FeltMapRow, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { lockDownMap, makeMapPublic } from "./maps";
 
 /**
  * RippleMap-side view permissions for Felt maps.
@@ -13,7 +14,7 @@ import { db } from "@/lib/db";
  *
  *   BC_STAFF       → every map in every org (system admin)
  *   OWNER / ADMIN  → every map in their own org
- *   MEMBER         → own-org maps that are ALL_MEMBERS, plus explicit grants
+ *   MEMBER         → own-org maps that are ALL_MEMBERS or PUBLIC, plus explicit grants
  *
  * The viewer is re-read from the database rather than trusted from the JWT, so
  * a role change or removal takes effect on the next request, not next login.
@@ -43,7 +44,7 @@ function visibleMapsWhere(viewer: Viewer): Prisma.FeltMapWhereInput {
   if (isOrgAdmin(viewer)) return { orgId: viewer.orgId };
   return {
     orgId: viewer.orgId,
-    OR: [{ visibility: "ALL_MEMBERS" }, { grants: { some: { userId: viewer.id } } }],
+    OR: [{ visibility: { in: ["ALL_MEMBERS", "PUBLIC"] } }, { grants: { some: { userId: viewer.id } } }],
   };
 }
 
@@ -111,8 +112,34 @@ export async function setMapVisibility(
   mapId: string,
   visibility: FeltMapRow["visibility"]
 ): Promise<void> {
-  await getManagedMap(manager, mapId);
-  await db.feltMap.update({ where: { id: mapId }, data: { visibility } });
+  const map = await getManagedMap(manager, mapId);
+
+  // Crossing the Public boundary changes the map's link sharing in Felt.
+  // Felt first: if that call fails, the portal must not claim a state Felt
+  // isn't in.
+  if (visibility === "PUBLIC" && map.visibility !== "PUBLIC") {
+    await makeMapPublic(map.feltMapId);
+  } else if (visibility !== "PUBLIC" && map.visibility === "PUBLIC") {
+    await lockDownMap(map.feltMapId);
+  }
+
+  await db.feltMap.update({
+    where: { id: mapId },
+    data: {
+      visibility,
+      madePublicInFelt: false,
+      publicSince: visibility === "PUBLIC" ? (map.visibility === "PUBLIC" ? map.publicSince : new Date()) : null,
+    },
+  });
+}
+
+/**
+ * Keep a map that was made public in Felt as it is, and clear the review flag.
+ */
+export async function approvePublicMap(manager: Viewer, mapId: string): Promise<void> {
+  const map = await getManagedMap(manager, mapId);
+  if (map.visibility !== "PUBLIC") throw new GrantError("Map is not public", 409);
+  await db.feltMap.update({ where: { id: mapId }, data: { madePublicInFelt: false } });
 }
 
 /**

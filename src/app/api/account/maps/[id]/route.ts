@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { getViewer, GrantError, setMapVisibility } from "@/lib/felt/access";
+import { approvePublicMap, getViewer, GrantError, setMapVisibility } from "@/lib/felt/access";
+import { FeltApiError } from "@/lib/felt/client";
 
-const patchSchema = z.object({ visibility: z.enum(["RESTRICTED", "ALL_MEMBERS"]) });
+const patchSchema = z.union([
+  z.object({ visibility: z.enum(["RESTRICTED", "ALL_MEMBERS", "PUBLIC"]) }),
+  // Keep a map that was made public in Felt, and clear its review flag.
+  z.object({ approvePublic: z.literal(true) }),
+]);
 
 /** Org OWNER/ADMIN: set who in the org can see a map (all members, or only granted members). */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,10 +21,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   try {
-    await setMapVisibility(viewer, id, parsed.data.visibility);
+    if ("visibility" in parsed.data) {
+      await setMapVisibility(viewer, id, parsed.data.visibility);
+    } else {
+      await approvePublicMap(viewer, id);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof GrantError) return NextResponse.json({ error: err.message }, { status: err.status });
+    if (err instanceof FeltApiError) {
+      return NextResponse.json({ error: "Felt didn't accept the change. Please try again." }, { status: 502 });
+    }
     throw err;
   }
 }

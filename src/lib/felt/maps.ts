@@ -62,13 +62,29 @@ export function lockDownMap(mapId: string): Promise<FeltMap> {
   });
 }
 
-/** True if a map's settings would let anyone bypass the portal's permissions. */
-export function isMapExposed(map: Pick<FeltMap, "public_access" | "viewer_permissions">): boolean {
-  return (
-    map.public_access !== "private" ||
-    !!map.viewer_permissions?.can_export_data ||
-    !!map.viewer_permissions?.can_duplicate_map
-  );
+/**
+ * Make a map viewable by anyone with its link (no sign-in). Used only when an
+ * org owner/admin or BC staff choose Public in the portal. Viewer export and
+ * duplication stay off: public means "can look", not "can take the data".
+ */
+export function makeMapPublic(mapId: string): Promise<FeltMap> {
+  return feltFetch<FeltMap>(`/maps/${encodeURIComponent(mapId)}/update`, {
+    method: "POST",
+    body: { ...LOCKED_DOWN, public_access: "view_only" },
+  });
+}
+
+/** True if Felt's link sharing lets people outside Felt view the map. */
+export function isPublicInFelt(map: Pick<FeltMap, "public_access">): boolean {
+  return map.public_access !== "private";
+}
+
+export function publicMapUrl(feltMapId: string): string {
+  return `https://felt.com/map/${feltMapId}`;
+}
+
+export function publicEmbedUrl(feltMapId: string): string {
+  return `https://felt.com/embed/map/${feltMapId}`;
 }
 
 /**
