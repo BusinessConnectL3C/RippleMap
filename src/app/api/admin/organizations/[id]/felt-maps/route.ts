@@ -3,14 +3,14 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireStaffViewer } from "@/lib/staff";
 import { FeltApiError, isFeltConfigured } from "@/lib/felt/client";
-import { getProject } from "@/lib/felt/projects";
 import {
   duplicateMapIntoProject,
   getMap,
-  isMapExposed,
+  isPublicInFelt,
   lockDownMap,
   parseFeltMapId,
 } from "@/lib/felt/maps";
+import { syncOrgMaps } from "@/lib/felt/sync";
 import { refreshThumbnailQuietly } from "@/lib/felt/thumbnails";
 
 // Thumbnails render in after() once the response is sent, one map at a time
@@ -85,10 +85,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           { status: 422 }
         );
       }
-      if (isMapExposed(map)) map = await lockDownMap(feltMapId);
+      // Same rule as sync: a map already public in Felt stays public and is
+      // flagged for review; a private one gets viewer export/duplication off.
+      const isPublic = isPublicInFelt(map);
+      if (!isPublic) map = await lockDownMap(feltMapId);
 
       const row = await db.feltMap.create({
-        data: { orgId, feltMapId, title: map.title, kind: body.kind },
+        data: {
+          orgId,
+          feltMapId,
+          title: map.title,
+          kind: body.kind,
+          ...(isPublic && { visibility: "PUBLIC" as const, madePublicInFelt: true, publicSince: new Date() }),
+        },
       });
       after(() => refreshThumbnailQuietly(row.id));
       return NextResponse.json({ map: row }, { status: 201 });
@@ -108,34 +117,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // sync
-    const project = await getProject(projectId);
-    const registered = await db.feltMap.findMany({
-      where: { feltMapId: { in: project.maps.map((m) => m.id) } },
-      select: { feltMapId: true, orgId: true },
-    });
-    const byId = new Map(registered.map((r) => [r.feltMapId, r.orgId]));
-
-    let added = 0;
-    let secured = 0;
-    const newRowIds: string[] = [];
-    const conflicts: string[] = [];
-    for (const ref of project.maps) {
-      const owner = byId.get(ref.id);
-      if (owner && owner !== orgId) conflicts.push(ref.id);
-      if (owner) continue;
-
-      if (isMapExposed(ref)) {
-        await lockDownMap(ref.id);
-        secured++;
-      }
-      const row = await db.feltMap.create({ data: { orgId, feltMapId: ref.id, title: ref.title, kind: "MAP" } });
-      newRowIds.push(row.id);
-      added++;
-    }
+    const result = await syncOrgMaps(orgId);
     after(async () => {
-      for (const id of newRowIds) await refreshThumbnailQuietly(id);
+      for (const id of result.added) await refreshThumbnailQuietly(id);
     });
-    return NextResponse.json({ added, secured, conflicts });
+    return NextResponse.json({
+      added: result.added.length,
+      madePublic: result.madePublic,
+      madePrivate: result.madePrivate,
+      conflicts: result.conflicts,
+    });
   } catch (err) {
     return feltError(err);
   }

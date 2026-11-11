@@ -2,7 +2,10 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { listGroupItems } from "@/lib/arcgis/groups";
-import { getViewer, listVisibleMaps } from "@/lib/felt/access";
+import { getViewer, isOrgAdmin, listVisibleMaps } from "@/lib/felt/access";
+import { autoSyncOrgMaps } from "@/lib/felt/sync";
+import { refreshThumbnailQuietly } from "@/lib/felt/thumbnails";
+import { after } from "next/server";
 import type { ArcGISItem } from "@/types/arcgis";
 import { TopBar } from "@/components/layout/TopBar";
 import { MapGallery, type GalleryItem } from "@/components/maps/MapGallery";
@@ -35,6 +38,18 @@ export default async function MapsPage() {
 
   const viewer = await getViewer(session.user.id);
   if (!viewer) redirect("/login");
+
+  // Owners/admins: pick up maps created in Felt since the last check
+  // (throttled to once every few minutes per org; never throws).
+  if (isOrgAdmin(viewer)) {
+    const synced = await autoSyncOrgMaps(viewer.orgId);
+    if (synced?.added.length) {
+      const ids = synced.added;
+      after(async () => {
+        for (const id of ids) await refreshThumbnailQuietly(id);
+      });
+    }
+  }
 
   const [feltMaps, org] = await Promise.all([
     // Survey maps are listed under Forms & Surveys instead.

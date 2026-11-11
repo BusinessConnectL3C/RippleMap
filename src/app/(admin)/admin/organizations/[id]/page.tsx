@@ -110,6 +110,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
                 visibility: m.visibility,
                 grantCount: m._count.grants,
                 hasThumbnail: !!m.thumbnailKey,
+                madePublicInFelt: m.madePublicInFelt,
               }))}
             />
           </CardContent>

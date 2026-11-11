@@ -11,6 +11,9 @@ import { OrganizationForm } from "@/components/account/OrganizationForm";
 import { MembersTable } from "@/components/account/MembersTable";
 import { InviteMembersDialog } from "@/components/account/InviteMembersDialog";
 import { MapAccessCard } from "@/components/account/MapAccessCard";
+import { autoSyncOrgMaps } from "@/lib/felt/sync";
+import { refreshThumbnailQuietly } from "@/lib/felt/thumbnails";
+import { after } from "next/server";
 import { orgTypeLabel } from "@/types/portal";
 
 export default async function AccountPage() {
@@ -20,9 +23,21 @@ export default async function AccountPage() {
   const su = session.user as unknown as { orgId: string; role: "OWNER" | "ADMIN" | "MEMBER" | "BC_STAFF" };
   const canManageMembers = su.role === "OWNER" || su.role === "ADMIN";
 
+  // Owners/admins: pick up maps the Field Editor created in Felt (throttled,
+  // never throws). Runs before the queries below so new maps show up now.
+  if (canManageMembers) {
+    const synced = await autoSyncOrgMaps(su.orgId);
+    if (synced?.added.length) {
+      const ids = synced.added;
+      after(async () => {
+        for (const id of ids) await refreshThumbnailQuietly(id);
+      });
+    }
+  }
+
   const [user, org, arcgisLink, members, pendingInvites, orgMaps] = await Promise.all([
     db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true, role: true } }),
-    db.organization.findUnique({ where: { id: su.orgId }, select: { name: true, type: true } }),
+    db.organization.findUnique({ where: { id: su.orgId }, select: { name: true, type: true, feltProjectId: true } }),
     db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
     db.user.findMany({
       where: { orgId: su.orgId },
@@ -41,6 +56,8 @@ export default async function AccountPage() {
           where: { orgId: su.orgId },
           select: {
             id: true,
+            feltMapId: true,
+            madePublicInFelt: true,
             title: true,
             kind: true,
             visibility: true,
@@ -106,6 +123,7 @@ export default async function AccountPage() {
           <MapAccessCard
             maps={orgMaps.map((m) => ({ ...m, kindLabel: KIND_LABEL[m.kind] }))}
             members={members.filter((m) => m.role === "MEMBER")}
+            canSync={!!org?.feltProjectId}
           />
         )}
 
