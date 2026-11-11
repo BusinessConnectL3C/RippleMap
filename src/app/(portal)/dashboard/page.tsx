@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { listGroupItems } from "@/lib/arcgis/groups";
 import { TopBar } from "@/components/layout/TopBar";
 import { AccountStatusWidget } from "@/components/dashboard/AccountStatusWidget";
-import { MapWidget } from "@/components/dashboard/MapWidget";
+import { MapWidget, type MapWidgetItem } from "@/components/dashboard/MapWidget";
+import { getViewer, listVisibleMaps } from "@/lib/felt/access";
 import { SupportWidget } from "@/components/dashboard/SupportWidget";
 
 export default async function DashboardPage() {
@@ -13,20 +14,31 @@ export default async function DashboardPage() {
 
   const su = session.user as unknown as { orgId: string };
 
-  const [org, arcgisLink, openTickets] = await Promise.all([
-    db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true } }),
+  const viewer = await getViewer(session.user.id);
+  if (!viewer) redirect("/login");
+
+  const [org, arcgisLink, openTickets, feltMaps] = await Promise.all([
+    db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true, arcgisEnabled: true } }),
     db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
     db.supportTicket.count({
       where: { orgId: su.orgId, status: { in: ["OPEN", "IN_PROGRESS"] } },
     }),
+    listVisibleMaps(viewer, { kind: ["MAP", "DASHBOARD"] }),
   ]);
 
-  const [recentMaps, activeForms] = org?.arcgisGroupId
+  const [arcgisMaps, activeForms] = org?.arcgisEnabled && org.arcgisGroupId
     ? await Promise.all([
         listGroupItems(org.arcgisGroupId, "Web Map", 6).catch(() => []),
         listGroupItems(org.arcgisGroupId, "Form", 50).catch(() => []),
       ])
     : [[], []];
+
+  const recentMaps: MapWidgetItem[] = [
+    ...[...feltMaps]
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .map((m) => ({ key: `felt:${m.id}`, title: m.title, href: `/maps/f/${m.feltMapId}` })),
+    ...arcgisMaps.map((m) => ({ key: `arcgis:${m.id}`, title: m.title, href: `/maps/${m.id}` })),
+  ].slice(0, 6);
 
   return (
     <div className="flex flex-col h-full">

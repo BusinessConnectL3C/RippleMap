@@ -1,10 +1,15 @@
 import Link from "next/link";
-import type { ArcGISItem } from "@/types/arcgis";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Map, ArrowRight } from "lucide-react";
 
-export function MapWidget({ maps }: { maps: ArcGISItem[] }) {
+export interface MapWidgetItem {
+  key: string;
+  title: string;
+  href: string;
+}
+
+export function MapWidget({ maps }: { maps: MapWidgetItem[] }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -20,12 +25,12 @@ export function MapWidget({ maps }: { maps: ArcGISItem[] }) {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Map className="h-10 w-10 text-gray-300 mb-2" />
             <p className="text-sm text-text-secondary">No maps available yet</p>
-            <p className="text-xs text-text-muted">Maps will appear here once added to your group</p>
+            <p className="text-xs text-text-muted">Maps shared with you will appear here</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {maps.map((map) => (
-              <Link key={map.id} href={`/maps/${map.id}`}>
+              <Link key={map.key} href={map.href}>
                 <Card interactive className="group overflow-hidden">
                   <div className="h-20 bg-gradient-to-br from-brand/10 to-brand/20 flex items-center justify-center">
                     <Map className="h-6 w-6 text-brand/60 group-hover:text-brand transition-colors" />

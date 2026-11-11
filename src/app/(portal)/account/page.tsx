@@ -10,6 +10,7 @@ import { ProfileForm } from "@/components/account/ProfileForm";
 import { OrganizationForm } from "@/components/account/OrganizationForm";
 import { MembersTable } from "@/components/account/MembersTable";
 import { InviteMembersDialog } from "@/components/account/InviteMembersDialog";
+import { MapAccessCard } from "@/components/account/MapAccessCard";
 import { orgTypeLabel } from "@/types/portal";
 
 export default async function AccountPage() {
@@ -19,7 +20,7 @@ export default async function AccountPage() {
   const su = session.user as unknown as { orgId: string; role: "OWNER" | "ADMIN" | "MEMBER" | "BC_STAFF" };
   const canManageMembers = su.role === "OWNER" || su.role === "ADMIN";
 
-  const [user, org, arcgisLink, members, pendingInvites] = await Promise.all([
+  const [user, org, arcgisLink, members, pendingInvites, orgMaps] = await Promise.all([
     db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true, role: true } }),
     db.organization.findUnique({ where: { id: su.orgId }, select: { name: true, type: true } }),
     db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
@@ -35,7 +36,22 @@ export default async function AccountPage() {
           orderBy: { createdAt: "desc" },
         })
       : Promise.resolve([]),
+    canManageMembers
+      ? db.feltMap.findMany({
+          where: { orgId: su.orgId },
+          select: {
+            id: true,
+            title: true,
+            kind: true,
+            visibility: true,
+            grants: { select: { userId: true, canExport: true } },
+          },
+          orderBy: { title: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
+
+  const KIND_LABEL = { MAP: "Map", DASHBOARD: "Dashboard", SURVEY: "Survey" } as const;
 
   if (!user) redirect("/login");
 
@@ -85,6 +101,13 @@ export default async function AccountPage() {
             <MembersTable members={members} currentUserId={session.user.id} currentUserRole={su.role} />
           </CardContent>
         </Card>
+
+        {canManageMembers && (
+          <MapAccessCard
+            maps={orgMaps.map((m) => ({ ...m, kindLabel: KIND_LABEL[m.kind] }))}
+            members={members.filter((m) => m.role === "MEMBER")}
+          />
+        )}
 
         <Card>
           <CardHeader>

@@ -2,32 +2,75 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { listGroupItems } from "@/lib/arcgis/groups";
+import { getViewer, listVisibleMaps } from "@/lib/felt/access";
+import type { ArcGISItem } from "@/types/arcgis";
 import { TopBar } from "@/components/layout/TopBar";
-import { MapGallery } from "@/components/maps/MapGallery";
+import { MapGallery, type GalleryItem } from "@/components/maps/MapGallery";
 
-const SUPPORTED_TYPES = ["Web Map", "Dashboard", "Web Experience"];
+const ARCGIS_TYPES = ["Web Map", "Dashboard", "Web Experience"];
+
+const FELT_KIND: Record<"MAP" | "DASHBOARD", Pick<GalleryItem, "typeLabel" | "icon">> = {
+  MAP: { typeLabel: "Map", icon: "map" },
+  DASHBOARD: { typeLabel: "Dashboard", icon: "dashboard" },
+};
+
+function arcgisGalleryItem(item: ArcGISItem): GalleryItem {
+  const external = item.type === "Web Experience";
+  return {
+    key: `arcgis:${item.id}`,
+    title: item.title,
+    typeLabel: item.type,
+    icon: item.type === "Dashboard" ? "dashboard" : external ? "experience" : "map",
+    href: external ? item.url || `https://www.arcgis.com/apps/instant/${item.id}` : `/maps/${item.id}`,
+    external,
+    provider: "arcgis",
+    snippet: item.snippet,
+    updatedAt: item.modified,
+  };
+}
 
 export default async function MapsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const su = session.user as unknown as { orgId: string };
-  const org = await db.organization.findUnique({
-    where: { id: su.orgId },
-    select: { arcgisGroupId: true },
-  });
+  const viewer = await getViewer(session.user.id);
+  if (!viewer) redirect("/login");
 
-  const allItems = org?.arcgisGroupId
-    ? await listGroupItems(org.arcgisGroupId, undefined, 100).catch(() => [])
-    : [];
+  const [feltMaps, org] = await Promise.all([
+    // Survey maps are listed under Forms & Surveys instead.
+    listVisibleMaps(viewer, { kind: ["MAP", "DASHBOARD"] }),
+    db.organization.findUnique({
+      where: { id: viewer.orgId },
+      select: { arcgisEnabled: true, arcgisGroupId: true },
+    }),
+  ]);
 
-  const maps = allItems.filter((item) => SUPPORTED_TYPES.includes(item.type));
+  // ArcGIS items are org-wide (group-scoped), as before. They're only shown
+  // for orgs that still use Esri.
+  const arcgisItems =
+    org?.arcgisEnabled && org.arcgisGroupId
+      ? (await listGroupItems(org.arcgisGroupId, undefined, 100).catch(() => [])).filter((item) =>
+          ARCGIS_TYPES.includes(item.type)
+        )
+      : [];
+
+  const items: GalleryItem[] = [
+    ...feltMaps.map((m): GalleryItem => ({
+      key: `felt:${m.id}`,
+      title: m.title,
+      ...FELT_KIND[m.kind as "MAP" | "DASHBOARD"],
+      href: `/maps/f/${m.feltMapId}`,
+      provider: "felt",
+      updatedAt: m.updatedAt.getTime(),
+    })),
+    ...arcgisItems.map(arcgisGalleryItem),
+  ];
 
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Maps & Apps" />
       <div className="flex-1 p-6">
-        <MapGallery maps={maps} />
+        <MapGallery maps={items} showProvider={feltMaps.length > 0 && arcgisItems.length > 0} />
       </div>
     </div>
   );

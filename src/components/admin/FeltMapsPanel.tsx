@@ -124,13 +124,17 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Pr
             {maps.map((m) => (
               <tr key={m.id}>
                 <td className="px-3 py-2">
+                  <a href={`/maps/f/${m.feltMapId}`} className="font-medium text-gray-900 hover:underline">
+                    {m.title}
+                  </a>{" "}
                   <a
                     href={`https://felt.com/map/${m.feltMapId}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 font-medium text-gray-900 hover:underline"
+                    aria-label={`Open ${m.title} in Felt`}
+                    className="inline-flex text-gray-500 hover:text-gray-800"
                   >
-                    {m.title} <ExternalLink className="h-3 w-3" />
+                    <ExternalLink className="h-3 w-3" />
                   </a>
                 </td>
                 <td className="px-3 py-2">

@@ -2,24 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { ArcGISItem } from "@/types/arcgis";
-import { Map, LayoutDashboard, ExternalLink, Layers, Search } from "lucide-react";
+import { Map, LayoutDashboard, ExternalLink, Layers, Search, ClipboardList } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-function ItemIcon({ type }: { type: string }) {
-  if (type === "Dashboard") return <LayoutDashboard className="h-6 w-6 text-brand" aria-hidden="true" />;
-  if (type === "Web Experience") return <Layers className="h-6 w-6 text-brand" aria-hidden="true" />;
+/**
+ * A provider-neutral gallery entry. The maps page builds these from Felt maps
+ * (the default) and, for orgs with ArcGIS enabled, from ArcGIS group items.
+ */
+export interface GalleryItem {
+  key: string;
+  title: string;
+  /** Display label, e.g. "Map", "Dashboard", "Web Experience". */
+  typeLabel: string;
+  icon: "map" | "dashboard" | "experience" | "survey";
+  href: string;
+  /** Opens in a new tab instead of the portal viewer. */
+  external?: boolean;
+  provider: "felt" | "arcgis";
+  snippet?: string;
+  /** Epoch ms. */
+  updatedAt?: number;
+}
+
+function ItemIcon({ icon }: { icon: GalleryItem["icon"] }) {
+  if (icon === "dashboard") return <LayoutDashboard className="h-6 w-6 text-brand" aria-hidden="true" />;
+  if (icon === "experience") return <Layers className="h-6 w-6 text-brand" aria-hidden="true" />;
+  if (icon === "survey") return <ClipboardList className="h-6 w-6 text-brand" aria-hidden="true" />;
   return <Map className="h-6 w-6 text-brand" aria-hidden="true" />;
 }
 
-function externalUrl(item: ArcGISItem): string {
-  if (item.url) return item.url;
-  return `https://www.arcgis.com/apps/instant/${item.id}`;
-}
-
-export function MapGallery({ maps }: { maps: ArcGISItem[] }) {
+export function MapGallery({ maps, showProvider = false }: { maps: GalleryItem[]; showProvider?: boolean }) {
   const [query, setQuery] = useState("");
 
   if (maps.length === 0) {
@@ -30,7 +44,8 @@ export function MapGallery({ maps }: { maps: ArcGISItem[] }) {
         </div>
         <p className="text-lg font-medium text-text-primary">No maps yet</p>
         <p className="text-sm text-text-secondary mt-1">
-          Maps, dashboards, and experiences shared to your group will appear here.
+          Maps and dashboards shared with you will appear here. If you expected to see one, ask an owner or
+          admin of your organization for access.
         </p>
       </div>
     );
@@ -60,15 +75,14 @@ export function MapGallery({ maps }: { maps: ArcGISItem[] }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((item) => {
-            const isExternal = item.type === "Web Experience";
             const cardContent = (
               <Card interactive className="h-full">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex h-12 w-12 items-center justify-center rounded-md bg-brand-subtle">
-                      <ItemIcon type={item.type} />
+                      <ItemIcon icon={item.icon} />
                     </div>
-                    {isExternal && (
+                    {item.external && (
                       <Badge variant="outline">
                         <ExternalLink className="h-3 w-3" /> New tab
                       </Badge>
@@ -79,25 +93,32 @@ export function MapGallery({ maps }: { maps: ArcGISItem[] }) {
                     <p className="text-sm text-text-secondary mt-1 line-clamp-2">{item.snippet}</p>
                   )}
                   <div className="mt-3 flex items-center justify-between gap-2">
-                    <Badge variant="secondary">{item.type}</Badge>
-                    <span className="text-xs text-text-muted">
-                      {new Date(item.modified).toLocaleDateString()}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="secondary">{item.typeLabel}</Badge>
+                      {showProvider && (
+                        <Badge variant="outline">{item.provider === "felt" ? "Felt" : "ArcGIS"}</Badge>
+                      )}
+                    </div>
+                    {item.updatedAt !== undefined && (
+                      <span className="text-xs text-text-muted">
+                        {new Date(item.updatedAt).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             );
 
-            if (isExternal) {
+            if (item.external) {
               return (
-                <a key={item.id} href={externalUrl(item)} target="_blank" rel="noopener noreferrer">
+                <a key={item.key} href={item.href} target="_blank" rel="noopener noreferrer">
                   {cardContent}
                 </a>
               );
             }
 
             return (
-              <Link key={item.id} href={`/maps/${item.id}`}>
+              <Link key={item.key} href={item.href}>
                 {cardContent}
               </Link>
             );
