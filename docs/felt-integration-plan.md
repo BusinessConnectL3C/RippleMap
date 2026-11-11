@@ -211,6 +211,18 @@ A shared org login is therefore not allowed under the standard terms. It would a
 - **Swapping the Field Editor** happens only when that person leaves the org, processed by BC staff. Otherwise it needs Felt's written OK.
 - **More collectors** need more seats (one seat each) or the Phase-2 RippleMap forms (§6).
 
+#### Shared field-collection login: not adopted unless Felt authorizes it in writing
+A Felt employee told BC informally that the one-person-per-seat rule isn't enforced. That is not a contractual commitment, and the ToS (iv) carve-out requires authorization "expressly… in writing by Felt."
+
+- **The risk is workspace-wide.** A material breach exposes BC's whole Felt agreement, and so every client org, not just the one sharing.
+- **If Felt puts it in the order form:**
+  - Shared accounts get **Contribute** access only, never Edit.
+  - Each survey layer gets a required **Collector** single-select field. It is self-reported, so it is not an authenticated audit trail.
+  - The password is rotated, and every device logged in again, whenever a collector leaves.
+  - Tech Ops signs off on the shared-credential exception.
+
+**Decision (2026-11-11):** new maps default to **Restricted**.
+
 #### Confirm with Felt before relying on this model (§9)
 The terms define an Authorized User as someone "employed or otherwise engaged by **Customer**", and BC is the customer. Client-org staff holding BC seats may need **written authorization in BC's order form**. That covers:
 - external client users holding seats;
