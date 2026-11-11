@@ -10,6 +10,7 @@ import { UserRoleEditor } from "@/components/admin/UserRoleEditor";
 import { FeltMapsPanel } from "@/components/admin/FeltMapsPanel";
 import { isFeltConfigured } from "@/lib/felt/client";
 import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
+import { DeleteOrgButton } from "@/components/admin/DeleteOrgButton";
 import { ChevronLeft } from "lucide-react";
 
 interface Props {
@@ -135,6 +136,19 @@ export default async function AdminOrgDetailPage({ params }: Props) {
                 }))}
               />
             )}
+          </CardContent>
+        </Card>
+
+        {/* Danger zone */}
+        <Card className="border-red-200">
+          <CardHeader>
+            <CardTitle className="text-red-700">Danger Zone</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Permanently delete this organization and all of its data.
+            </p>
+            <DeleteOrgButton orgId={org.id} orgName={org.name} userCount={org.users.length} />
           </CardContent>
         </Card>
       </div>
