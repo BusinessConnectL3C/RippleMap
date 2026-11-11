@@ -38,6 +38,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - ArcGIS group membership (`addUserToGroup`) silently fails for unverified ArcGIS accounts — logged but non-fatal, user can still proceed
 - ArcGIS `client_credentials` app token cannot manage groups — group operations use `ARCGIS_ADMIN_USERNAME/PASSWORD` via `generateToken` instead
 - `TOKEN_ENCRYPTION_KEY` must be exactly 64 hex characters (`openssl rand -hex 32`) — wrong format causes hard crash on any ArcGIS token operation
+- ArcGIS map/dashboard embeds (`/maps/[itemId]`) use the signed-in user's **own** linked ArcGIS token (`getUserToken`), because the token is visible in the iframe URL. Never send `getBCAppToken()`/`getAdminToken()` output to the browser: those reach every client org. Users who haven't linked ArcGIS see a connect prompt; users whose ArcGIS account isn't in the org's group can't load the map.
 - Next.js 16 deprecation warning: `middleware.ts` should eventually be renamed to `proxy.ts` (non-breaking for now)
 
 ## Architecture Decisions

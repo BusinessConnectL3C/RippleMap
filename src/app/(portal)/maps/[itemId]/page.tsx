@@ -2,13 +2,13 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getOrgItem } from "@/lib/arcgis/access";
-import { getBCAppToken } from "@/lib/arcgis/auth";
+import { getUserToken } from "@/lib/arcgis/auth";
 import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
 import { TopBar } from "@/components/layout/TopBar";
 import { ArcGISMapEmbed } from "@/components/maps/ArcGISMapEmbed";
 import { DashboardEmbed } from "@/components/maps/DashboardEmbed";
 import { Button } from "@/components/ui/button";
-import { Table } from "lucide-react";
+import { Table, Link2 } from "lucide-react";
 
 const SUPPORTED_TYPES = ["Web Map", "Dashboard"];
 
@@ -26,7 +26,11 @@ export default async function MapViewPage({ params }: Props) {
   const item = await getOrgItem(su.orgId, itemId);
   if (!item || !SUPPORTED_TYPES.includes(item.type)) notFound();
 
-  const token = await getBCAppToken();
+  // The embedded ArcGIS viewer runs in the browser, so whatever token it gets
+  // is visible to the user. Use the user's OWN linked ArcGIS token — it can
+  // only see what that user can see in ArcGIS. Never pass BC's app or admin
+  // tokens here: those can read every client org's items.
+  const token = await getUserToken(session.user.id).catch(() => null);
 
   const layers =
     item.type === "Web Map" ? await getWebMapLayers(itemId).catch(() => []) : [];
@@ -44,7 +48,21 @@ export default async function MapViewPage({ params }: Props) {
         </div>
       )}
       <div className="flex-1 p-0 overflow-hidden">
-        {item.type === "Dashboard" ? (
+        {!token ? (
+          <div className="flex min-h-[600px] flex-col items-center justify-center gap-3 px-4 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-subtle">
+              <Link2 className="h-6 w-6 text-brand" aria-hidden="true" />
+            </div>
+            <p className="text-sm font-medium text-text-primary">Connect your ArcGIS account to view this map</p>
+            <p className="max-w-sm text-sm text-text-secondary">
+              ArcGIS maps open with your own ArcGIS sign-in, so you see exactly what your ArcGIS account has
+              access to.
+            </p>
+            <Button asChild size="sm">
+              <a href="/api/onboarding/link-arcgis">Connect ArcGIS account</a>
+            </Button>
+          </div>
+        ) : item.type === "Dashboard" ? (
           <DashboardEmbed itemId={itemId} token={token} title={item.title} />
         ) : (
           <ArcGISMapEmbed itemId={itemId} token={token} title={item.title} />

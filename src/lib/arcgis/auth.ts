@@ -1,3 +1,7 @@
+// Server-only: this module mints and caches BC's ArcGIS app and admin tokens,
+// which can read (and, for admin, manage) every client org's ArcGIS content.
+// Importing it from a client component must fail the build.
+import "server-only";
 import type { ArcGISTokenResponse, ArcGISUserInfo } from "@/types/arcgis";
 import { decrypt, encrypt } from "@/lib/encryption";
 import { db } from "@/lib/db";
