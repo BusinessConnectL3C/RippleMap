@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireStaffViewer } from "@/lib/staff";
@@ -11,6 +11,12 @@ import {
   lockDownMap,
   parseFeltMapId,
 } from "@/lib/felt/maps";
+import { refreshThumbnailQuietly } from "@/lib/felt/thumbnails";
+
+// Thumbnails render in after() once the response is sent, one map at a time
+// (up to ~55 s each). Maps that don't finish in time can be refreshed from the
+// admin Felt Maps card.
+export const maxDuration = 300;
 
 const kindSchema = z.enum(["MAP", "DASHBOARD", "SURVEY"]);
 
@@ -84,6 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const row = await db.feltMap.create({
         data: { orgId, feltMapId, title: map.title, kind: body.kind },
       });
+      after(() => refreshThumbnailQuietly(row.id));
       return NextResponse.json({ map: row }, { status: 201 });
     }
 
@@ -96,6 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const row = await db.feltMap.create({
         data: { orgId, feltMapId: map.id, title: map.title, kind: body.kind },
       });
+      after(() => refreshThumbnailQuietly(row.id));
       return NextResponse.json({ map: row }, { status: 201 });
     }
 
@@ -109,6 +117,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     let added = 0;
     let secured = 0;
+    const newRowIds: string[] = [];
     const conflicts: string[] = [];
     for (const ref of project.maps) {
       const owner = byId.get(ref.id);
@@ -119,9 +128,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         await lockDownMap(ref.id);
         secured++;
       }
-      await db.feltMap.create({ data: { orgId, feltMapId: ref.id, title: ref.title, kind: "MAP" } });
+      const row = await db.feltMap.create({ data: { orgId, feltMapId: ref.id, title: ref.title, kind: "MAP" } });
+      newRowIds.push(row.id);
       added++;
     }
+    after(async () => {
+      for (const id of newRowIds) await refreshThumbnailQuietly(id);
+    });
     return NextResponse.json({ added, secured, conflicts });
   } catch (err) {
     return feltError(err);

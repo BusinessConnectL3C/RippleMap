@@ -24,6 +24,8 @@ export interface GalleryItem {
   snippet?: string;
   /** Epoch ms. */
   updatedAt?: number;
+  /** Permission-checked image URL, when the map has a thumbnail. */
+  thumbnailUrl?: string;
 }
 
 function ItemIcon({ icon }: { icon: GalleryItem["icon"] }) {
@@ -76,7 +78,18 @@ export function MapGallery({ maps, showProvider = false }: { maps: GalleryItem[]
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((item) => {
             const cardContent = (
-              <Card interactive className="h-full">
+              <Card interactive className="h-full overflow-hidden">
+                {item.thumbnailUrl && (
+                  // Plain <img>: the source is a same-origin redirect to a short-lived signed URL,
+                  // which next/image can't optimize or cache usefully.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.thumbnailUrl}
+                    alt=""
+                    loading="lazy"
+                    className="aspect-[16/10] w-full border-b border-border bg-surface-page object-cover"
+                  />
+                )}
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex h-12 w-12 items-center justify-center rounded-md bg-brand-subtle">

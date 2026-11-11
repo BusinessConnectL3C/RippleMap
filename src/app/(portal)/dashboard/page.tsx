@@ -37,7 +37,12 @@ export default async function DashboardPage() {
   const recentMaps: MapWidgetItem[] = [
     ...[...feltMaps]
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .map((m) => ({ key: `felt:${m.id}`, title: m.title, href: `/maps/f/${m.feltMapId}` })),
+      .map((m) => ({
+        key: `felt:${m.id}`,
+        title: m.title,
+        href: `/maps/f/${m.feltMapId}`,
+        thumbnailUrl: m.thumbnailKey ? `/api/felt/maps/${m.feltMapId}/thumbnail?v=${m.updatedAt.getTime()}` : undefined,
+      })),
     ...arcgisMaps.map((m) => ({ key: `arcgis:${m.id}`, title: m.title, href: `/maps/${m.id}` })),
   ].slice(0, 6);
 
