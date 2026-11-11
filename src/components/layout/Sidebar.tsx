@@ -13,6 +13,7 @@ import {
   User,
   LogOut,
   Images,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
@@ -62,7 +63,19 @@ function NavLink({
   );
 }
 
-function SidebarContent({ showMedia, orgName, onNavigate }: { showMedia: boolean; orgName?: string; onNavigate?: () => void }) {
+interface SidebarProps {
+  showMedia?: boolean;
+  orgName?: string;
+  /** BC staff (from the database, not the JWT): shows the Admin link. */
+  isStaff?: boolean;
+}
+
+function SidebarContent({
+  showMedia = false,
+  orgName,
+  isStaff = false,
+  onNavigate,
+}: SidebarProps & { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const items = showMedia ? primaryItems : primaryItems.filter((item) => item.href !== "/media");
@@ -89,6 +102,9 @@ function SidebarContent({ showMedia, orgName, onNavigate }: { showMedia: boolean
         {settingsItems.map((item) => (
           <NavLink key={item.href} {...item} isActive={pathname.startsWith(item.href)} onNavigate={onNavigate} />
         ))}
+        {isStaff && (
+          <NavLink href="/admin" label="Admin" icon={ShieldCheck} isActive={pathname.startsWith("/admin")} onNavigate={onNavigate} />
+        )}
       </div>
 
       <div className="border-t border-gray-200 p-4">
@@ -113,13 +129,13 @@ function SidebarContent({ showMedia, orgName, onNavigate }: { showMedia: boolean
   );
 }
 
-export function Sidebar({ showMedia = false, orgName }: { showMedia?: boolean; orgName?: string }) {
+export function Sidebar({ showMedia = false, orgName, isStaff = false }: SidebarProps) {
   const { open, setOpen } = useMobileNav();
 
   return (
     <>
       <aside className="hidden md:flex h-full w-64 flex-col border-r border-gray-200 bg-white">
-        <SidebarContent showMedia={showMedia} orgName={orgName} />
+        <SidebarContent showMedia={showMedia} orgName={orgName} isStaff={isStaff} />
       </aside>
 
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
@@ -130,7 +146,7 @@ export function Sidebar({ showMedia = false, orgName }: { showMedia?: boolean; o
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
-            <SidebarContent showMedia={showMedia} orgName={orgName} onNavigate={() => setOpen(false)} />
+            <SidebarContent showMedia={showMedia} orgName={orgName} isStaff={isStaff} onNavigate={() => setOpen(false)} />
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
