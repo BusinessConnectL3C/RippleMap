@@ -39,7 +39,7 @@ Rev 1 corrections:
 
 **What Business means for RippleMap:**
 - **Included:** REST API, webhooks, dashboards (layer components), advanced forms (required / show-if), CSV export, Field App offline.
-- **Still needed:** the **Platform add-on**, bought separately, for the JS SDK and private embeds. Without it, client orgs can't see private maps in the portal.
+- **Platform add-on: active** (confirmed 2026-11-11). It provides the JS SDK and private embeds, so client orgs can see private maps in the portal.
 - **Limits that shape this plan:**
   - 100k map views/month across all orgs. Every portal embed load counts.
   - 25 GB processing and 100 GB storage per month.
@@ -345,7 +345,7 @@ Felt can serve images natively. Choose by sensitivity:
 
 ## 9. Open questions for Felt sales and support
 
-1. **Platform add-on:** BC is on Business. Is Platform active, and what will it cost after the 3 free months? Without it there's no SDK or private embeds.
+1. **Platform add-on:** active. What will it cost after the 3 free months? Budget for it.
 2. **Seats:** What does each additional seat cost, and are there Contribute-only seat tiers? Field collectors need seats, so this sets per-org pricing.
 3. **`user_email` alternatives:** May we pass a stable pseudonymous address per portal user (e.g. `u_<id>@viewers.ripplemap.app`) instead of real emails? This minimizes PII sent to Felt.
 4. **Image attribute values:** What do they look like in GeoJSON export and SDK `getFeatures`? Are they signed, expiring or public URLs?
@@ -380,7 +380,7 @@ Felt can serve images natively. Choose by sensitivity:
 
 | Phase | Scope | Depends on |
 |---|---|---|
-| **0. Confirm** | Platform add-on active (§9.1), seat pricing (§9.2), DPA/SOC 2, Tech Ops vendor review | — |
+| **0. Confirm** | Seat pricing (§9.2), DPA/SOC 2, Tech Ops vendor review (Business + Platform confirmed) | — |
 | **1. Security fix** | §8 ArcGIS ownership checks | — (do now) |
 | **2. Foundation** | `src/lib/felt/` (`client.ts`: auth, error envelope, 429 backoff; `projects.ts`; `maps.ts`; `embed.ts`; `images.ts`); Prisma migration (§4); registration creates the project; template map; admin org page (§5.4) | 0 |
 | **3. Maps & Dashboards** | Embed-token route, `<FeltMapEmbed>`, `/maps/f/[id]`, merged gallery, data table and export | 2 |
