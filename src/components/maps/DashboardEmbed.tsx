@@ -6,6 +6,10 @@ import { Loader2, AlertCircle } from "lucide-react";
 
 interface Props {
   itemId: string;
+  /**
+   * The signed-in user's own ArcGIS token (getUserToken). It ends up in the
+   * iframe URL, visible to the user — never pass BC's app/admin tokens.
+   */
   token: string;
   title: string;
 }
@@ -41,10 +45,16 @@ export function DashboardEmbed({ itemId, token, title }: Props) {
                 This dashboard couldn&apos;t be loaded.
               </p>
               <p className="text-sm text-text-secondary">
-                Your ArcGIS connection may have expired.{" "}
+                Your ArcGIS connection may have expired, or your ArcGIS account may not have been added to your
+                organization&apos;s group yet.{" "}
                 <Link href="/account" className="text-link hover:underline">
                   Reconnect your ArcGIS account
+                </Link>{" "}
+                or{" "}
+                <Link href="/support/new" className="text-link hover:underline">
+                  contact support
                 </Link>
+                .
               </p>
             </div>
           )}

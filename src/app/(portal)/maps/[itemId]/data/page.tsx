@@ -1,8 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
-import { db } from "@/lib/db";
-import { getItem } from "@/lib/arcgis/items";
-import { listGroupItems } from "@/lib/arcgis/groups";
+import { getOrgItem } from "@/lib/arcgis/access";
 import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
 import { TopBar } from "@/components/layout/TopBar";
 import { FeatureLayerExplorer } from "@/components/maps/FeatureLayerExplorer";
@@ -18,16 +16,10 @@ export default async function MapDataPage({ params }: Props) {
   const { itemId } = await params;
 
   const su = session.user as unknown as { orgId: string };
-  const org = await db.organization.findUnique({
-    where: { id: su.orgId },
-    select: { arcgisGroupId: true },
-  });
-  if (!org?.arcgisGroupId) notFound();
+  const item = await getOrgItem(su.orgId, itemId).catch(() => null);
+  if (!item) notFound();
 
-  const groupItems = await listGroupItems(org.arcgisGroupId, undefined, 100).catch(() => []);
-  if (!groupItems.some((item) => item.id === itemId)) notFound();
-
-  const [item, layers] = await Promise.all([getItem(itemId), getWebMapLayers(itemId)]);
+  const layers = await getWebMapLayers(itemId);
 
   if (layers.length === 0) notFound();
 

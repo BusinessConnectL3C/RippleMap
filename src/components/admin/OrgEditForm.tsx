@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -15,6 +16,8 @@ interface Props {
   initialType: "NONPROFIT" | "CORPORATE";
   initialArcgisGroupId: string | null;
   initialClickupListId: string | null;
+  initialFeltProjectId: string | null;
+  initialArcgisEnabled: boolean;
 }
 
 export function OrgEditForm({
@@ -23,16 +26,18 @@ export function OrgEditForm({
   initialType,
   initialArcgisGroupId,
   initialClickupListId,
+  initialFeltProjectId,
+  initialArcgisEnabled,
 }: Props) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [type, setType] = useState(initialType);
   const [arcgisGroupId, setArcgisGroupId] = useState(initialArcgisGroupId ?? "");
   const [clickupListId, setClickupListId] = useState(initialClickupListId ?? "");
+  const [feltProjectId, setFeltProjectId] = useState(initialFeltProjectId ?? "");
+  const [arcgisEnabled, setArcgisEnabled] = useState(initialArcgisEnabled);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const typeChanged = type !== initialType;
 
   async function handleSave() {
     setSaving(true);
@@ -45,6 +50,8 @@ export function OrgEditForm({
         type,
         arcgisGroupId: arcgisGroupId.trim() || null,
         clickupListId: clickupListId.trim() || null,
+        feltProjectId: feltProjectId.trim() || null,
+        arcgisEnabled,
       }),
     });
     setSaving(false);
@@ -79,11 +86,29 @@ export function OrgEditForm({
             <SelectItem value="CORPORATE">Corporate</SelectItem>
           </SelectContent>
         </Select>
-        {typeChanged && (
-          <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
-            Changing the org type will reset this org&apos;s onboarding progress.
-          </p>
-        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="feltProjectId">Felt Project ID</Label>
+        <Input
+          id="feltProjectId"
+          value={feltProjectId}
+          onChange={(e) => setFeltProjectId(e.target.value)}
+          placeholder="Created automatically at registration"
+          className="font-mono text-xs"
+        />
+        <p className="text-xs text-gray-600">
+          Must be a <strong>private</strong> project. Found in Felt → project → settings, or created from the Felt maps
+          card below.
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between rounded-md border border-gray-200 p-3">
+        <div>
+          <Label htmlFor="arcgisEnabled">ArcGIS / Esri features</Label>
+          <p className="text-xs text-gray-600">For orgs still using Survey123, Field Maps, or hosted feature services.</p>
+        </div>
+        <Switch id="arcgisEnabled" checked={arcgisEnabled} onCheckedChange={setArcgisEnabled} />
       </div>
 
       <div className="space-y-2">

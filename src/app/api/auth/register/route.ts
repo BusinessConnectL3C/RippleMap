@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { createClientGroup } from "@/lib/arcgis/groups";
 import { getOrCreateOrgList } from "@/lib/clickup/lists";
+import { isFeltConfigured } from "@/lib/felt/client";
+import { getOrCreateOrgProject } from "@/lib/felt/projects";
 
 const schema = z.object({
   email: z.string().email(),
@@ -50,18 +51,26 @@ export async function POST(req: NextRequest) {
 
   const user = org.users[0];
 
-  try {
-    const groupId = await createClientGroup(orgName);
-    await db.organization.update({ where: { id: org.id }, data: { arcgisGroupId: groupId } });
-  } catch (err) {
-    console.error(`Failed to create ArcGIS group for org ${org.id}:`, err);
-  }
+  // No ArcGIS group here: ArcGIS is opt-in and its group is created when the
+  // org first connects ArcGIS (src/lib/arcgis/enable.ts).
 
   try {
     const listId = await getOrCreateOrgList(orgName, org.id);
     await db.organization.update({ where: { id: org.id }, data: { clickupListId: listId } });
   } catch (err) {
     console.error(`Failed to create ClickUp list for org ${org.id}:`, err);
+  }
+
+  // Private Felt project for this org's maps. Best-effort like the ArcGIS
+  // group and ClickUp list: BC staff can create or set it later from the
+  // admin org page if this fails.
+  if (isFeltConfigured()) {
+    try {
+      const projectId = await getOrCreateOrgProject(orgName, org.id);
+      await db.organization.update({ where: { id: org.id }, data: { feltProjectId: projectId } });
+    } catch (err) {
+      console.error(`Failed to create Felt project for org ${org.id}:`, err);
+    }
   }
 
   return NextResponse.json({ id: user.id }, { status: 201 });

@@ -12,7 +12,11 @@ interface User {
   name: string;
   email: string;
   role: string;
+  feltSeat: boolean;
+  feltAccess: "EDIT" | "CONTRIBUTE" | null;
 }
+
+type FeltSetting = "NONE" | "EDIT" | "CONTRIBUTE";
 
 const ROLE_LABEL: Record<string, string> = {
   OWNER: "Owner",
@@ -46,6 +50,35 @@ export function UserRoleEditor({ users }: { users: User[] }) {
     router.refresh();
   }
 
+  // Records the Felt seat BC staff assigned by hand in Felt (there's no Felt
+  // members API). One named person per seat — seats can't be shared.
+  async function updateFelt(user: User, setting: FeltSetting) {
+    if (
+      setting !== "NONE" &&
+      !user.feltSeat &&
+      !confirm(
+        `Record ${user.name} as this org's Field Editor (${setting === "EDIT" ? "Edit" : "Contribute"})?\n\n` +
+          "First invite them in Felt to this org's private project only, with that access level. " +
+          "A Felt seat belongs to this one person and may not be shared."
+      )
+    ) {
+      return;
+    }
+    setPending(user.id + ":felt");
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(setting === "NONE" ? { feltSeat: false } : { feltSeat: true, feltAccess: setting }),
+    });
+    setPending(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      toast({ variant: "danger", title: "Could not update Field Editor", description: data?.error ?? "Please try again." });
+      return;
+    }
+    router.refresh();
+  }
+
   async function removeUser(userId: string, name: string) {
     if (!confirm(`Remove ${name} from this organization?`)) return;
     setPending(userId + ":remove");
@@ -66,6 +99,7 @@ export function UserRoleEditor({ users }: { users: User[] }) {
           <th className="px-4 py-3 text-left font-medium text-gray-700">Name</th>
           <th className="px-4 py-3 text-left font-medium text-gray-700">Email</th>
           <th className="px-4 py-3 text-left font-medium text-gray-700">Role</th>
+          <th className="px-4 py-3 text-left font-medium text-gray-700">Felt seat</th>
           <th className="px-4 py-3" />
         </tr>
       </thead>
@@ -90,6 +124,25 @@ export function UserRoleEditor({ users }: { users: User[] }) {
                 </SelectContent>
               </Select>
               {pending === user.id + ":role" && (
+                <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-600" />
+              )}
+            </td>
+            <td className="px-4 py-3">
+              <Select
+                value={user.feltSeat ? (user.feltAccess ?? "EDIT") : "NONE"}
+                disabled={pending === user.id + ":felt"}
+                onValueChange={(value) => updateFelt(user, value as FeltSetting)}
+              >
+                <SelectTrigger className="h-8 w-44 text-xs" aria-label={`Felt seat for ${user.name}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">No seat (portal only)</SelectItem>
+                  <SelectItem value="EDIT">Field Editor: Edit</SelectItem>
+                  <SelectItem value="CONTRIBUTE">Field Editor: Contribute</SelectItem>
+                </SelectContent>
+              </Select>
+              {pending === user.id + ":felt" && (
                 <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-600" />
               )}
             </td>

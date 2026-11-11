@@ -1,9 +1,8 @@
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { getItem } from "@/lib/arcgis/items";
+import { redirect, notFound } from "next/navigation";
+import { getOrgItem } from "@/lib/arcgis/access";
 import { classifyFormItem } from "@/lib/arcgis/formKind";
-import { getSurveyFields, getSurveyServiceUrl } from "@/lib/arcgis/survey123";
-import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
+import { getSurveyFields, resolveFormServiceUrl } from "@/lib/arcgis/survey123";
 import { TopBar } from "@/components/layout/TopBar";
 import { FieldEditor } from "@/components/forms/FieldEditor";
 
@@ -16,16 +15,12 @@ export default async function FormEditorPage({ params }: Props) {
   if (!session?.user?.id) redirect("/login");
 
   const { surveyId } = await params;
-  const item = await getItem(surveyId);
-  const kind = classifyFormItem(item);
+  const su = session.user as unknown as { orgId: string };
+  const item = await getOrgItem(su.orgId, surveyId);
+  if (!item) notFound();
 
-  let serviceUrl = item.url ?? "";
-  if (kind === "survey123" && !serviceUrl) {
-    serviceUrl = (await getSurveyServiceUrl(surveyId).catch(() => null)) ?? "";
-  } else if (kind === "fieldmaps-webmap") {
-    const layers = await getWebMapLayers(surveyId).catch(() => []);
-    serviceUrl = layers[0]?.url ?? "";
-  }
+  const kind = classifyFormItem(item);
+  const serviceUrl = (await resolveFormServiceUrl(item)) ?? "";
 
   const fields = serviceUrl ? await getSurveyFields(serviceUrl).catch(() => []) : [];
 

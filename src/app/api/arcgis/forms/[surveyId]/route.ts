@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getItem } from "@/lib/arcgis/items";
-import { classifyFormItem } from "@/lib/arcgis/formKind";
-import { getSurveyFields, getSurveyServiceUrl, addSurveyField, updateSurveyField } from "@/lib/arcgis/survey123";
-import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
+import { getOrgItem } from "@/lib/arcgis/access";
+import {
+  getSurveyFields,
+  resolveFormServiceUrl,
+  addSurveyField,
+  updateSurveyField,
+} from "@/lib/arcgis/survey123";
 import { z } from "zod";
 
 const fieldSchema = z.object({
@@ -19,17 +22,18 @@ const fieldSchema = z.object({
   }).nullable().optional(),
 });
 
-const addFieldSchema = z.object({
-  action: z.literal("addField"),
-  field: fieldSchema,
-  serviceUrl: z.string().url(),
-});
+// No serviceUrl in the body: the service is always resolved server-side from an
+// item verified to belong to the caller's org (see resolveFormServiceUrl).
+const actionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("addField"), field: fieldSchema }),
+  z.object({ action: z.literal("updateField"), field: fieldSchema }),
+]);
 
-const updateFieldSchema = z.object({
-  action: z.literal("updateField"),
-  field: fieldSchema,
-  serviceUrl: z.string().url(),
-});
+async function resolveOrgFormService(orgId: string, surveyId: string) {
+  const item = await getOrgItem(orgId, surveyId);
+  if (!item) return null;
+  return resolveFormServiceUrl(item);
+}
 
 export async function GET(
   req: NextRequest,
@@ -41,19 +45,11 @@ export async function GET(
   }
 
   const { surveyId } = await params;
-  const item = await getItem(surveyId);
-  const kind = classifyFormItem(item);
-
-  let serviceUrl = item.url ?? "";
-  if (kind === "survey123" && !serviceUrl) {
-    serviceUrl = (await getSurveyServiceUrl(surveyId).catch(() => null)) ?? "";
-  } else if (kind === "fieldmaps-webmap") {
-    const layers = await getWebMapLayers(surveyId).catch(() => []);
-    serviceUrl = layers[0]?.url ?? "";
-  }
+  const su = session.user as unknown as { orgId: string };
+  const serviceUrl = await resolveOrgFormService(su.orgId, surveyId);
 
   if (!serviceUrl) {
-    return NextResponse.json({ error: "Feature service URL not found" }, { status: 404 });
+    return NextResponse.json({ error: "Form not found" }, { status: 404 });
   }
 
   const fields = await getSurveyFields(serviceUrl);
@@ -62,32 +58,29 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params: _params }: { params: Promise<{ surveyId: string }> }
+  { params }: { params: Promise<{ surveyId: string }> }
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-
-  if (body.action === "addField") {
-    const parsed = addFieldSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid field definition" }, { status: 400 });
-    }
-    await addSurveyField(parsed.data.serviceUrl, parsed.data.field);
-    return NextResponse.json({ success: true });
+  const parsed = actionSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid field definition" }, { status: 400 });
   }
 
-  if (body.action === "updateField") {
-    const parsed = updateFieldSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid field definition" }, { status: 400 });
-    }
-    await updateSurveyField(parsed.data.serviceUrl, parsed.data.field);
-    return NextResponse.json({ success: true });
+  const { surveyId } = await params;
+  const su = session.user as unknown as { orgId: string };
+  const serviceUrl = await resolveOrgFormService(su.orgId, surveyId);
+  if (!serviceUrl) {
+    return NextResponse.json({ error: "Form not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  if (parsed.data.action === "addField") {
+    await addSurveyField(serviceUrl, parsed.data.field);
+  } else {
+    await updateSurveyField(serviceUrl, parsed.data.field);
+  }
+  return NextResponse.json({ success: true });
 }

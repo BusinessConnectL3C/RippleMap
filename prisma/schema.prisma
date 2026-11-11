@@ -12,6 +12,12 @@ model Organization {
   type          OrgType      @default(NONPROFIT)
   arcgisGroupId String?
   clickupListId String?
+  // Private Felt project holding this org's maps (one per org, created at
+  // registration, best-effort — same pattern as arcgisGroupId/clickupListId).
+  feltProjectId String?
+  // Whether this org also uses ArcGIS/Esri (Survey123, Field Maps, hosted
+  // feature services). Felt is the default; ArcGIS is opt-in per org.
+  arcgisEnabled Boolean      @default(false)
   mediaSource   MediaSource?
   s3Bucket      String?
   s3Prefix      String?
@@ -22,6 +28,7 @@ model Organization {
   onboardingState OnboardingState?
   supportTickets  SupportTicket[]
   invites         OrgInvite[]
+  feltMaps        FeltMap[]
 }
 
 model User {
@@ -32,12 +39,22 @@ model User {
   role           Role   @default(MEMBER)
   orgId          String
 
+  // Felt "Field Editor": this specific person holds a named Felt seat on the
+  // org's Felt project. Seats are assigned manually in Felt by BC staff (no
+  // API); these fields only record what was set there. Felt seats are
+  // personal to one person and may not be shared (Felt ToS).
+  feltSeat      Boolean     @default(false)
+  feltAccess    FeltAccess?
+  feltEmail     String?
+  feltSeatSince DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organization Organization       @relation(fields: [orgId], references: [id])
   arcgisLink   ArcGISAccountLink?
   sentInvites  OrgInvite[]        @relation("InvitedBy")
+  mapGrants    FeltMapGrant[]
 }
 
 model OrgInvite {
@@ -84,7 +101,7 @@ model SupportTicket {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  organization Organization            @relation(fields: [orgId], references: [id])
+  organization Organization           @relation(fields: [orgId], references: [id])
   comments     SupportTicketComment[]
 }
 
@@ -102,6 +119,46 @@ model SupportTicketComment {
   @@index([ticketId])
 }
 
+/// Registry of Felt maps and which org owns each. This table — not Felt — is
+/// the tenant boundary: BC's Felt API token can reach every client's maps, so
+/// every route resolves a Felt map id through here before calling Felt.
+model FeltMap {
+  id               String        @id @default(cuid())
+  orgId            String
+  feltMapId        String        @unique
+  title            String
+  kind             FeltMapKind   @default(MAP)
+  visibility       MapVisibility @default(RESTRICTED)
+  thumbnailKey     String?
+  // Per-map webhook signing key, encrypted with src/lib/encryption.ts.
+  webhookSecretEnc String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  grants       FeltMapGrant[]
+
+  @@index([orgId])
+}
+
+/// Per-user view access to a RESTRICTED map. OWNER/ADMIN (and BC_STAFF) see
+/// every map without a grant. A grant's user and map must be in the same org —
+/// enforced in src/lib/felt/access.ts, since Prisma can't express it.
+model FeltMapGrant {
+  id          String   @id @default(cuid())
+  mapId       String
+  userId      String
+  canExport   Boolean  @default(false)
+  grantedById String?
+  createdAt   DateTime @default(now())
+
+  map  FeltMap @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  user User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([mapId, userId])
+  @@index([userId])
+}
+
 model OnboardingState {
   id             String   @id @default(cuid())
   orgId          String   @unique
@@ -115,6 +172,22 @@ model OnboardingState {
 enum OrgType {
   NONPROFIT
   CORPORATE
+}
+
+enum FeltMapKind {
+  MAP
+  DASHBOARD
+  SURVEY
+}
+
+enum MapVisibility {
+  RESTRICTED
+  ALL_MEMBERS
+}
+
+enum FeltAccess {
+  EDIT
+  CONTRIBUTE
 }
 
 enum MediaSource {

@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { OrgEditForm } from "@/components/admin/OrgEditForm";
 import { OnboardingResetButton } from "@/components/admin/OnboardingResetButton";
 import { UserRoleEditor } from "@/components/admin/UserRoleEditor";
+import { FeltMapsPanel } from "@/components/admin/FeltMapsPanel";
+import { isFeltConfigured } from "@/lib/felt/client";
+import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
 import { DeleteOrgButton } from "@/components/admin/DeleteOrgButton";
 import { ChevronLeft } from "lucide-react";
 
@@ -22,13 +25,15 @@ export default async function AdminOrgDetailPage({ params }: Props) {
     include: {
       onboardingState: true,
       users: { orderBy: { createdAt: "asc" } },
+      feltMaps: { orderBy: { title: "asc" }, include: { _count: { select: { grants: true } } } },
     },
   });
 
   if (!org) notFound();
 
-  const completedSteps = org.onboardingState?.completedSteps ?? [];
-  const totalSteps = org.type === "NONPROFIT" ? 4 : 3;
+  // Ignore legacy step ids from the Esri-era onboarding flow.
+  const completedSteps = (org.onboardingState?.completedSteps ?? []).filter(isStepId);
+  const totalSteps = ONBOARDING_STEPS.length;
 
   return (
     <div className="flex flex-col h-full">
@@ -53,6 +58,30 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               initialType={org.type as "NONPROFIT" | "CORPORATE"}
               initialArcgisGroupId={org.arcgisGroupId}
               initialClickupListId={org.clickupListId}
+              initialFeltProjectId={org.feltProjectId}
+              initialArcgisEnabled={org.arcgisEnabled}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Felt maps */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Felt Maps ({org.feltMaps.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeltMapsPanel
+              orgId={org.id}
+              feltProjectId={org.feltProjectId}
+              feltConfigured={isFeltConfigured()}
+              maps={org.feltMaps.map((m) => ({
+                id: m.id,
+                feltMapId: m.feltMapId,
+                title: m.title,
+                kind: m.kind,
+                visibility: m.visibility,
+                grantCount: m._count.grants,
+              }))}
             />
           </CardContent>
         </Card>
@@ -102,6 +131,8 @@ export default async function AdminOrgDetailPage({ params }: Props) {
                   name: u.name,
                   email: u.email,
                   role: u.role,
+                  feltSeat: u.feltSeat,
+                  feltAccess: u.feltAccess,
                 }))}
               />
             )}

@@ -4,41 +4,56 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, Circle, Lock, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { OnboardingStep } from "@/lib/onboarding/steps";
+import { InviteMembersDialog } from "@/components/account/InviteMembersDialog";
+import type { OnboardingStep, StepId } from "@/lib/onboarding/steps";
+
+interface PendingInvite {
+  id: string;
+  email: string | null;
+  role: "ADMIN" | "MEMBER";
+  expiresAt: string;
+}
 
 interface Props {
   steps: OnboardingStep[];
-  completedSteps: string[];
-  arcgisConnected: boolean;
+  completedSteps: StepId[];
+  /** Owners and admins can invite; other members just continue. */
+  canInvite: boolean;
+  pendingInvites: PendingInvite[];
 }
 
-export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: Props) {
+export function OnboardingChecklist({ steps, completedSteps, canInvite, pendingInvites }: Props) {
   const router = useRouter();
-  const [completing, setCompleting] = useState<string | null>(null);
+  const [completing, setCompleting] = useState<StepId | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const isComplete = (step: OnboardingStep) => {
-    if (step.id === "arcgis_connect") return arcgisConnected;
-    return completedSteps.includes(step.id);
-  };
-
+  const isComplete = (step: OnboardingStep) => completedSteps.includes(step.id);
   const firstIncompleteIndex = steps.findIndex((s) => !isComplete(s));
 
-  async function markComplete(stepId: string) {
+  async function markComplete(stepId: StepId) {
     setCompleting(stepId);
-    const res = await fetch("/api/onboarding/step", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ step: stepId }),
-    });
-    if (res.ok) {
+    setError(null);
+    try {
+      const res = await fetch("/api/onboarding/step", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: stepId }),
+      });
+      if (!res.ok) {
+        setError("Something went wrong saving that step. Please try again.");
+        return;
+      }
       const { onboardingComplete } = await res.json();
       if (onboardingComplete) {
         router.push("/dashboard");
       } else {
         router.refresh();
       }
+    } catch {
+      setError("Something went wrong saving that step. Please try again.");
+    } finally {
+      setCompleting(null);
     }
-    setCompleting(null);
   }
 
   return (
@@ -73,11 +88,7 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
               <div className="flex-1 min-w-0">
                 <p
                   className={`font-medium ${
-                    done
-                      ? "text-green-800 line-through"
-                      : isActive
-                      ? "text-gray-900"
-                      : "text-gray-600"
+                    done ? "text-green-800 line-through" : isActive ? "text-gray-900" : "text-gray-600"
                   }`}
                 >
                   {index + 1}. {step.title}
@@ -87,42 +98,39 @@ export function OnboardingChecklist({ steps, completedSteps, arcgisConnected }: 
                   <div className="mt-2 space-y-3">
                     <p className="text-sm text-gray-600">{step.description}</p>
 
-                    <div className="flex flex-wrap gap-2">
-                      {step.externalLink && (
-                        <a
-                          href={step.externalLink.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                    <div className="flex flex-wrap items-center gap-2">
+                      {step.id === "team" && canInvite && <InviteMembersDialog pendingInvites={pendingInvites} />}
+
+                      {step.id === "esri" && (
+                        <a href="/api/onboarding/link-arcgis">
                           <Button variant="outline" size="sm" className="gap-1.5">
                             <ExternalLink className="h-3.5 w-3.5" />
-                            {step.externalLink.label}
+                            Connect ArcGIS account
                           </Button>
                         </a>
                       )}
 
-                      {step.id === "arcgis_connect" && !arcgisConnected && (
-                        <a href="/api/onboarding/link-arcgis">
-                          <Button size="sm" className="gap-1.5">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            Connect ArcGIS Account
-                          </Button>
-                        </a>
-                      )}
-
-                      {step.selfReport && (
-                        <Button
-                          size="sm"
-                          disabled={completing === step.id}
-                          onClick={() => markComplete(step.id)}
-                        >
-                          {completing === step.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                          ) : null}
-                          Mark as complete
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant={step.id === "team" && canInvite ? "outline" : "default"}
+                        disabled={completing === step.id}
+                        onClick={() => markComplete(step.id)}
+                      >
+                        {completing === step.id && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+                        {step.completeLabel}
+                      </Button>
                     </div>
+
+                    {step.id === "team" && canInvite && pendingInvites.length > 0 && (
+                      <p className="text-xs text-gray-600">
+                        {pendingInvites.length} invite{pendingInvites.length === 1 ? "" : "s"} pending.
+                      </p>
+                    )}
+                    {error && (
+                      <p className="text-sm text-red-700" role="alert">
+                        {error}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

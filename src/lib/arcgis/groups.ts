@@ -1,5 +1,5 @@
 import type { ArcGISItem, ArcGISSearchResponse } from "@/types/arcgis";
-import { getAdminToken, getBCAppToken } from "./auth";
+import { getAdminToken } from "./auth";
 
 const AGOL_BASE = "https://www.arcgis.com/sharing/rest";
 
