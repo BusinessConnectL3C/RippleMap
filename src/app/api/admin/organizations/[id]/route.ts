@@ -61,3 +61,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!await requireBCStaff()) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  const org = await db.organization.findUnique({
+    where: { id },
+    include: { users: { select: { role: true } } },
+  });
+  if (!org) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (org.users.some((u) => u.role === "BC_STAFF")) {
+    return NextResponse.json(
+      { error: "Cannot delete an organization with BC staff accounts" },
+      { status: 409 }
+    );
+  }
+
+  await db.$transaction([
+    db.supportTicket.deleteMany({ where: { orgId: id } }),
+    db.user.deleteMany({ where: { orgId: id } }),
+    db.organization.delete({ where: { id } }),
+  ]);
+
+  return NextResponse.json({ ok: true });
+}
