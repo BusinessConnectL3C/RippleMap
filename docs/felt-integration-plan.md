@@ -349,6 +349,12 @@ A grant must only reference a user and a map in the **same org**. Enforce this i
 - **Removed `StepId`s:** `techsoup`, `arcgis_apply`, `arcgis_activate`, `arcgis_trial`, `arcgis_purchase`.
 - Completed orgs are unaffected. In-progress orgs get their steps remapped by a one-off script.
 
+**As built (2026-11-11):** three user steps, all self-serve: **Invite your team → Do you also use ArcGIS? → Explore**.
+- The profile step was dropped: registration already collects the name, org and org type.
+- "Map workspace ready" and "Field Editor" are shown as **status on the onboarding page and Home, not as blocking steps**. Blocking would lock a new org out of Support and Account until BC staff act.
+- The ArcGIS group is created when an owner/admin connects ArcGIS or BC staff enable it, not at registration.
+- No remap script was needed: legacy step ids are ignored, so in-progress orgs simply see the new three steps.
+
 ### 5.2 Home
 - Recent maps and dashboards, survey count, and a "last updated" time (from `GET /maps/{id}` or webhook).
 - Thumbnails from S3 (§7).

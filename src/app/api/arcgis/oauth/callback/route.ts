@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { exchangeCodeForTokens } from "@/lib/arcgis/auth";
 import { addUserToGroup } from "@/lib/arcgis/groups";
 import { db } from "@/lib/db";
-import { getStepsForOrgType } from "@/lib/onboarding/steps";
+import { ONBOARDING_STEPS } from "@/lib/onboarding/steps";
+import { enableArcgisForOrg } from "@/lib/arcgis/enable";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -26,43 +27,48 @@ export async function GET(req: NextRequest) {
   try {
     await exchangeCodeForTokens(session.user.id, code);
 
-    const [link, org] = await Promise.all([
+    const [link, user, org] = await Promise.all([
       db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
+      db.user.findUnique({ where: { id: session.user.id }, select: { role: true } }),
       db.organization.findUnique({
         where: { id: su.orgId },
         include: { onboardingState: true },
       }),
     ]);
 
-    if (link && org?.arcgisGroupId) {
+    // Connecting ArcGIS is how an org opts in to ArcGIS features. Only an
+    // owner or admin can switch them on for the whole org; a member connecting
+    // their own account just links it.
+    let groupId = org?.arcgisGroupId ?? null;
+    const canEnable = user?.role === "OWNER" || user?.role === "ADMIN";
+    if (org && canEnable && (!org.arcgisEnabled || !groupId)) {
+      groupId = await enableArcgisForOrg(su.orgId);
+    }
+
+    if (link && groupId) {
       try {
-        await addUserToGroup(org.arcgisGroupId, link.username);
+        await addUserToGroup(groupId, link.username);
       } catch (groupErr) {
         console.error("Failed to add user to ArcGIS group (non-fatal):", groupErr);
       }
     }
 
-    // Mark arcgis_connect complete and check if all steps are done
-    if (org?.onboardingState && !org.onboardingState.completed) {
-      const steps = getStepsForOrgType(org.type as "NONPROFIT" | "CORPORATE");
-      const existing = org.onboardingState.completedSteps;
-      const newCompleted = existing.includes("arcgis_connect")
-        ? existing
-        : [...existing, "arcgis_connect"];
-      const allComplete = steps.every((s) => newCompleted.includes(s.id));
+    const state = org?.onboardingState;
+    if (!state || state.completed) {
+      return NextResponse.redirect(new URL("/account", req.url));
+    }
 
+    // Connecting answers the "Do you also use ArcGIS?" step, if the user has
+    // reached it.
+    const done = new Set(state.completedSteps);
+    const esriIndex = ONBOARDING_STEPS.findIndex((s) => s.id === "esri");
+    const reached = ONBOARDING_STEPS.slice(0, esriIndex).every((s) => done.has(s.id));
+    if (reached && !done.has("esri")) {
+      done.add("esri");
       await db.onboardingState.update({
         where: { orgId: su.orgId },
-        data: {
-          completedSteps: newCompleted,
-          currentStep: steps.length,
-          completed: allComplete,
-        },
+        data: { completedSteps: [...done], currentStep: Math.max(state.currentStep, esriIndex + 1) },
       });
-
-      if (allComplete) {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
-      }
     }
 
     return NextResponse.redirect(new URL("/onboarding", req.url));

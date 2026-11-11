@@ -39,8 +39,6 @@ export function OrgEditForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const typeChanged = type !== initialType;
-
   async function handleSave() {
     setSaving(true);
     setError(null);
@@ -88,11 +86,6 @@ export function OrgEditForm({
             <SelectItem value="CORPORATE">Corporate</SelectItem>
           </SelectContent>
         </Select>
-        {typeChanged && (
-          <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
-            Changing the org type will reset this org&apos;s onboarding progress.
-          </p>
-        )}
       </div>
 
       <div className="space-y-2">

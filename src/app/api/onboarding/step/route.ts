@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getStepsForOrgType } from "@/lib/onboarding/steps";
+import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
 
+/** Mark an onboarding step complete (or skipped). Steps must be done in order. */
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -10,52 +11,37 @@ export async function POST(req: NextRequest) {
   }
 
   const su = session.user as unknown as { orgId: string };
-  const { step } = await req.json();
-  if (!step || typeof step !== "string") {
+  const body = await req.json().catch(() => null);
+  const step: unknown = body?.step;
+  if (!isStepId(step)) {
     return NextResponse.json({ error: "Invalid step" }, { status: 400 });
   }
 
-  const org = await db.organization.findUnique({
-    where: { id: su.orgId },
-    include: { onboardingState: true },
-  });
-  if (!org || !org.onboardingState) {
+  const state = await db.onboardingState.findUnique({ where: { orgId: su.orgId } });
+  if (!state) {
     return NextResponse.json({ error: "Org not found" }, { status: 404 });
   }
-
-  const steps = getStepsForOrgType(org.type as "NONPROFIT" | "CORPORATE");
-  const stepDef = steps.find((s) => s.id === step);
-  if (!stepDef) {
-    return NextResponse.json({ error: "Unknown step for org type" }, { status: 400 });
-  }
-  if (!stepDef.selfReport) {
-    return NextResponse.json({ error: "Step cannot be self-reported" }, { status: 400 });
+  if (state.completed) {
+    return NextResponse.json({ onboardingComplete: true });
   }
 
-  const stepIndex = steps.indexOf(stepDef);
-  const { completedSteps } = org.onboardingState;
+  const stepIndex = ONBOARDING_STEPS.findIndex((s) => s.id === step);
+  const done = new Set(state.completedSteps);
 
-  // Ensure all prior steps are complete
   for (let i = 0; i < stepIndex; i++) {
-    if (!completedSteps.includes(steps[i].id)) {
+    if (!done.has(ONBOARDING_STEPS[i].id)) {
       return NextResponse.json({ error: "Previous steps not complete" }, { status: 400 });
     }
   }
 
-  if (completedSteps.includes(step)) {
-    return NextResponse.json({ onboardingComplete: false });
-  }
-
-  const newCompleted = [...completedSteps, step];
-  const allComplete = steps.every(
-    (s) => s.id === "arcgis_connect" || newCompleted.includes(s.id)
-  );
+  done.add(step);
+  const allComplete = ONBOARDING_STEPS.every((s) => done.has(s.id));
 
   await db.onboardingState.update({
     where: { orgId: su.orgId },
     data: {
-      completedSteps: newCompleted,
-      currentStep: stepIndex + 1,
+      completedSteps: [...done],
+      currentStep: Math.max(state.currentStep, stepIndex + 1),
       completed: allComplete,
     },
   });

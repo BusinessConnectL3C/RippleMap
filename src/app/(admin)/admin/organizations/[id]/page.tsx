@@ -9,6 +9,7 @@ import { OnboardingResetButton } from "@/components/admin/OnboardingResetButton"
 import { UserRoleEditor } from "@/components/admin/UserRoleEditor";
 import { FeltMapsPanel } from "@/components/admin/FeltMapsPanel";
 import { isFeltConfigured } from "@/lib/felt/client";
+import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
 import { ChevronLeft } from "lucide-react";
 
 interface Props {
@@ -29,8 +30,9 @@ export default async function AdminOrgDetailPage({ params }: Props) {
 
   if (!org) notFound();
 
-  const completedSteps = org.onboardingState?.completedSteps ?? [];
-  const totalSteps = org.type === "NONPROFIT" ? 4 : 3;
+  // Ignore legacy step ids from the Esri-era onboarding flow.
+  const completedSteps = (org.onboardingState?.completedSteps ?? []).filter(isStepId);
+  const totalSteps = ONBOARDING_STEPS.length;
 
   return (
     <div className="flex flex-col h-full">

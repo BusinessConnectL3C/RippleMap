@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { enableArcgisForOrg } from "@/lib/arcgis/enable";
 
 const schema = z.object({
   name: z.string().min(2).optional(),
@@ -33,16 +34,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { name, type, arcgisGroupId, clickupListId, feltProjectId, arcgisEnabled } = parsed.data;
 
-  const existing = await db.organization.findUnique({
-    where: { id },
-    include: { onboardingState: true },
-  });
+  const existing = await db.organization.findUnique({ where: { id }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const typeChanged = type !== undefined && type !== existing.type;
-
-  await db.$transaction(async (tx) => {
-    await tx.organization.update({
+  await db.organization.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
@@ -52,16 +47,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(feltProjectId !== undefined && { feltProjectId }),
         ...(arcgisEnabled !== undefined && { arcgisEnabled }),
       },
-    });
-
-    // Reset onboarding when org type changes so steps match the new track
-    if (typeChanged && existing.onboardingState) {
-      await tx.onboardingState.update({
-        where: { orgId: id },
-        data: { currentStep: 0, completedSteps: [], completed: false },
-      });
-    }
   });
+
+  // Enabling ArcGIS for an org with no group yet: create its private group.
+  if (arcgisEnabled) await enableArcgisForOrg(id);
 
   return NextResponse.json({ ok: true });
 }

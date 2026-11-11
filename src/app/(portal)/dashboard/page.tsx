@@ -17,13 +17,14 @@ export default async function DashboardPage() {
   const viewer = await getViewer(session.user.id);
   if (!viewer) redirect("/login");
 
-  const [org, arcgisLink, openTickets, feltMaps] = await Promise.all([
+  const [org, arcgisLink, openTickets, feltMaps, fieldEditors] = await Promise.all([
     db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true, arcgisEnabled: true } }),
     db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
     db.supportTicket.count({
       where: { orgId: su.orgId, status: { in: ["OPEN", "IN_PROGRESS"] } },
     }),
     listVisibleMaps(viewer, { kind: ["MAP", "DASHBOARD"] }),
+    db.user.findMany({ where: { orgId: su.orgId, feltSeat: true }, select: { name: true } }),
   ]);
 
   const [arcgisMaps, activeForms] = org?.arcgisEnabled && org.arcgisGroupId
@@ -50,8 +51,9 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <AccountStatusWidget
-            arcgisUsername={arcgisLink?.username ?? null}
-            orgId={arcgisLink?.orgId ?? null}
+            hasMaps={feltMaps.length > 0}
+            fieldEditors={fieldEditors.map((u) => u.name)}
+            arcgis={org?.arcgisEnabled ? { username: arcgisLink?.username ?? null } : undefined}
           />
           <SupportWidget openCount={openTickets} />
           <div className="rounded-lg border border-border bg-surface-card p-6">

@@ -1,89 +1,48 @@
-export type StepId =
-  | "techsoup"
-  | "arcgis_apply"
-  | "arcgis_activate"
-  | "arcgis_trial"
-  | "arcgis_purchase"
-  | "arcgis_connect";
+/**
+ * Onboarding steps. Felt is the default map platform, so there is no longer a
+ * TechSoup / Esri licensing track, and nonprofit and corporate orgs follow the
+ * same steps. Every step is something the user can finish (or skip) on their
+ * own: things BC staff set up — the Felt project, the first map, the Field
+ * Editor seat — are shown as status on the onboarding page and never block
+ * the user from reaching the portal.
+ *
+ * Legacy step ids from the Esri-era flow (techsoup, arcgis_apply, …) may still
+ * be present in OnboardingState.completedSteps for older orgs; they're ignored.
+ */
+export type StepId = "team" | "esri" | "explore";
 
 export interface OnboardingStep {
   id: StepId;
   title: string;
   description: string;
-  note?: string;
-  externalLink?: { label: string; href: string };
-  selfReport: boolean;
+  /** Label for the button that completes the step. */
+  completeLabel: string;
 }
 
-export const NONPROFIT_STEPS: OnboardingStep[] = [
+export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
-    id: "techsoup",
-    title: "Sign up for TechSoup",
+    id: "team",
+    title: "Invite your team",
     description:
-      "TechSoup validates your nonprofit status for Esri's nonprofit program. Create a free TechSoup account to get started.",
-    externalLink: {
-      label: "Go to TechSoup",
-      href: "https://www.techsoup.org/joining-techsoup/registration",
-    },
-    selfReport: true,
+      "Add the people in your organization who need to see your maps and dashboards. You can also do this later from Account.",
+    completeLabel: "Continue",
   },
   {
-    id: "arcgis_apply",
-    title: "Apply for ArcGIS Nonprofit Program",
+    id: "esri",
+    title: "Do you also use ArcGIS?",
     description:
-      "Submit your application through Esri using your TechSoup credentials. Acceptance typically arrives via email within a few business days.",
-    externalLink: {
-      label: "Apply at Esri",
-      href: "https://www.esri.com/en-us/industries/nonprofit/nonprofit-program",
-    },
-    selfReport: true,
+      "RippleMap maps run on Felt, so no ArcGIS account is needed. If your organization still has Survey123 forms, Field Maps, or hosted layers in ArcGIS Online, connect your ArcGIS account to see them here too.",
+    completeLabel: "We don't use ArcGIS",
   },
   {
-    id: "arcgis_activate",
-    title: "Create your ArcGIS org and purchase licenses",
+    id: "explore",
+    title: "Explore RippleMap",
     description:
-      "After receiving your acceptance email, create your ArcGIS organization and purchase user licenses ($100/user). Each user must log in at least once to activate their account.",
-    selfReport: true,
-  },
-  {
-    id: "arcgis_connect",
-    title: "Connect your ArcGIS account to RippleMap",
-    description:
-      "Link your ArcGIS Online account so RippleMap can access your maps and FieldMaps forms. BC will add your organization to the shared group after you connect.",
-    selfReport: false,
+      "You're set. Your maps and dashboards appear under Maps & Apps as BC adds them, and Support is there if you need anything.",
+    completeLabel: "Go to my dashboard",
   },
 ];
 
-export const CORPORATE_STEPS: OnboardingStep[] = [
-  {
-    id: "arcgis_trial",
-    title: "Sign up for ArcGIS Online",
-    description:
-      "Start with a 21-day free trial to get your ArcGIS organization set up before purchasing.",
-    externalLink: {
-      label: "Start free trial",
-      href: "https://www.esri.com/en-us/arcgis/products/arcgis-online/trial",
-    },
-    selfReport: true,
-  },
-  {
-    id: "arcgis_purchase",
-    title: "Purchase user licenses",
-    description:
-      "Purchase the user types your team needs through your ArcGIS account. Each user must log in at least once to activate their account.",
-    selfReport: true,
-  },
-  {
-    id: "arcgis_connect",
-    title: "Connect your ArcGIS account to RippleMap",
-    description:
-      "Link your ArcGIS Online account so RippleMap can access your maps and FieldMaps forms. BC will add your organization to the shared group after you connect.",
-    selfReport: false,
-  },
-];
-
-export function getStepsForOrgType(
-  type: "NONPROFIT" | "CORPORATE"
-): OnboardingStep[] {
-  return type === "NONPROFIT" ? NONPROFIT_STEPS : CORPORATE_STEPS;
+export function isStepId(value: unknown): value is StepId {
+  return ONBOARDING_STEPS.some((s) => s.id === value);
 }

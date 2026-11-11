@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { createClientGroup } from "@/lib/arcgis/groups";
 import { getOrCreateOrgList } from "@/lib/clickup/lists";
 import { isFeltConfigured } from "@/lib/felt/client";
 import { getOrCreateOrgProject } from "@/lib/felt/projects";
@@ -52,12 +51,8 @@ export async function POST(req: NextRequest) {
 
   const user = org.users[0];
 
-  try {
-    const groupId = await createClientGroup(orgName);
-    await db.organization.update({ where: { id: org.id }, data: { arcgisGroupId: groupId } });
-  } catch (err) {
-    console.error(`Failed to create ArcGIS group for org ${org.id}:`, err);
-  }
+  // No ArcGIS group here: ArcGIS is opt-in and its group is created when the
+  // org first connects ArcGIS (src/lib/arcgis/enable.ts).
 
   try {
     const listId = await getOrCreateOrgList(orgName, org.id);
