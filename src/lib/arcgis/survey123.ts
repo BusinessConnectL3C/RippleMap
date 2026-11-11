@@ -1,8 +1,11 @@
 import type {
+  ArcGISItem,
   FeatureServiceDefinition,
   FeatureServiceField,
 } from "@/types/arcgis";
 import { getBCAppToken } from "./auth";
+import { classifyFormItem } from "./formKind";
+import { getWebMapLayers } from "./featureLayer";
 
 const AGOL_BASE = "https://www.arcgis.com/sharing/rest";
 
@@ -100,4 +103,23 @@ export async function updateSurveyField(
   if (data.error) {
     throw new Error(`ArcGIS error: ${data.error.message}`);
   }
+}
+
+/**
+ * Resolve the Feature Service URL a form item edits, from the item itself.
+ * Always derive this server-side from an item already verified to belong to
+ * the requesting org (getOrgItem) — never accept a service URL from the client,
+ * since BC's token can modify any client's services.
+ */
+export async function resolveFormServiceUrl(item: ArcGISItem): Promise<string | null> {
+  const kind = classifyFormItem(item);
+  if (kind === "survey123") {
+    return item.url || (await getSurveyServiceUrl(item.id).catch(() => null));
+  }
+  if (kind === "fieldmaps-webmap") {
+    const layers = await getWebMapLayers(item.id).catch(() => []);
+    return layers[0]?.url ?? null;
+  }
+  if (kind === "fieldmaps-layer") return item.url ?? null;
+  return null;
 }

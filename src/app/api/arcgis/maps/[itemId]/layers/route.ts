@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { listGroupItems } from "@/lib/arcgis/groups";
+import { isItemInGroup } from "@/lib/arcgis/access";
 import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
 
 export async function GET(
@@ -24,8 +24,7 @@ export async function GET(
     return NextResponse.json({ error: "Group not configured" }, { status: 500 });
   }
 
-  const groupItems = await listGroupItems(org.arcgisGroupId, undefined, 100);
-  if (!groupItems.some((item) => item.id === itemId)) {
+  if (!(await isItemInGroup(org.arcgisGroupId, itemId))) {
     return NextResponse.json({ error: "Map not found" }, { status: 404 });
   }
 

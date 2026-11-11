@@ -1,6 +1,6 @@
 import type { FeatureServiceField } from "@/types/arcgis";
 import { getBCAppToken } from "./auth";
-import { listGroupItems } from "./groups";
+import { isItemInGroup } from "./access";
 
 const AGOL_BASE = "https://www.arcgis.com/sharing/rest";
 const PAGE_SIZE = 200;
@@ -160,8 +160,7 @@ export async function getAuthorizedLayer(
 ): Promise<QueryableLayer> {
   if (!orgArcgisGroupId) throw new LayerAccessError("Group not configured", 500);
 
-  const groupItems = await listGroupItems(orgArcgisGroupId, undefined, 100);
-  if (!groupItems.some((item) => item.id === itemId)) {
+  if (!(await isItemInGroup(orgArcgisGroupId, itemId))) {
     throw new LayerAccessError("Map not found", 404);
   }
 

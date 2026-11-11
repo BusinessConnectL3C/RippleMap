@@ -65,7 +65,6 @@ export function FieldEditor({ surveyId, serviceUrl, initialFields, kind }: Props
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "addField",
-          serviceUrl,
           field: {
             name: fieldName,
             alias: newField.alias,

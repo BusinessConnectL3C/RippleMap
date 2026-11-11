@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
-import { getItem } from "@/lib/arcgis/items";
+import { getOrgItem } from "@/lib/arcgis/access";
 import { getBCAppToken } from "@/lib/arcgis/auth";
 import { getWebMapLayers } from "@/lib/arcgis/featureLayer";
 import { TopBar } from "@/components/layout/TopBar";
@@ -21,13 +21,12 @@ export default async function MapViewPage({ params }: Props) {
   if (!session?.user?.id) redirect("/login");
 
   const { itemId } = await params;
+  const su = session.user as unknown as { orgId: string };
 
-  const [item, token] = await Promise.all([
-    getItem(itemId),
-    getBCAppToken(),
-  ]);
+  const item = await getOrgItem(su.orgId, itemId);
+  if (!item || !SUPPORTED_TYPES.includes(item.type)) notFound();
 
-  if (!SUPPORTED_TYPES.includes(item.type)) notFound();
+  const token = await getBCAppToken();
 
   const layers =
     item.type === "Web Map" ? await getWebMapLayers(itemId).catch(() => []) : [];
