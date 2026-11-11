@@ -34,8 +34,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { role, feltSeat, feltAccess, feltEmail } = parsed.data;
-  const existing = await db.user.findUnique({ where: { id }, select: { feltSeat: true } });
+  const existing = await db.user.findUnique({ where: { id }, select: { feltSeat: true, role: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // BC_STAFF is granted and removed only with database access (scripts/
+  // create-bc-staff.mjs), never from the admin UI: an accidental dropdown
+  // change here would otherwise silently demote a system admin.
+  if (role !== undefined && existing.role === "BC_STAFF") {
+    return NextResponse.json({ error: "BC staff roles can't be changed here" }, { status: 409 });
+  }
 
   await db.user.update({
     where: { id },

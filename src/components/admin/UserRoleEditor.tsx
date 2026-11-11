@@ -109,6 +109,9 @@ export function UserRoleEditor({ users }: { users: User[] }) {
             <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
             <td className="px-4 py-3 text-gray-600">{user.email}</td>
             <td className="px-4 py-3">
+              {user.role === "BC_STAFF" ? (
+                <span className="text-xs font-medium text-gray-700">BC Staff</span>
+              ) : (
               <Select
                 value={user.role}
                 disabled={pending === user.id + ":role"}
@@ -123,6 +126,7 @@ export function UserRoleEditor({ users }: { users: User[] }) {
                   <SelectItem value="MEMBER">Member</SelectItem>
                 </SelectContent>
               </Select>
+              )}
               {pending === user.id + ":role" && (
                 <Loader2 className="inline ml-2 h-3 w-3 animate-spin text-gray-600" />
               )}
