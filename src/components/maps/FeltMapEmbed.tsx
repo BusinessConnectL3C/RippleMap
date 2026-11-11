@@ -1,14 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Loader2, RotateCw } from "lucide-react";
-import { Felt } from "@feltmaps/js-sdk";
+import { AlertCircle, Check, ImageIcon, Loader2, RotateCw } from "lucide-react";
+import { Felt, type FeltController } from "@feltmaps/js-sdk";
 import { Button } from "@/components/ui/button";
 
 interface Props {
   feltMapId: string;
   title: string;
+  /** Org owners/admins and BC staff can save the current view as the map's thumbnail. */
+  canSetThumbnail?: boolean;
 }
+
+/** Must match THUMBNAIL_SIZE in src/lib/felt/thumbnails.ts. */
+const THUMBNAIL_W = 800;
+const THUMBNAIL_H = 500;
+
+type ThumbStatus = "idle" | "saving" | "saved" | "error";
 
 /** Re-mint this long before the token expires so the map never shows Felt's "refresh" prompt. */
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
@@ -30,10 +38,42 @@ type Status = "loading" | "ready" | "error" | "forbidden";
  * /api/felt/maps/[id]/embed-token (which enforces RippleMap's permissions).
  * The token is re-minted, and the map re-embedded, shortly before it expires.
  */
-export function FeltMapEmbed({ feltMapId, title }: Props) {
+export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [status, setStatus] = useState<Status>("loading");
+  const controllerRef = useRef<FeltController | null>(null);
+  const [thumb, setThumb] = useState<ThumbStatus>("idle");
+  const [thumbError, setThumbError] = useState<string | null>(null);
+
+  async function saveThumbnailView() {
+    const felt = controllerRef.current;
+    const container = containerRef.current;
+    if (!felt || !container) return;
+    setThumb("saving");
+    setThumbError(null);
+    try {
+      const { center, zoom } = await felt.getViewport();
+      // The thumbnail canvas is smaller than this viewer. Lower the zoom by the
+      // size ratio so the thumbnail frames about the same area you see now.
+      const scale = Math.min(THUMBNAIL_W / container.clientWidth, THUMBNAIL_H / container.clientHeight);
+      const thumbZoom = Math.min(23, Math.max(1, zoom + Math.log2(scale)));
+      const res = await fetch(`/api/felt/maps/${encodeURIComponent(feltMapId)}/thumbnail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: center.latitude, longitude: center.longitude, zoom: thumbZoom }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Thumbnail update failed");
+      }
+      setThumb("saved");
+      setTimeout(() => setThumb("idle"), 4000);
+    } catch (err) {
+      setThumb("error");
+      setThumbError(err instanceof Error ? err.message : "Thumbnail update failed");
+    }
+  }
   // Bumping this re-runs the embed effect (retry, or token refresh).
   const [generation, setGeneration] = useState(0);
   const retry = useCallback(() => setGeneration((g) => g + 1), []);
@@ -64,7 +104,8 @@ export function FeltMapEmbed({ feltMapId, title }: Props) {
 
         // Clear any previous iframe (retry/refresh, or React Strict Mode's double effect).
         container.replaceChildren();
-        await Felt.embed(container, feltMapId, {
+        controllerRef.current = null;
+        const felt = await Felt.embed(container, feltMapId, {
           token,
           uiControls: {
             // Felt's full-screen button opens felt.com in a new tab, where a
@@ -75,6 +116,7 @@ export function FeltMapEmbed({ feltMapId, title }: Props) {
         });
         if (cancelled) return;
 
+        controllerRef.current = felt;
         setStatus("ready");
 
         const delay = Math.min(
@@ -100,6 +142,36 @@ export function FeltMapEmbed({ feltMapId, title }: Props) {
     <div className="relative w-full h-full min-h-[600px]">
       {/* The SDK inserts its iframe here; it needs an explicit height. */}
       <div ref={containerRef} className="absolute inset-0 [&>iframe]:h-full [&>iframe]:w-full [&>iframe]:border-0" aria-label={title} />
+
+      {status === "ready" && canSetThumbnail && (
+        <div className="absolute right-3 top-3 z-10 flex max-w-xs flex-col items-end gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 bg-surface-card shadow-sm"
+            disabled={thumb === "saving"}
+            onClick={saveThumbnailView}
+            title="Frame the map the way you want, then save this view as its preview image"
+          >
+            {thumb === "saving" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : thumb === "saved" ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <ImageIcon className="h-3.5 w-3.5" />
+            )}
+            {thumb === "saving" ? "Saving thumbnail…" : thumb === "saved" ? "Thumbnail updated" : "Use this view as thumbnail"}
+          </Button>
+          {thumb === "saving" && (
+            <p className="rounded bg-surface-card px-2 py-1 text-xs text-text-secondary shadow-sm">This can take up to a minute.</p>
+          )}
+          {thumb === "error" && thumbError && (
+            <p className="rounded bg-surface-card px-2 py-1 text-xs text-[var(--danger)] shadow-sm" role="alert">
+              {thumbError}
+            </p>
+          )}
+        </div>
+      )}
 
       {status !== "ready" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface-page">

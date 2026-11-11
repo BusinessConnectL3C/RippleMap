@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getViewer, getViewableMap } from "@/lib/felt/access";
+import { getViewer, getViewableMap, isOrgAdmin } from "@/lib/felt/access";
 import { isValidFeltId } from "@/lib/felt/maps";
 import { TopBar } from "@/components/layout/TopBar";
 import { FeltMapEmbed } from "@/components/maps/FeltMapEmbed";
@@ -28,7 +28,11 @@ export default async function FeltMapPage({ params }: Props) {
     <div className="flex flex-col h-full">
       <TopBar title={access.map.title} backHref="/maps" backLabel="Maps & Apps" />
       <div className="flex-1 p-0 overflow-hidden">
-        <FeltMapEmbed feltMapId={access.map.feltMapId} title={access.map.title} />
+        <FeltMapEmbed
+          feltMapId={access.map.feltMapId}
+          title={access.map.title}
+          canSetThumbnail={viewer.role === "BC_STAFF" || isOrgAdmin(viewer)}
+        />
       </div>
     </div>
   );

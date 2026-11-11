@@ -141,6 +141,9 @@ model FeltMap {
   /// It stays public; this flags it for the org's admins and BC staff to review.
   madePublicInFelt Boolean       @default(false)
   thumbnailKey     String?
+  /// Framing chosen in the portal viewer ({ latitude, longitude, zoom }) for
+  /// thumbnail renders. Null = Felt's saved default view.
+  thumbnailView    Json?
   // Per-map webhook signing key, encrypted with src/lib/encryption.ts.
   webhookSecretEnc String?
   createdAt        DateTime      @default(now())
