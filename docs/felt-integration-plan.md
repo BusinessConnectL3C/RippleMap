@@ -250,7 +250,7 @@ Felt never sees these. The portal simply refuses to mint an embed token.
 
 | RippleMap role | Sees |
 |---|---|
-| `BC_STAFF` | All maps, all orgs (support) |
+| `BC_STAFF` (system admin) | All maps, all orgs. Shown in the admin area, by org, with embed tokens minted under the staff member's own email. Staff accounts live in an internal staff org. They are created only with `npm run staff:create` (database access required), never by registration email or domain, because registration doesn't verify email. |
 | `OWNER`, `ADMIN` | All of their org's maps; grant and revoke member access |
 | `MEMBER` | Maps whose visibility is **All members**, plus maps explicitly granted to them |
 

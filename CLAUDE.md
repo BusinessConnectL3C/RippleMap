@@ -80,6 +80,8 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Portal layout (onboarding gate): `src/app/(portal)/layout.tsx`
 - Onboarding steps: `src/app/(auth)/onboarding/[step]/steps/`
 - API routes: `src/app/api/`
+- BC staff (system admin) accounts: `npm run staff:create -- --email <email> --name "<name>"` (`scripts/create-bc-staff.mjs`). Needs `DATABASE_URL`. `BC_STAFF` is intentionally not grantable from the admin UI or via registration.
+- ArcGIS tenant check: `src/lib/arcgis/access.ts` (`getOrgItem`). Every route that touches an ArcGIS item with BC's tokens must use it or `getAuthorizedLayer`.
 
 ## Database
 - Provider: Neon (PostgreSQL)

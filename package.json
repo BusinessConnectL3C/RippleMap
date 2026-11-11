@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "staff:create": "node scripts/create-bc-staff.mjs"
   },
   "dependencies": {
     "@arcgis/core": "^5.0.19",
