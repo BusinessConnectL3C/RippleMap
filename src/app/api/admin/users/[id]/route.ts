@@ -10,9 +10,16 @@ async function requireBCStaff() {
   return true;
 }
 
-const patchSchema = z.object({
-  role: z.enum(["OWNER", "ADMIN", "MEMBER"]),
-});
+const patchSchema = z
+  .object({
+    role: z.enum(["OWNER", "ADMIN", "MEMBER"]).optional(),
+    // Field Editor bookkeeping. This records what BC staff set up in Felt by
+    // hand (Felt has no members/seats API); it doesn't change anything in Felt.
+    feltSeat: z.boolean().optional(),
+    feltAccess: z.enum(["EDIT", "CONTRIBUTE"]).nullable().optional(),
+    feltEmail: z.string().email().nullable().optional(),
+  })
+  .refine((v) => Object.values(v).some((x) => x !== undefined), { message: "Nothing to update" });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await requireBCStaff()) {
@@ -26,7 +33,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
 
-  await db.user.update({ where: { id }, data: { role: parsed.data.role } });
+  const { role, feltSeat, feltAccess, feltEmail } = parsed.data;
+  const existing = await db.user.findUnique({ where: { id }, select: { feltSeat: true } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await db.user.update({
+    where: { id },
+    data: {
+      ...(role !== undefined && { role }),
+      ...(feltEmail !== undefined && { feltEmail }),
+      ...(feltSeat === true && {
+        feltSeat: true,
+        feltAccess: feltAccess ?? "EDIT",
+        ...(!existing.feltSeat && { feltSeatSince: new Date() }),
+      }),
+      ...(feltSeat === false && { feltSeat: false, feltAccess: null, feltSeatSince: null }),
+      ...(feltSeat === undefined && feltAccess !== undefined && { feltAccess }),
+    },
+  });
   return NextResponse.json({ ok: true });
 }
 

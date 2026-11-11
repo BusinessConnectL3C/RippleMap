@@ -66,6 +66,8 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 | `CLICKUP_API_TOKEN` | BC ClickUp workspace API token, used for all ticket/list/comment operations |
 | `CLICKUP_SUPPORT_FOLDER_ID` | ClickUp folder that holds one auto-created list per org |
 | `CLICKUP_SUPPORT_LIST_ID` | Shared fallback list used when an org has no `clickupListId` yet |
+| `FELT_API_TOKEN` | Felt personal access token (`felt_pat_…`) from Workspace Settings → Developers. Workspace-scoped, acts as the account that created it, never expires — **Restricted**, server-side only. That account must be invited to every client org's private Felt project. If unset, Felt features are skipped (registration still works). |
+| `FELT_TEMPLATE_MAP_ID` | Optional. Felt map (id or URL) that admin "New map from template" duplicates into an org's project. Keep the template itself private. |
 | `CLICKUP_WEBHOOK_SECRET` | Shared secret ClickUp signs webhook payloads with (HMAC-SHA256 over the raw body, sent as `X-Signature`) — this is the `secret` returned when the webhook is created via ClickUp's API, not a value you invent |
 
 ## Key File Locations
@@ -81,10 +83,11 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Onboarding steps: `src/app/(auth)/onboarding/[step]/steps/`
 - API routes: `src/app/api/`
 - BC staff (system admin) accounts: `npm run staff:create -- --email <email> --name "<name>"` (`scripts/create-bc-staff.mjs`). Needs `DATABASE_URL`. `BC_STAFF` is intentionally not grantable from the admin UI or via registration.
+- Felt (maps): `src/lib/felt/` — `client.ts` (API + 429 backoff), `projects.ts` (per-org private project), `maps.ts` (forces every map private: Felt's API defaults `public_access` to `view_only`), `embed.ts` (embed tokens), `access.ts` (**the portal's view-permission system** — `getViewableMap`/`listVisibleMaps`; every Felt route must use it). Plan: `docs/felt-integration-plan.md`.
 - ArcGIS tenant check: `src/lib/arcgis/access.ts` (`getOrgItem`). Every route that touches an ArcGIS item with BC's tokens must use it or `getAuthorizedLayer`.
 
 ## Database
 - Provider: Neon (PostgreSQL)
 - Migrations in: `prisma/migrations/`
 - Do NOT truncate `_prisma_migrations` — only truncate application tables
-- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SupportTicketComment", "SalesforceLink", "User" CASCADE;`
+- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SupportTicketComment", "FeltMapGrant", "FeltMap", "User" CASCADE;` (this does not delete the orgs' Felt projects or maps in Felt)

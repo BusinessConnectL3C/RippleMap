@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { OrgEditForm } from "@/components/admin/OrgEditForm";
 import { OnboardingResetButton } from "@/components/admin/OnboardingResetButton";
 import { UserRoleEditor } from "@/components/admin/UserRoleEditor";
+import { FeltMapsPanel } from "@/components/admin/FeltMapsPanel";
+import { isFeltConfigured } from "@/lib/felt/client";
 import { ChevronLeft } from "lucide-react";
 
 interface Props {
@@ -21,6 +23,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
     include: {
       onboardingState: true,
       users: { orderBy: { createdAt: "asc" } },
+      feltMaps: { orderBy: { title: "asc" }, include: { _count: { select: { grants: true } } } },
     },
   });
 
@@ -52,6 +55,30 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               initialType={org.type as "NONPROFIT" | "CORPORATE"}
               initialArcgisGroupId={org.arcgisGroupId}
               initialClickupListId={org.clickupListId}
+              initialFeltProjectId={org.feltProjectId}
+              initialArcgisEnabled={org.arcgisEnabled}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Felt maps */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Felt Maps ({org.feltMaps.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeltMapsPanel
+              orgId={org.id}
+              feltProjectId={org.feltProjectId}
+              feltConfigured={isFeltConfigured()}
+              maps={org.feltMaps.map((m) => ({
+                id: m.id,
+                feltMapId: m.feltMapId,
+                title: m.title,
+                kind: m.kind,
+                visibility: m.visibility,
+                grantCount: m._count.grants,
+              }))}
             />
           </CardContent>
         </Card>
@@ -101,6 +128,8 @@ export default async function AdminOrgDetailPage({ params }: Props) {
                   name: u.name,
                   email: u.email,
                   role: u.role,
+                  feltSeat: u.feltSeat,
+                  feltAccess: u.feltAccess,
                 }))}
               />
             )}

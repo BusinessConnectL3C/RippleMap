@@ -4,6 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { createClientGroup } from "@/lib/arcgis/groups";
 import { getOrCreateOrgList } from "@/lib/clickup/lists";
+import { isFeltConfigured } from "@/lib/felt/client";
+import { getOrCreateOrgProject } from "@/lib/felt/projects";
 
 const schema = z.object({
   email: z.string().email(),
@@ -62,6 +64,18 @@ export async function POST(req: NextRequest) {
     await db.organization.update({ where: { id: org.id }, data: { clickupListId: listId } });
   } catch (err) {
     console.error(`Failed to create ClickUp list for org ${org.id}:`, err);
+  }
+
+  // Private Felt project for this org's maps. Best-effort like the ArcGIS
+  // group and ClickUp list: BC staff can create or set it later from the
+  // admin org page if this fails.
+  if (isFeltConfigured()) {
+    try {
+      const projectId = await getOrCreateOrgProject(orgName, org.id);
+      await db.organization.update({ where: { id: org.id }, data: { feltProjectId: projectId } });
+    } catch (err) {
+      console.error(`Failed to create Felt project for org ${org.id}:`, err);
+    }
   }
 
   return NextResponse.json({ id: user.id }, { status: 201 });

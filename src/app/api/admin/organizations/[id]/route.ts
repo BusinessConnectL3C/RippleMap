@@ -8,6 +8,8 @@ const schema = z.object({
   type: z.enum(["NONPROFIT", "CORPORATE"]).optional(),
   arcgisGroupId: z.string().nullable().optional(),
   clickupListId: z.string().nullable().optional(),
+  feltProjectId: z.string().regex(/^[A-Za-z0-9]{10,40}$/, "Invalid Felt project id").nullable().optional(),
+  arcgisEnabled: z.boolean().optional(),
 });
 
 async function requireBCStaff() {
@@ -29,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { name, type, arcgisGroupId, clickupListId } = parsed.data;
+  const { name, type, arcgisGroupId, clickupListId, feltProjectId, arcgisEnabled } = parsed.data;
 
   const existing = await db.organization.findUnique({
     where: { id },
@@ -47,6 +49,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(type !== undefined && { type }),
         ...(arcgisGroupId !== undefined && { arcgisGroupId }),
         ...(clickupListId !== undefined && { clickupListId }),
+        ...(feltProjectId !== undefined && { feltProjectId }),
+        ...(arcgisEnabled !== undefined && { arcgisEnabled }),
       },
     });
 
