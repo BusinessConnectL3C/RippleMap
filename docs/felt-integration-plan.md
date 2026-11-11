@@ -35,7 +35,18 @@ Rev 1 corrections:
 
 ## 2. Felt capabilities that matter here
 
-### 2.1 Plan gating: confirm BC's plan first
+### 2.1 Plan gating: BC is on **Business**
+
+**What Business means for RippleMap:**
+- **Included:** REST API, webhooks, dashboards (layer components), advanced forms (required / show-if), CSV export, Field App offline.
+- **Still needed:** the **Platform add-on**, bought separately, for the JS SDK and private embeds. Without it, client orgs can't see private maps in the portal.
+- **Limits that shape this plan:**
+  - 100k map views/month across all orgs. Every portal embed load counts.
+  - 25 GB processing and 100 GB storage per month.
+  - Hourly scheduled refresh at fastest.
+  - **Only 1 database connection**, which Phase-2 forms would use (§6).
+- **Not available on Business:** regional hosting, so data is US-hosted, and custom branding, so embeds show Felt attribution.
+
 
 | Need | Required plan |
 |---|---|
@@ -293,8 +304,8 @@ Make the handler idempotent, since Felt delivers at least once. Only UI edits fi
 - **Phase 1:** rows 1 and 2.
 - **Phase 2, decided after the seat-pricing answer (§9):** build row 3 if orgs need more submitters than they have seats, or need portal-side option editing for Felt-displayed data.
   - **Storage:** form definitions and submissions live in Postgres (Neon, PostGIS).
-  - **Display:** Felt shows each org's submission table as a **Postgres source layer**. Use one database connection with a read-only role and Felt's IPs allowlisted. The source's workspace default is None, and it is **one view or table per org**, never a shared table filtered in Felt.
-  - **Refresh:** submissions appear after the scheduled refresh (Enterprise 15 min / Business hourly). Each refresh counts the full table against processing.
+  - **Display:** Felt shows each org's submission table as a **Postgres source layer**. Use Business's **single** database connection: one Neon database for all orgs with a read-only role and Felt's IPs allowlisted. The source's workspace default is None, and it is **one view or table per org**, never a shared table filtered in Felt.
+  - **Refresh:** on Business, submissions appear after the scheduled refresh, which is **hourly** at fastest. An on-demand `POST /layers/{id}/refresh` after each submit is faster but costs processing each time. Each refresh counts the full table against processing.
   - **Trade-offs:** no Field App offline capture for this path; Felt can't edit those rows.
   - **Governance:** submissions may hold community PII, so this needs classification, retention and DPA review first.
 - **Rejected:** driving Felt's MCP server (`edit_layer_attributes`) from the portal backend to edit Felt forms programmatically.
@@ -334,13 +345,13 @@ Felt can serve images natively. Choose by sensitivity:
 
 ## 9. Open questions for Felt sales and support
 
-1. **Plan:** Is BC on Business or Enterprise, and is the **Platform add-on** active? Without both there's no REST API, SDK or private embeds.
+1. **Platform add-on:** BC is on Business. Is Platform active, and what will it cost after the 3 free months? Without it there's no SDK or private embeds.
 2. **Seats:** What does each additional seat cost, and are there Contribute-only seat tiers? Field collectors need seats, so this sets per-org pricing.
 3. **`user_email` alternatives:** May we pass a stable pseudonymous address per portal user (e.g. `u_<id>@viewers.ripplemap.app`) instead of real emails? This minimizes PII sent to Felt.
 4. **Image attribute values:** What do they look like in GeoJSON export and SDK `getFeatures`? Are they signed, expiring or public URLs?
 5. **Roadmap:** Are REST endpoints planned for layer schema/form editing and feature edits?
 6. **Map views:** Is the monthly view allowance pooled across the workspace? What do usage packs cost?
-7. **Embed branding:** Do we want Custom Branding (Enterprise add-on) to remove Felt attribution?
+7. **Map-view headroom:** At 100k views/month, what do usage packs cost? (Custom branding and regional hosting are Enterprise-only.)
 
 ---
 
@@ -360,7 +371,7 @@ Felt can serve images natively. Choose by sensitivity:
   - Per-map webhook keys are stored encrypted.
   - ArcGIS keys and Postgres logins given to Felt sources should be read-only and per org, with the source's workspace default set to None.
 - **Residency and offboarding:**
-  - Data is US-hosted by default (regional hosting on Enterprise).
+  - Data is US-hosted. Business has no regional hosting option.
   - On org offboarding, `DELETE /projects/{id}` deletes its maps. Separately, delete the org's sources and confirm with Felt how backups are retained.
 
 ---
@@ -369,7 +380,7 @@ Felt can serve images natively. Choose by sensitivity:
 
 | Phase | Scope | Depends on |
 |---|---|---|
-| **0. Confirm** | §9 answers 1–2, DPA/SOC 2, Tech Ops vendor review | — |
+| **0. Confirm** | Platform add-on active (§9.1), seat pricing (§9.2), DPA/SOC 2, Tech Ops vendor review | — |
 | **1. Security fix** | §8 ArcGIS ownership checks | — (do now) |
 | **2. Foundation** | `src/lib/felt/` (`client.ts`: auth, error envelope, 429 backoff; `projects.ts`; `maps.ts`; `embed.ts`; `images.ts`); Prisma migration (§4); registration creates the project; template map; admin org page (§5.4) | 0 |
 | **3. Maps & Dashboards** | Embed-token route, `<FeltMapEmbed>`, `/maps/f/[id]`, merged gallery, data table and export | 2 |
