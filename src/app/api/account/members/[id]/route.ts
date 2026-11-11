@@ -11,9 +11,18 @@ async function requireManager() {
   const session = await auth();
   const su = session?.user as unknown as { orgId?: string; role?: string; id?: string } | undefined;
   if (!session?.user?.id || !su?.orgId) return null;
+  // BC staff manage their own (internal) org with owner rights. This only
+  // reaches users in the staff member's own org (orgId scoping below).
+  if (su.role === "BC_STAFF") return { userId: session.user.id, orgId: su.orgId, role: "OWNER" as const };
   if (su.role !== "OWNER" && su.role !== "ADMIN") return null;
   return { userId: session.user.id, orgId: su.orgId, role: su.role as "OWNER" | "ADMIN" };
 }
+
+/** BC staff accounts are managed only with database access (scripts/create-bc-staff.mjs). */
+const STAFF_LOCKED = NextResponse.json(
+  { error: "BC staff accounts can't be changed or removed here" },
+  { status: 409 }
+);
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const manager = await requireManager();
@@ -35,6 +44,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!target || target.orgId !== manager.orgId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  if (target.role === "BC_STAFF") return STAFF_LOCKED;
 
   const touchesOwner = target.role === "OWNER" || role === "OWNER";
   if (touchesOwner && manager.role !== "OWNER") {
@@ -66,6 +77,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!target || target.orgId !== manager.orgId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  if (target.role === "BC_STAFF") return STAFF_LOCKED;
 
   if (target.role === "OWNER" && manager.role !== "OWNER") {
     return NextResponse.json({ error: "Only an owner can remove an owner" }, { status: 403 });

@@ -12,6 +12,9 @@ import { isFeltConfigured } from "@/lib/felt/client";
 import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
 import { DeleteOrgButton } from "@/components/admin/DeleteOrgButton";
 import { BillingEditForm } from "@/components/admin/BillingEditForm";
+import { FeltSeatsPanel } from "@/components/admin/FeltSeatsPanel";
+import { feltSeatUsage } from "@/lib/felt/seats";
+import { orgProjectName } from "@/lib/felt/projects";
 import { toDateInput } from "@/lib/billing";
 import { ChevronLeft } from "lucide-react";
 
@@ -33,6 +36,9 @@ export default async function AdminOrgDetailPage({ params }: Props) {
   });
 
   if (!org) notFound();
+
+  const workspaceSeats = await feltSeatUsage();
+  const seatHolders = org.users.filter((u) => u.feltSeat);
 
   // Ignore legacy step ids from the Esri-era onboarding flow.
   const completedSteps = (org.onboardingState?.completedSteps ?? []).filter(isStepId);
@@ -88,6 +94,28 @@ export default async function AdminOrgDetailPage({ params }: Props) {
                 billingContactEmail: org.billing?.billingContactEmail ?? "",
                 staffNotes: org.billing?.staffNotes ?? "",
               }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Felt seats */}
+        <Card id="felt-seats">
+          <CardHeader>
+            <CardTitle>Felt Seats</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeltSeatsPanel
+              workspace={workspaceSeats}
+              org={{ used: seatHolders.length, included: org.billing?.feltSeats ?? null }}
+              projectName={org.feltProjectId ? orgProjectName(org.name, org.id) : null}
+              holders={seatHolders.map((u) => ({
+                id: u.id,
+                name: u.name,
+                inviteEmail: u.feltEmail ?? u.email,
+                hasCustomFeltEmail: !!u.feltEmail,
+                access: u.feltAccess ?? "EDIT",
+                accepted: !!u.feltInviteAcceptedAt,
+              }))}
             />
           </CardContent>
         </Card>

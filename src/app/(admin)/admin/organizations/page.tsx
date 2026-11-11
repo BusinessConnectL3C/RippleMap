@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { TopBar } from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { feltSeatUsage } from "@/lib/felt/seats";
 
 export default async function AdminOrgsPage() {
   const orgs = await db.organization.findMany({
@@ -10,14 +11,23 @@ export default async function AdminOrgsPage() {
     include: {
       onboardingState: { select: { completed: true } },
       _count: { select: { users: true } },
+      users: { where: { feltSeat: true }, select: { feltInviteAcceptedAt: true } },
     },
   });
+  const seats = await feltSeatUsage();
 
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Organizations" />
-      <div className="flex-1 p-6">
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className="flex-1 p-6 space-y-4">
+        <p className="text-sm text-gray-700">
+          Felt seats:{" "}
+          <span className={`font-semibold tabular-nums ${seats.used >= seats.limit ? "text-red-700" : "text-gray-900"}`}>
+            {seats.used} of {seats.limit} used
+          </span>{" "}
+          <span className="text-gray-500">(as recorded in RippleMap, including BC staff)</span>
+        </p>
+        <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -26,6 +36,7 @@ export default async function AdminOrgsPage() {
                 <th className="px-4 py-3 text-left font-medium text-gray-700">Onboarding</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700">ArcGIS Group</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700">Users</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-700">Felt seats</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700">Created</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -60,6 +71,20 @@ export default async function AdminOrgsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{org._count.users}</td>
+                  <td className="px-4 py-3 text-gray-700">
+                    {org.users.length === 0 ? (
+                      <span className="text-gray-400">—</span>
+                    ) : (
+                      <span className="tabular-nums">
+                        {org.users.length}
+                        {org.users.some((u) => !u.feltInviteAcceptedAt) && (
+                          <Badge variant="warning" className="ml-2">
+                            Invite pending
+                          </Badge>
+                        )}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">
                     {new Date(org.createdAt).toLocaleDateString()}
                   </td>

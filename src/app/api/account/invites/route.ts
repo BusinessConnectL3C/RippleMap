@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id || !su?.orgId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (su.role !== "OWNER" && su.role !== "ADMIN") {
+  if (su.role !== "OWNER" && su.role !== "ADMIN" && su.role !== "BC_STAFF") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

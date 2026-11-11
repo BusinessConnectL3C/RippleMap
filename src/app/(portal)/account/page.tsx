@@ -21,7 +21,8 @@ export default async function AccountPage() {
   if (!session?.user?.id) redirect("/login");
 
   const su = session.user as unknown as { orgId: string; role: "OWNER" | "ADMIN" | "MEMBER" | "BC_STAFF" };
-  const canManageMembers = su.role === "OWNER" || su.role === "ADMIN";
+  // BC staff act as owners of their own (internal staff) org.
+  const canManageMembers = su.role === "OWNER" || su.role === "ADMIN" || su.role === "BC_STAFF";
 
   // Owners/admins: pick up maps the Field Editor created in Felt (throttled,
   // never throws). Runs before the queries below so new maps show up now.
@@ -81,7 +82,7 @@ export default async function AccountPage() {
         </Card>
 
         <Card>
-          {su.role === "OWNER" ? (
+          {su.role === "OWNER" || su.role === "BC_STAFF" ? (
             <OrganizationForm initialName={org?.name ?? ""} orgType={org?.type ? orgTypeLabel(org.type) : "—"} />
           ) : (
             <>
