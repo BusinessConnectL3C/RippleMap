@@ -13,7 +13,8 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user?.id || !su?.orgId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (su.role !== "OWNER") {
+  // BC staff edit their own (internal staff) org with owner rights.
+  if (su.role !== "OWNER" && su.role !== "BC_STAFF") {
     return NextResponse.json({ error: "Only organization owners can edit organization info" }, { status: 403 });
   }
 

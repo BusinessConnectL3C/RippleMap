@@ -18,6 +18,7 @@ const patchSchema = z
     feltSeat: z.boolean().optional(),
     feltAccess: z.enum(["EDIT", "CONTRIBUTE"]).nullable().optional(),
     feltEmail: z.string().email().nullable().optional(),
+    feltInviteAccepted: z.boolean().optional(),
   })
   .refine((v) => Object.values(v).some((x) => x !== undefined), { message: "Nothing to update" });
 
@@ -33,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
 
-  const { role, feltSeat, feltAccess, feltEmail } = parsed.data;
+  const { role, feltSeat, feltAccess, feltEmail, feltInviteAccepted } = parsed.data;
   const existing = await db.user.findUnique({ where: { id }, select: { feltSeat: true, role: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -54,7 +55,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         feltAccess: feltAccess ?? "EDIT",
         ...(!existing.feltSeat && { feltSeatSince: new Date() }),
       }),
-      ...(feltSeat === false && { feltSeat: false, feltAccess: null, feltSeatSince: null }),
+      ...(feltSeat === false && { feltSeat: false, feltAccess: null, feltSeatSince: null, feltInviteAcceptedAt: null }),
+      ...(feltInviteAccepted !== undefined && { feltInviteAcceptedAt: feltInviteAccepted ? new Date() : null }),
       ...(feltSeat === undefined && feltAccess !== undefined && { feltAccess }),
     },
   });

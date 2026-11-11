@@ -30,9 +30,10 @@ const ROLE_LABEL: Record<Member["role"], string> = {
 export function MembersTable({ members, currentUserId, currentUserRole }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
-  const canManage = currentUserRole === "OWNER" || currentUserRole === "ADMIN";
-  const assignableRoles: Member["role"][] =
-    currentUserRole === "OWNER" ? ["OWNER", "ADMIN", "MEMBER"] : ["ADMIN", "MEMBER"];
+  // BC staff manage their own staff org with owner rights.
+  const actsAsOwner = currentUserRole === "OWNER" || currentUserRole === "BC_STAFF";
+  const canManage = actsAsOwner || currentUserRole === "ADMIN";
+  const assignableRoles: Member["role"][] = actsAsOwner ? ["OWNER", "ADMIN", "MEMBER"] : ["ADMIN", "MEMBER"];
 
   async function updateRole(userId: string, name: string, role: string) {
     if (
@@ -80,8 +81,9 @@ export function MembersTable({ members, currentUserId, currentUserRole }: Props)
       <tbody className="divide-y divide-border">
         {members.map((member) => {
           const isSelf = member.id === currentUserId;
-          const isOwnerLockedForAdmin = member.role === "OWNER" && currentUserRole !== "OWNER";
-          const canEditRow = canManage && !isSelf && !isOwnerLockedForAdmin;
+          const isOwnerLockedForAdmin = member.role === "OWNER" && !actsAsOwner;
+          // BC staff accounts are only managed with database access.
+          const canEditRow = canManage && !isSelf && !isOwnerLockedForAdmin && member.role !== "BC_STAFF";
 
           return (
             <tr key={member.id} className="hover:bg-surface-hover">
