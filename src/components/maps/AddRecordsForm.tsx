@@ -27,6 +27,16 @@ interface DraftRecord {
 export const PICK_LOCATION_EVENT = "rm:pick-location";
 export const LOCATION_PICKED_EVENT = "rm:location-picked";
 export const CANCEL_PICK_EVENT = "rm:cancel-pick";
+/** Unsaved records to show as temporary pins (detail: DraftPin[]); an empty list clears them. */
+export const DRAFT_PINS_EVENT = "rm:draft-pins";
+
+export interface DraftPin {
+  latitude: number;
+  longitude: number;
+  label: string;
+  /** The record being typed now, as opposed to one already queued. */
+  current: boolean;
+}
 
 const MAX_RECORDS = 50;
 
@@ -122,6 +132,21 @@ export function AddRecordsForm({ base, busy, onSave }: Props) {
   }
 
   const toSave = [...pending, ...(currentValid && layer ? [currentRecord()!] : [])];
+
+  // Show unsaved records on the map as temporary pins (only in this browser).
+  const labelField = layer?.fields.find((f) => f.type === "TEXT")?.name;
+  const currentLabel = labelField && typeof values[labelField] === "string" ? (values[labelField] as string).trim() : "";
+  const pinsKey = JSON.stringify([
+    pending.map((r, i) => [r.latitude, r.longitude, (labelField && (r.values[labelField] as string)) || `Record ${i + 1}`]),
+    currentValid ? [latitude, longitude, currentLabel || "New record"] : null,
+  ]);
+  useEffect(() => {
+    const [queued, current] = JSON.parse(pinsKey) as [[number, number, string][], [number, number, string] | null];
+    const pins: DraftPin[] = queued.map(([la, lo, label]) => ({ latitude: la, longitude: lo, label, current: false }));
+    if (current) pins.push({ latitude: current[0], longitude: current[1], label: current[2], current: true });
+    window.dispatchEvent(new CustomEvent<DraftPin[]>(DRAFT_PINS_EVENT, { detail: pins }));
+  }, [pinsKey]);
+  useEffect(() => () => void window.dispatchEvent(new CustomEvent<DraftPin[]>(DRAFT_PINS_EVENT, { detail: [] })), []);
 
   async function save() {
     if (!layer || toSave.length === 0 || !confirmed) return;
