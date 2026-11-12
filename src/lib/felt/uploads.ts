@@ -21,7 +21,7 @@ import { getViewableMap, isOrgAdmin, type Viewer } from "./access";
  * Who: org owners/admins and BC staff, on maps they can view.
  */
 
-const UPLOAD_PREFIX = `${SYSTEM_PREFIX}uploads`;
+export const UPLOAD_PREFIX = `${SYSTEM_PREFIX}uploads`;
 
 /** File types Felt can turn into layers that we accept from the portal. */
 export const ALLOWED_EXTENSIONS = [
@@ -41,15 +41,16 @@ interface FeltUploadResponse {
   layer_group_id?: string;
 }
 
-interface FeltLayerStatus {
+export interface FeltLayerStatus {
   status: "uploading" | "processing" | "failed" | "completed";
   progress?: number;
   last_refreshed_at?: string | null;
   attributes?: Array<{ name: string; type?: string }> | null;
+  geometry_type?: "Line" | "Point" | "Polygon" | "Raster" | null;
 }
 
 /** How long the permanent source address answers after an import is started. */
-const SOURCE_ARM_MS = 30 * 60 * 1000;
+export const SOURCE_ARM_MS = 30 * 60 * 1000;
 
 /** Permanent address Felt imports an uploaded layer from (see sourceToken). */
 function sourceUrl(origin: string, token: string, fileName: string): string {
@@ -87,6 +88,8 @@ function countedUploads(mapId: string) {
         { status: { in: ["IMPORTING", "COMPLETED"] } },
         { status: "PENDING_UPLOAD", createdAt: { gt: new Date(Date.now() - ABANDON_AFTER_MS) } },
       ],
+      // Records typed in the portal aren't uploads; they have their own hourly cap.
+      mode: { not: "APPEND" },
     },
   });
 }
@@ -96,7 +99,7 @@ export async function getUploadQuota(orgId: string, mapId: string): Promise<Uplo
   return { tier, ...UPLOAD_LIMITS[tier], used };
 }
 
-async function authorize(viewer: Viewer, feltMapId: string) {
+export async function authorize(viewer: Viewer, feltMapId: string) {
   if (viewer.role !== "BC_STAFF" && !isOrgAdmin(viewer)) {
     throw new UploadError("Only organization owners and admins can add data", 403);
   }
@@ -116,12 +119,12 @@ async function enforceCount(orgId: string, mapId: string) {
   return quota;
 }
 
-function safeFileName(name: string): string {
+export function safeFileName(name: string): string {
   const cleaned = name.normalize("NFKD").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+/, "");
   return cleaned.slice(-120) || "upload";
 }
 
-function extensionOf(name: string): string {
+export function extensionOf(name: string): string {
   const match = /\.([A-Za-z0-9]+)$/.exec(name);
   return match ? match[1].toLowerCase() : "";
 }
@@ -258,13 +261,13 @@ export async function completeFileUpload(
   }
 }
 
-async function requestLayerRefresh(feltMapId: string, feltLayerId: string): Promise<void> {
+export async function requestLayerRefresh(feltMapId: string, feltLayerId: string): Promise<void> {
   await feltFetch(`/maps/${encodeURIComponent(feltMapId)}/layers/${encodeURIComponent(feltLayerId)}/refresh`, {
     method: "POST",
   });
 }
 
-async function disarmSource(originId: string) {
+export async function disarmSource(originId: string) {
   await db.mapUpload.update({ where: { id: originId }, data: { sourceKey: null, sourceArmedUntil: null } });
 }
 
@@ -273,7 +276,7 @@ async function disarmSource(originId: string) {
  * finished, created after permanent sources existed (or from a link), and
  * with no other replacement of it in flight.
  */
-async function getReplaceableOrigin(mapId: string, originId: string): Promise<MapUpload> {
+export async function getReplaceableOrigin(mapId: string, originId: string): Promise<MapUpload> {
   const origin = await db.mapUpload.findUnique({ where: { id: originId } });
   if (
     !origin ||
@@ -464,7 +467,7 @@ export async function refreshUploadStatus(
 
   // A replaced layer was already "completed" before the refresh: only count it
   // done once Felt reports data newer than our refresh request.
-  if (upload.mode === "REPLACE" && layer.status === "completed" && upload.refreshRequestedAt) {
+  if (upload.mode !== "NEW" && layer.status === "completed" && upload.refreshRequestedAt) {
     const refreshedAt = layer.last_refreshed_at ? Date.parse(layer.last_refreshed_at) : NaN;
     if (!(refreshedAt >= upload.refreshRequestedAt.getTime() - 5000)) return { upload, completedNow: false };
   }
@@ -483,13 +486,13 @@ export async function refreshUploadStatus(
 
 async function cleanup(upload: MapUpload) {
   // Close the permanent source address until the next replacement.
-  const originId = upload.mode === "REPLACE" ? upload.replacesUploadId : upload.sourceToken ? upload.id : null;
+  const originId = upload.mode !== "NEW" ? upload.replacesUploadId : upload.sourceToken ? upload.id : null;
   if (originId) await disarmSource(originId).catch(() => {});
   if (!upload.s3Key) return;
   await deleteFile(upload.s3Key, SYSTEM_BUCKET).catch((err) => console.error(`Failed to delete upload ${upload.s3Key}:`, err));
 }
 
-async function fail(upload: MapUpload, message: string): Promise<MapUpload> {
+export async function fail(upload: MapUpload, message: string): Promise<MapUpload> {
   await cleanup(upload);
   return db.mapUpload.update({ where: { id: upload.id }, data: { status: "FAILED", error: message } });
 }

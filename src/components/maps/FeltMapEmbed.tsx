@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Camera, Check, Loader2, Maximize2, Minimize2, RotateCw } from "lucide-react";
+import { AlertCircle, Camera, Check, Loader2, MapPin, Maximize2, Minimize2, RotateCw, X } from "lucide-react";
 import { Felt, type FeltController } from "@feltmaps/js-sdk";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CANCEL_PICK_EVENT, LOCATION_PICKED_EVENT, PICK_LOCATION_EVENT } from "@/components/maps/AddRecordsForm";
 
 interface Props {
   feltMapId: string;
@@ -61,6 +62,39 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [pinned]);
+
+  // "Add records": the panel asks for a location; the next map click answers.
+  const [picking, setPicking] = useState(false);
+  useEffect(() => {
+    const onPick = () => setPicking(true);
+    const onCancel = () => setPicking(false);
+    window.addEventListener(PICK_LOCATION_EVENT, onPick);
+    window.addEventListener(CANCEL_PICK_EVENT, onCancel);
+    return () => {
+      window.removeEventListener(PICK_LOCATION_EVENT, onPick);
+      window.removeEventListener(CANCEL_PICK_EVENT, onCancel);
+    };
+  }, []);
+  useEffect(() => {
+    const felt = controllerRef.current;
+    if (!picking || !felt) return;
+    const unsubscribe = felt.onPointerClick({
+      handler: (event) => {
+        window.dispatchEvent(
+          new CustomEvent(LOCATION_PICKED_EVENT, {
+            detail: { latitude: event.coordinate.latitude, longitude: event.coordinate.longitude },
+          })
+        );
+        setPicking(false);
+      },
+    });
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && window.dispatchEvent(new Event(CANCEL_PICK_EVENT));
+    document.addEventListener("keydown", onKey);
+    return () => {
+      unsubscribe();
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [picking]);
 
   async function toggleFullscreen() {
     const frame = frameRef.current;
@@ -258,6 +292,23 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
               {thumbError}
             </p>
           )}
+        </div>
+      )}
+
+      {status === "ready" && picking && (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center px-16">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-[var(--deep-grey)] py-1.5 pl-3 pr-1.5 text-sm font-medium text-white shadow-lg">
+            <MapPin className="h-4 w-4" aria-hidden="true" />
+            Click the map to place the record
+            <button
+              type="button"
+              aria-label="Cancel placing the record"
+              className="rounded-full p-1 hover:bg-white/15"
+              onClick={() => window.dispatchEvent(new Event(CANCEL_PICK_EVENT))}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
