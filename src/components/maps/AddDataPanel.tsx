@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw, Info } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw, Info, PenLine } from "lucide-react";
+import { AddRecordsForm } from "@/components/maps/AddRecordsForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface UploadRow {
   id: string;
   kind: "FILE" | "URL";
-  mode?: "NEW" | "REPLACE";
+  mode?: "NEW" | "REPLACE" | "APPEND";
   layerName: string;
   status: "PENDING_UPLOAD" | "IMPORTING" | "COMPLETED" | "FAILED";
   error: string | null;
@@ -37,13 +38,13 @@ interface Props {
   accept: string;
 }
 
-type Mode = "file" | "url" | "replace";
+type Mode = "file" | "url" | "replace" | "records";
 
 type Phase =
   | { step: "idle" }
   | { step: "uploading"; percent: number }
   | { step: "importing" }
-  | { step: "done"; layerName: string; replaced: boolean }
+  | { step: "done"; layerName: string; replaced: boolean; records?: number }
   | { step: "error"; message: string };
 
 const POLL_MS = 3000;
@@ -134,14 +135,14 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
   const base = `/api/felt/maps/${encodeURIComponent(feltMapId)}/uploads`;
   const selected = layers?.find((l) => l.uploadId === selectedId) ?? null;
 
-  function poll(uploadId: string, name: string, startedAt: number, replaced: boolean) {
+  function poll(uploadId: string, name: string, startedAt: number, replaced: boolean, records?: number) {
     pollTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(`${base}/${uploadId}`, { cache: "no-store" });
         const data = await res.json().catch(() => null);
         const status: UploadRow["status"] | undefined = data?.upload?.status;
         if (status === "COMPLETED") {
-          setPhase({ step: "done", layerName: name, replaced });
+          setPhase({ step: "done", layerName: name, replaced, records });
           router.refresh();
           return;
         }
@@ -154,9 +155,9 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
           setPhase({ step: "error", message: "This is taking a while. The map will update when Felt finishes." });
           return;
         }
-        poll(uploadId, name, startedAt, replaced);
+        poll(uploadId, name, startedAt, replaced, records);
       } catch {
-        poll(uploadId, name, startedAt, replaced);
+        poll(uploadId, name, startedAt, replaced, records);
       }
     }, POLL_MS);
   }
@@ -198,7 +199,13 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
     }
   }
 
-  async function postAndPoll(body: Record<string, unknown>, name: string, replaced: boolean, fallbackError: string) {
+  async function postAndPoll(
+    body: Record<string, unknown>,
+    name: string,
+    replaced: boolean,
+    fallbackError: string,
+    records?: number
+  ) {
     setPhase({ step: "importing" });
     try {
       const res = await fetch(base, {
@@ -209,7 +216,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? fallbackError);
       if (data.upload.status === "FAILED") throw new Error(data.upload.error);
-      poll(data.upload.id, name, Date.now(), replaced);
+      poll(data.upload.id, name, Date.now(), replaced, records);
     } catch (err) {
       setPhase({ step: "error", message: err instanceof Error ? err.message : fallbackError });
       router.refresh();
@@ -315,16 +322,25 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
 
       {open && (
         <div className="space-y-4 px-4 pb-4 sm:px-6">
-          {atLimit && phase.step === "idle" ? (
+          {atLimit && phase.step === "idle" && mode !== "records" ? (
             <p className="text-sm text-text-secondary">
               This map has used all {maxUploadsPerMap} uploads on the {planLabel} plan. Contact BC through Support to
-              upgrade.
+              upgrade. You can still{" "}
+              <button type="button" className="font-semibold text-link hover:underline" onClick={() => chooseMode("records")}>
+                add records by hand
+              </button>
+              .
             </p>
           ) : phase.step === "done" ? (
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <CheckCircle2 className="h-5 w-5 text-[var(--success)]" aria-hidden="true" />
               <span>
-                {phase.replaced ? (
+                {phase.records ? (
+                  <>
+                    {phase.records === 1 ? "1 record was" : `${phase.records} records were`} added to{" "}
+                    <strong>{phase.layerName}</strong>.
+                  </>
+                ) : phase.replaced ? (
                   <>
                     <strong>{phase.layerName}</strong> now has the new data. Its styling and charts were kept.
                   </>
@@ -345,9 +361,26 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                 {tab("file", "Upload a file", Upload)}
                 {tab("url", "Paste a link", Link2)}
                 {tab("replace", "Replace a layer's data", RefreshCw)}
+                {tab("records", "Add records", PenLine)}
               </div>
 
-              {mode === "replace" ? (
+              {mode === "records" ? (
+                <>
+                  <AddRecordsForm
+                    base={base}
+                    busy={busy}
+                    onSave={(body, name, count) =>
+                      postAndPoll(body, name, false, "Couldn't add the records.", count)
+                    }
+                  />
+                  {phase.step === "error" && (
+                    <p className="flex items-start gap-2 text-sm text-[var(--danger)]" role="alert">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      {phase.message}
+                    </p>
+                  )}
+                </>
+              ) : mode === "replace" ? (
                 <div className="space-y-3">
                   {layersError ? (
                     <p className="text-sm text-[var(--danger)]" role="alert">
@@ -518,7 +551,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                 </div>
               )}
 
-              {(mode !== "replace" || (layers !== null && layers.length > 0)) && (
+              {mode !== "records" && (mode !== "replace" || (layers !== null && layers.length > 0)) && (
                 <>
               <label className="flex items-start gap-2 text-sm text-text-secondary">
                 <input
@@ -586,7 +619,9 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                       {u.status === "COMPLETED"
                         ? u.mode === "REPLACE"
                           ? "Replaced"
-                          : "Added"
+                          : u.mode === "APPEND"
+                            ? "Records added"
+                            : "Added"
                         : u.status === "FAILED"
                           ? u.error ?? "Failed"
                           : "In progress"}

@@ -11,6 +11,10 @@ import {
   startUrlUpload,
   UploadError,
 } from "@/lib/felt/uploads";
+import { appendRecords, listAppendableLayers } from "@/lib/felt/records";
+
+// Adding records exports the layer from Felt first, which can take ~30 s.
+export const maxDuration = 60;
 
 const layerName = z.string().trim().min(1, "Give the layer a name").max(120);
 const schema = z.discriminatedUnion("kind", [
@@ -27,6 +31,22 @@ const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("URL"), url: z.string().min(1).max(2000), layerName, confirmed: z.boolean() }),
   // Re-fetch a layer that came from a link.
   z.object({ kind: z.literal("REFRESH_LINK"), replacesUploadId: z.string().min(1), confirmed: z.boolean() }),
+  // Records typed in the portal, added to a layer from an earlier CSV/GeoJSON upload.
+  z.object({
+    kind: z.literal("RECORDS"),
+    originUploadId: z.string().min(1),
+    confirmed: z.boolean(),
+    records: z
+      .array(
+        z.object({
+          latitude: z.number().min(-90).max(90),
+          longitude: z.number().min(-180).max(180),
+          values: z.record(z.string().max(200), z.union([z.string().max(2000), z.boolean(), z.null()])),
+        })
+      )
+      .min(1)
+      .max(50),
+  }),
 ]);
 
 /** Start adding data to a map: a file (returns a size-locked upload URL) or a link (imports now). */
@@ -47,6 +67,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ fel
       const { uploadId, putUrl } = await startFileUpload(viewer, feltMapId, parsed.data);
       return NextResponse.json({ uploadId, putUrl }, { status: 201 });
     }
+    if (parsed.data.kind === "RECORDS") {
+      const upload = await appendRecords(viewer, feltMapId, parsed.data);
+      return NextResponse.json({ upload: serializeUpload(upload) }, { status: 201 });
+    }
     if (parsed.data.kind === "REFRESH_LINK") {
       const upload = await refreshFromLink(viewer, feltMapId, parsed.data);
       return NextResponse.json({ upload: serializeUpload(upload) }, { status: 201 });
@@ -60,13 +84,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ fel
   }
 }
 
-/** Layers on this map that came from portal uploads and can be replaced. */
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ feltMapId: string }> }) {
+/**
+ * Layers on this map that came from portal uploads and can be replaced, or
+ * (?for=records) that records can be added to.
+ */
+export async function GET(req: NextRequest, { params }: { params: Promise<{ feltMapId: string }> }) {
   const session = await auth();
   const viewer = session?.user?.id ? await getViewer(session.user.id) : null;
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { feltMapId } = await params;
   try {
+    if (req.nextUrl.searchParams.get("for") === "records") {
+      const layers = await listAppendableLayers(viewer, feltMapId);
+      return NextResponse.json({ layers }, { headers: { "Cache-Control": "no-store" } });
+    }
     const { layers, legacy } = await listReplaceableLayers(viewer, feltMapId);
     return NextResponse.json({ layers, legacy }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
