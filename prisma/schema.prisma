@@ -368,3 +368,30 @@ enum CommentSource {
   CLIENT
   BC_STAFF
 }
+
+/// A message sent from the public contact form. Customer PII (name, email):
+/// staff-only, never shown in the client portal, deleted automatically after
+/// CONTACT_RETENTION_MONTHS (src/lib/contact.ts) or sooner from admin.
+model ContactSubmission {
+  id           String        @id @default(cuid())
+  name         String
+  email        String
+  organization String
+  website      String?
+  role         String?
+  orgType      String?
+  interest     String?
+  message      String?
+  status       ContactStatus @default(NEW)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([createdAt])
+  @@index([email, createdAt])
+}
+
+enum ContactStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}

@@ -4,22 +4,17 @@ import { Logo } from "@/components/ui/logo";
 /** href: null renders plain (non-interactive) text for items with no destination yet. */
 const COLUMNS: Record<string, { label: string; href: string | null }[]> = {
   Product: [
-    { label: "Features", href: "#features" },
-    { label: "Map explorer", href: null },
-    { label: "Network", href: null },
-    { label: "Pricing", href: null },
+    { label: "Features", href: "/#features" },
+    { label: "How it works", href: "/#how-it-works" },
+    { label: "Plans", href: "/#plans" },
   ],
   Company: [
-    { label: "About", href: null },
-    { label: "Impact", href: "#impact" },
-    { label: "Careers", href: null },
-    { label: "Contact", href: null },
+    { label: "Contact us", href: "/contact" },
   ],
-  Resources: [
-    { label: "Docs", href: null },
-    { label: "Guides", href: null },
+  Account: [
+    { label: "Sign in", href: "/login" },
+    { label: "Create an account", href: "/register" },
     { label: "Support", href: "/support" },
-    { label: "Status", href: null },
   ],
 };
 
@@ -29,7 +24,7 @@ export function Footer() {
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <Link href="/">
-            <Logo type="secondary" tone="black" height={24} />
+            <Logo type="secondary" tone="black" height={20} trim />
           </Link>
           <p className="mt-3.5 max-w-[260px] text-sm leading-relaxed text-text-muted">
             Helping organizations understand, measure, and communicate their real-world impact.
@@ -48,8 +43,8 @@ export function Footer() {
                   );
                 }
                 const className = "text-sm text-text-secondary hover:text-text-primary";
-                return href.startsWith("#") ? (
-                  <a key={label} href={href} className={className}>
+                return href.startsWith("http") ? (
+                  <a key={label} href={href} className={className} target="_blank" rel="noopener noreferrer">
                     {label}
                   </a>
                 ) : (
@@ -63,11 +58,8 @@ export function Footer() {
         ))}
       </div>
       <div className="mx-auto mt-7 flex max-w-6xl justify-between border-t border-border pt-5 text-[13px] text-text-muted">
-        <span>&copy; {new Date().getFullYear()} RippleMap. All rights reserved.</span>
-        <span className="flex gap-4">
-          <span>Privacy</span>
-          <span>Terms</span>
-        </span>
+        <span>&copy; {new Date().getFullYear()} Business Connect L3C. All rights reserved.</span>
+        <span>A Business Connect L3C product</span>
       </div>
     </footer>
   );

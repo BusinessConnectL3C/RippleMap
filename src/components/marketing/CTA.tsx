@@ -12,8 +12,8 @@ export function CTA() {
             Ready to see your impact clearly?
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-lg text-white/85">
-            Join the organizations bringing calm to complex work. See RippleMap map your world
-            in one call.
+            Create your free account, or tell us about your work and we&rsquo;ll show you RippleMap
+            with your own data.
           </p>
           <div className="mt-[30px] flex flex-wrap justify-center gap-3">
             <Button variant="accent" size="lg" asChild>
@@ -25,7 +25,7 @@ export function CTA() {
               className="border-white/45 bg-transparent text-white hover:bg-white/10"
               asChild
             >
-              <Link href="/login">Sign in</Link>
+              <a href="#contact">Talk to us</a>
             </Button>
           </div>
         </div>

@@ -1,38 +1,38 @@
-import { ArrowRight, GitFork, Inbox, Send, type LucideIcon } from "lucide-react";
+import { ArrowRight, Map as MapIcon, Send, Upload, type LucideIcon } from "lucide-react";
 
 const STEPS: { n: string; icon: LucideIcon; title: string; body: string }[] = [
   {
     n: "01",
-    icon: Inbox,
-    title: "Collect the scatter",
-    body: "Pull field reports, surveys, and site data out of spreadsheets and inboxes into one shared workspace.",
+    icon: MapIcon,
+    title: "Start with your map",
+    body: "We set up your private workspace. Begin from a ready-made template, or have our team build your first map with you.",
   },
   {
     n: "02",
-    icon: GitFork,
-    title: "Map the signal",
-    body: "RippleMap plots every site and the ties between them, so patterns and gaps surface without hunting.",
+    icon: Upload,
+    title: "Bring in your data",
+    body: "Upload spreadsheets, GeoJSON, KML and more, or link a Google Sheet. When new results come in, replace a layer's data and keep its styling.",
   },
   {
     n: "03",
     icon: Send,
-    title: "Communicate impact",
-    body: "Share a clear, living map of your work — one link that funders, partners, and boards actually understand.",
+    title: "Share what matters",
+    body: "Keep maps private, open them to your whole team or specific people, or publish a public link funders and partners can understand at a glance.",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="mx-auto max-w-6xl px-6 py-14 sm:px-12">
+    <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-14 sm:px-12">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-xl">
-          <p className="rm-eyebrow mb-3">From chaos to clarity</p>
+          <p className="rm-eyebrow mb-3">How it works</p>
           <h2 className="text-3xl tracking-[-0.02em] sm:text-4xl">
-            Three steps from raw signal to a map you can act on.
+            From scattered data to a map you can share, in three steps.
           </h2>
         </div>
         <a href="#features" className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-[var(--green-700)]">
-          See how it works <ArrowRight className="h-4 w-4" />
+          Explore features <ArrowRight className="h-4 w-4" />
         </a>
       </div>
       <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-3">
