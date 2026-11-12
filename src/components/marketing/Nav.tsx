@@ -3,16 +3,17 @@ import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 
 const LINKS = [
-  { label: "Product", href: "#features" },
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Impact", href: "#impact" },
+  { label: "Product", href: "/#features" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Plans", href: "/#plans" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export function Nav() {
   return (
     <nav className="sticky top-0 z-50 flex items-center gap-7 border-b border-border bg-white/85 px-6 py-4 backdrop-blur-md sm:px-12">
       <Link href="/" className="shrink-0">
-        <Logo type="secondary" tone="black" height={26} />
+        <Logo type="secondary" tone="black" height={22} trim />
       </Link>
       <div className="ml-3 hidden gap-6 md:flex">
         {LINKS.map(({ label, href }) => (

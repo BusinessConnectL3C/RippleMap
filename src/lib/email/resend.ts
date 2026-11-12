@@ -109,3 +109,76 @@ export async function sendVerificationEmail(params: {
     return { sent: false, reason: "send_failed" };
   }
 }
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+/**
+ * Tells BC about a new contact form message. Goes to CONTACT_NOTIFY_EMAIL
+ * (a BC inbox); reply-to is the sender so staff can answer directly.
+ */
+export async function sendContactNotification(submission: {
+  id: string;
+  name: string;
+  email: string;
+  organization: string;
+  website: string | null;
+  role: string | null;
+  orgType: string | null;
+  interest: string | null;
+  message: string | null;
+}): Promise<SendResult> {
+  const client = getClient();
+  const to = process.env.CONTACT_NOTIFY_EMAIL?.trim();
+  if (!client || !to) return { sent: false, reason: "not_configured" };
+
+  const rows: [string, string | null][] = [
+    ["Name", submission.name],
+    ["Email", submission.email],
+    ["Organization", submission.organization],
+    ["Website", submission.website],
+    ["Role", submission.role],
+    ["Organization type", submission.orgType],
+    ["Interested in", submission.interest],
+  ];
+  const present = rows.filter((r): r is [string, string] => !!r[1]);
+  const adminUrl = `${process.env.AUTH_URL ?? "https://ripplemap.app"}/admin/contacts`;
+
+  try {
+    const { error } = await client.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      replyTo: submission.email,
+      subject: `New RippleMap contact: ${submission.name} (${submission.organization})`.slice(0, 200),
+      html: `
+        <div style="font-family: -apple-system, sans-serif; max-width: 560px;">
+          <h2 style="color: #303030;">New message from the RippleMap website</h2>
+          <table style="font-size: 14px; color: #434342; border-collapse: collapse;">
+            ${present
+              .map(
+                ([k, v]) =>
+                  `<tr><td style="padding: 4px 16px 4px 0; color: #7a7a74;">${k}</td><td style="padding: 4px 0;">${escapeHtml(v)}</td></tr>`
+              )
+              .join("")}
+          </table>
+          ${
+            submission.message
+              ? `<p style="white-space: pre-wrap; font-size: 14px; color: #303030; border-left: 3px solid #6c8042; padding-left: 12px;">${escapeHtml(submission.message)}</p>`
+              : ""
+          }
+          <p style="font-size: 13px; color: #7a7a74;">Reply to this email to answer them. All messages: <a href="${adminUrl}">${adminUrl}</a></p>
+        </div>
+      `,
+      text: `${present.map(([k, v]) => `${k}: ${v}`).join("\n")}\n\n${submission.message ?? ""}\n\nAll messages: ${adminUrl}`,
+    });
+    if (error) {
+      console.error("Resend send error:", error);
+      return { sent: false, reason: "send_failed" };
+    }
+    return { sent: true };
+  } catch (err) {
+    console.error("Resend send error:", err);
+    return { sent: false, reason: "send_failed" };
+  }
+}

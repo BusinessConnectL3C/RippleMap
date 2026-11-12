@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Building2, Ticket, LogOut, Home, CreditCard } from "lucide-react";
+import { Building2, Ticket, LogOut, Home, CreditCard, Mail } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/tickets", label: "Support Tickets", icon: Ticket },
   { href: "/admin/billing", label: "Billing", icon: CreditCard },
+  { href: "/admin/contacts", label: "Contacts", icon: Mail },
 ];
 
 function AdminSidebarContent({ onNavigate }: { onNavigate?: () => void }) {

@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Play } from "lucide-react";
+import { ArrowRight, Link2, Lock, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RippleViz } from "@/components/marketing/RippleViz";
 
-const STATS: [string, string][] = [
-  ["248K", "people reached"],
-  ["163", "field sites"],
-  ["41", "partners"],
+const HIGHLIGHTS = [
+  { icon: Lock, label: "Private by default" },
+  { icon: Upload, label: "Your own data" },
+  { icon: Link2, label: "Share with one link" },
 ];
 
 export function Hero() {
@@ -22,7 +22,7 @@ export function Hero() {
                 style={{ animation: "rm-pulse-dot 2.4s ease-out infinite" }}
               />
             </span>
-            <span className="text-[13px] font-semibold text-text-secondary">Live impact mapping</span>
+            <span className="text-[13px] font-semibold text-text-secondary">Impact mapping for mission-driven teams</span>
           </div>
           <h1 className="text-[2.6rem] leading-[1.02] tracking-[-0.025em] sm:text-5xl">
             Find the clarity
@@ -30,9 +30,9 @@ export function Hero() {
             in your <span className="text-[var(--green-600)]">scattered</span> impact.
           </h1>
           <p className="mt-[22px] max-w-[470px] text-lg leading-[1.55] text-text-secondary">
-            RippleMap draws your field reports, sites, and outcomes into one living map — so
-            patterns surface on their own and your team spends less time wrangling data, more
-            time creating change.
+            RippleMap brings your sites, field data, and outcomes together on private maps your
+            whole team can use, and share the right ones with funders and partners. We set it up;
+            you manage it from one simple portal.
           </p>
           <div className="mt-[30px] flex flex-wrap gap-3">
             <Button size="lg" asChild>
@@ -41,14 +41,8 @@ export function Hero() {
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link href="/login">
-                <Play className="h-[18px] w-[18px]" /> Watch overview
-              </Link>
+              <a href="#contact">Talk to us</a>
             </Button>
-          </div>
-          <div className="mt-[30px] flex items-center gap-2.5">
-            <BadgeCheck className="h-4 w-4 text-text-muted" />
-            <span className="text-[13px] text-text-muted">Trusted by mission-driven teams in 12 regions</span>
           </div>
         </div>
 
@@ -60,14 +54,17 @@ export function Hero() {
               ))}
             </span>
             <span className="rm-eyebrow ml-1.5">Impact map</span>
-            <span className="ml-auto font-mono text-[11.5px] text-text-muted">East Africa · live</span>
+            <span className="ml-auto font-mono text-[11.5px] text-text-muted">Example map</span>
           </div>
           <RippleViz height={392} />
           <div className="grid grid-cols-3 border-t border-border">
-            {STATS.map(([v, l], i) => (
-              <div key={l} className={`px-[18px] py-3.5 ${i ? "border-l border-border" : ""}`}>
-                <div className="font-mono text-xl font-medium text-text-primary">{v}</div>
-                <div className="rm-eyebrow mt-[3px]">{l}</div>
+            {HIGHLIGHTS.map(({ icon: Icon, label }, i) => (
+              <div
+                key={label}
+                className={`flex items-center gap-2 px-[18px] py-3.5 ${i ? "border-l border-border" : ""}`}
+              >
+                <Icon className="h-4 w-4 shrink-0 text-[var(--green-700)]" aria-hidden="true" />
+                <span className="text-[13px] font-medium leading-tight text-text-secondary">{label}</span>
               </div>
             ))}
           </div>
