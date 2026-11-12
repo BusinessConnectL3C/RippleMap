@@ -1,74 +1,106 @@
-import { auth } from "@/lib/auth";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { listGroupItems } from "@/lib/arcgis/groups";
+import { getViewer, isOrgAdmin, listVisibleMaps } from "@/lib/felt/access";
+import { getMapActivity } from "@/lib/felt/activity";
+import { listTemplates } from "@/lib/felt/templates";
 import { TopBar } from "@/components/layout/TopBar";
-import { AccountStatusWidget } from "@/components/dashboard/AccountStatusWidget";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { MapWidget, type MapWidgetItem } from "@/components/dashboard/MapWidget";
-import { getViewer, listVisibleMaps } from "@/lib/felt/access";
 import { SupportWidget } from "@/components/dashboard/SupportWidget";
+
+const RECENT_LIMIT = 6;
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const su = session.user as unknown as { orgId: string };
-
   const viewer = await getViewer(session.user.id);
   if (!viewer) redirect("/login");
+  const isStaff = viewer.role === "BC_STAFF";
 
-  const [org, arcgisLink, openTickets, feltMaps, fieldEditors] = await Promise.all([
-    db.organization.findUnique({ where: { id: su.orgId }, select: { arcgisGroupId: true, arcgisEnabled: true } }),
-    db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
-    db.supportTicket.count({
-      where: { orgId: su.orgId, status: { in: ["OPEN", "IN_PROGRESS"] } },
-    }),
+  const [org, openTickets, feltMaps, templates] = await Promise.all([
+    db.organization.findUnique({ where: { id: viewer.orgId }, select: { arcgisGroupId: true, arcgisEnabled: true } }),
+    // BC staff handle support in admin, so they don't get the support card.
+    isStaff
+      ? Promise.resolve(0)
+      : db.supportTicket.count({ where: { orgId: viewer.orgId, status: { in: ["OPEN", "IN_PROGRESS"] } } }),
     listVisibleMaps(viewer, { kind: ["MAP", "DASHBOARD"] }),
-    db.user.findMany({ where: { orgId: su.orgId, feltSeat: true }, select: { name: true } }),
+    isStaff || isOrgAdmin(viewer) ? listTemplates() : Promise.resolve([]),
   ]);
 
-  const [arcgisMaps, activeForms] = org?.arcgisEnabled && org.arcgisGroupId
-    ? await Promise.all([
-        listGroupItems(org.arcgisGroupId, "Web Map", 6).catch(() => []),
-        listGroupItems(org.arcgisGroupId, "Form", 50).catch(() => []),
-      ])
-    : [[], []];
+  const [activity, arcgisMaps] = await Promise.all([
+    getMapActivity(feltMaps),
+    org?.arcgisEnabled && org.arcgisGroupId
+      ? listGroupItems(org.arcgisGroupId, "Web Map", RECENT_LIMIT).catch(() => [])
+      : Promise.resolve([]),
+  ]);
 
   const recentMaps: MapWidgetItem[] = [
-    ...[...feltMaps]
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .map((m) => ({
+    ...feltMaps.map((m): MapWidgetItem => {
+      const a = activity.get(m.id);
+      return {
         key: `felt:${m.id}`,
         title: m.title,
         href: `/maps/f/${m.feltMapId}`,
+        kind: m.kind === "DASHBOARD" ? "dashboard" : "map",
         thumbnailUrl: m.thumbnailKey ? `/api/felt/maps/${m.feltMapId}/thumbnail?v=${m.updatedAt.getTime()}` : undefined,
-      })),
-    ...arcgisMaps.map((m) => ({ key: `arcgis:${m.id}`, title: m.title, href: `/maps/${m.id}` })),
-  ].slice(0, 6);
+        activity: a ? { at: a.at.toISOString(), kind: a.kind } : undefined,
+      };
+    }),
+    ...arcgisMaps.map(
+      (m): MapWidgetItem => ({
+        key: `arcgis:${m.id}`,
+        title: m.title,
+        href: `/maps/${m.id}`,
+        kind: "map",
+        activity: m.modified ? { at: new Date(m.modified).toISOString(), kind: "modified" } : undefined,
+      })
+    ),
+  ]
+    .sort((a, b) => (b.activity?.at ?? "").localeCompare(a.activity?.at ?? ""))
+    .slice(0, RECENT_LIMIT);
+
+  const canCreate = templates.length > 0;
+  const showSide = !isStaff || canCreate;
+  const firstName = session.user.name?.split(" ")[0];
 
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Home" />
-      <div className="flex-1 p-6 space-y-6">
-        <p className="text-text-secondary">
-          Welcome back, <span className="font-medium text-text-primary">{session.user.name}</span>
-        </p>
+      <div className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-6">
+        <h2 className="font-display text-2xl font-bold text-text-primary">
+          Welcome back{firstName ? `, ${firstName}` : ""}
+        </h2>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <AccountStatusWidget
-            hasMaps={feltMaps.length > 0}
-            fieldEditors={fieldEditors.map((u) => u.name)}
-            arcgis={org?.arcgisEnabled ? { username: arcgisLink?.username ?? null } : undefined}
-          />
-          <SupportWidget openCount={openTickets} />
-          <div className="rounded-lg border border-border bg-surface-card p-6">
-            <p className="rm-eyebrow mb-1">Active Forms</p>
-            <p className="font-display text-3xl font-extrabold text-text-primary">{activeForms.length}</p>
-            <p className="text-xs text-text-muted mt-1">Survey123 forms available</p>
-          </div>
+        <div className={showSide ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]" : undefined}>
+          <MapWidget maps={recentMaps} />
+
+          {showSide && (
+            <div className="grid content-start gap-6 sm:grid-cols-2 xl:grid-cols-1">
+              {!isStaff && <SupportWidget openCount={openTickets} />}
+              {canCreate && (
+                <Card>
+                  <CardContent className="flex h-full flex-col gap-3 p-6">
+                    <p className="rm-eyebrow">New map</p>
+                    <p className="text-sm text-text-secondary">
+                      Start from a ready-made template, then add your own data.
+                    </p>
+                    <Button asChild size="sm" className="mt-auto gap-1.5 self-start">
+                      <Link href="/maps/new">
+                        <Plus className="h-4 w-4" /> New map
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </div>
-
-        <MapWidget maps={recentMaps} />
       </div>
     </div>
   );
