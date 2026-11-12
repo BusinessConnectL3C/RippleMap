@@ -41,6 +41,7 @@ export const config = {
     "/billing/:path*",
     "/account/:path*",
     "/onboarding/:path*",
+    "/verify-email",
     "/admin/:path*",
     "/login",
     "/register",

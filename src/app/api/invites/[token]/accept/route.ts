@@ -42,6 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
         hashedPassword,
         role: invite.role,
         orgId: invite.orgId,
+        // Accepting an invite addressed to this email counts as verifying it.
+        emailVerifiedAt: new Date(),
       },
     });
     await tx.orgInvite.update({

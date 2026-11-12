@@ -77,7 +77,10 @@ async function main() {
       }
       // Promote in place. The user stays in their current org; warn, because a
       // staff account normally shouldn't also be a client org member.
-      await db.user.update({ where: { id: existing.id }, data: { role: "BC_STAFF" } });
+      await db.user.update({
+        where: { id: existing.id },
+        data: { role: "BC_STAFF", emailVerifiedAt: existing.emailVerifiedAt ?? new Date() },
+      });
       console.log(`Promoted existing user ${email} to BC_STAFF (org ${existing.orgId}).`);
       console.log("Note: this user is still a member of that org. If it was created by the public");
       console.log("registration form just to get access, delete that org instead and re-run this script.");
@@ -114,7 +117,7 @@ async function main() {
     }
 
     const user = await db.user.create({
-      data: { email, name, hashedPassword, role: "BC_STAFF", orgId: org.id },
+      data: { email, name, hashedPassword, role: "BC_STAFF", orgId: org.id, emailVerifiedAt: new Date() },
     });
     console.log(`Created BC_STAFF account ${email} (${user.id}).`);
   } finally {

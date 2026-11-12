@@ -7,7 +7,11 @@ import { autoSyncOrgMaps } from "@/lib/felt/sync";
 import { refreshThumbnailQuietly } from "@/lib/felt/thumbnails";
 import { after } from "next/server";
 import type { ArcGISItem } from "@/types/arcgis";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
+import { Button } from "@/components/ui/button";
+import { listTemplates } from "@/lib/felt/templates";
 import { MapGallery, type GalleryItem } from "@/components/maps/MapGallery";
 
 const ARCGIS_TYPES = ["Web Map", "Dashboard", "Web Experience"];
@@ -69,6 +73,9 @@ export default async function MapsPage() {
         )
       : [];
 
+  // Owners/admins (and BC staff) can start a map from a template.
+  const canCreate = (viewer.role === "BC_STAFF" || isOrgAdmin(viewer)) && (await listTemplates()).length > 0;
+
   const items: GalleryItem[] = [
     ...feltMaps.map((m): GalleryItem => ({
       key: `felt:${m.id}`,
@@ -87,7 +94,16 @@ export default async function MapsPage() {
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Maps & Apps" />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-6 space-y-4">
+        {canCreate && (
+          <div className="flex justify-end">
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/maps/new">
+                <Plus className="h-4 w-4" /> New map
+              </Link>
+            </Button>
+          </div>
+        )}
         <MapGallery maps={items} showProvider={feltMaps.length > 0 && arcgisItems.length > 0} />
       </div>
     </div>

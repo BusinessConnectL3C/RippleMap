@@ -130,6 +130,7 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               orgId={org.id}
               feltProjectId={org.feltProjectId}
               feltConfigured={isFeltConfigured()}
+              isInternalOrg={org.users.some((u) => u.role === "BC_STAFF")}
               maps={org.feltMaps.map((m) => ({
                 id: m.id,
                 feltMapId: m.feltMapId,
@@ -139,6 +140,8 @@ export default async function AdminOrgDetailPage({ params }: Props) {
                 grantCount: m._count.grants,
                 hasThumbnail: !!m.thumbnailKey,
                 madePublicInFelt: m.madePublicInFelt,
+                isTemplate: m.isTemplate,
+                templateDescription: m.templateDescription,
               }))}
             />
           </CardContent>
