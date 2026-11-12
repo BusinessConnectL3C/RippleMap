@@ -154,11 +154,11 @@ async function exportLayer(feltMapId: string, feltLayerId: string): Promise<GeoJ
   if (!res.ok) throw new UploadError("Couldn't download the layer's current data from Felt.", 502);
   const declared = Number(res.headers.get("content-length") ?? 0);
   if (declared > MAX_EXPORT_BYTES) {
-    throw new UploadError("This layer is too large to add records here. Use Replace a layer's data instead.", 413);
+    throw new UploadError("This layer is too large to add records here. Use Replace data instead.", 413);
   }
   let body: Buffer = Buffer.from(await res.arrayBuffer());
   if (body.length > MAX_EXPORT_BYTES) {
-    throw new UploadError("This layer is too large to add records here. Use Replace a layer's data instead.", 413);
+    throw new UploadError("This layer is too large to add records here. Use Replace data instead.", 413);
   }
   // Zip archive ("PK\x03\x04"): take the GeoJSON file inside.
   if (body.length > 4 && body.readUInt32LE(0) === 0x04034b50) {

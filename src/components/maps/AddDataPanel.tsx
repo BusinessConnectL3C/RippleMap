@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw, Info, PenLine } from "lucide-react";
 import { AddRecordsForm } from "@/components/maps/AddRecordsForm";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,6 +37,8 @@ interface Props {
   used: number;
   recent: UploadRow[];
   accept: string;
+  /** Shown as a side panel next to the map; the page owns the open state. */
+  onClose: () => void;
 }
 
 type Mode = "file" | "url" | "replace" | "records";
@@ -107,9 +110,8 @@ function putWithProgress(url: string, file: File, onProgress: (pct: number) => v
   });
 }
 
-export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPerMap, used, recent, accept }: Props) {
+export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPerMap, used, recent, accept, onClose }: Props) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("file");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
@@ -299,7 +301,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
       role="tab"
       aria-selected={mode === value}
       variant={mode === value ? "default" : "outline"}
-      className="gap-1.5"
+      className="justify-start gap-1.5"
       disabled={busy}
       onClick={() => chooseMode(value)}
     >
@@ -308,20 +310,28 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
   );
 
   return (
-    <div className="border-b border-border bg-surface-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
-        <p className="text-xs text-text-muted">
-          {planLabel} plan · files up to {formatBytes(maxFileBytes)}
-          {maxUploadsPerMap !== null && ` · ${used} of ${maxUploadsPerMap} uploads used on this map`}
-        </p>
-        <Button size="sm" variant={open ? "outline" : "default"} className="gap-1.5" onClick={() => setOpen((o) => !o)}>
-          {open ? <X className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
-          {open ? "Close" : "Add data"}
-        </Button>
+    <div className="@container flex h-full flex-col bg-surface-card">
+      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-text-primary">Add data</h2>
+          <p className="mt-0.5 text-xs text-text-muted">
+            {planLabel} plan · files up to {formatBytes(maxFileBytes)}
+            {maxUploadsPerMap !== null && ` · ${used} of ${maxUploadsPerMap} uploads used on this map`}
+          </p>
+        </div>
+        <IconButton
+          label="Close"
+          variant="ghost"
+          tooltipSide="left"
+          className="-mr-2 -mt-1"
+          disabled={busy}
+          icon={<X className="h-4 w-4" />}
+          onClick={onClose}
+        />
       </div>
 
-      {open && (
-        <div className="space-y-4 px-4 pb-4 sm:px-6">
+      {(
+        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {atLimit && phase.step === "idle" && mode !== "records" ? (
             <p className="text-sm text-text-secondary">
               This map has used all {maxUploadsPerMap} uploads on the {planLabel} plan. Contact BC through Support to
@@ -357,10 +367,10 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap gap-2" role="tablist" aria-label="Data source">
+              <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Data source">
                 {tab("file", "Upload a file", Upload)}
                 {tab("url", "Paste a link", Link2)}
-                {tab("replace", "Replace a layer's data", RefreshCw)}
+                {tab("replace", "Replace data", RefreshCw)}
                 {tab("records", "Add records", PenLine)}
               </div>
 
@@ -411,7 +421,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
 
                   {layers !== null && layers.length > 0 && (
                     <>
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-4 @xl:grid-cols-2">
                         <div className="space-y-1.5">
                           <Label htmlFor="replace-layer">Layer</Label>
                           <Select
@@ -500,7 +510,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                   )}
                 </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 @xl:grid-cols-2">
                   {mode === "file" ? (
                     <div className="space-y-1.5">
                       <Label htmlFor="add-data-file">File</Label>
