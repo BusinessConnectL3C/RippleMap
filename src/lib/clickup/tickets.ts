@@ -35,6 +35,17 @@ interface CreateTicketParams {
   customerEmail: string;
   /** Org's own ClickUp list. Falls back to the shared CLICKUP_SUPPORT_LIST_ID if the org has none yet. */
   listId?: string;
+  /** The org's plan when the ticket was filed, for support triage. */
+  plan?: "free" | "trial" | "paid";
+}
+
+/**
+ * ClickUp tags for triage: every ticket gets its plan; paid orgs also get
+ * "priority support". Tags are created in the ClickUp space on first use.
+ */
+function triageTags(plan: CreateTicketParams["plan"]): string[] {
+  if (!plan) return [];
+  return plan === "paid" ? ["plan: paid", "priority support"] : [`plan: ${plan}`];
 }
 
 interface CreateTicketResult {
@@ -50,20 +61,31 @@ export async function createClickUpTicket(
   const listId = params.listId ?? process.env.CLICKUP_SUPPORT_LIST_ID!;
   const token = process.env.CLICKUP_API_TOKEN!;
 
+  const planLine = params.plan ? `\nPlan: ${params.plan === "paid" ? "Paid (priority support)" : params.plan === "trial" ? "Trial" : "Free"}` : "";
   const body = {
     name: params.title,
-    description: `${params.description}\n\n---\nSubmitted by: ${params.customerEmail}`,
+    description: `${params.description}\n\n---\nSubmitted by: ${params.customerEmail}${planLine}`,
     priority: PRIORITY_MAP[params.priority],
+    tags: triageTags(params.plan),
   };
 
-  const res = await fetch(`${CLICKUP_BASE}/list/${listId}/task`, {
-    method: "POST",
-    headers: {
-      Authorization: token,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const post = (payload: object) =>
+    fetch(`${CLICKUP_BASE}/list/${listId}/task`, {
+      method: "POST",
+      headers: {
+        Authorization: token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+  let res = await post(body);
+  // A tag problem must never cost the client their ticket: retry untagged.
+  // The plan is still in the description.
+  if (!res.ok && res.status >= 400 && res.status < 500 && body.tags.length > 0) {
+    console.error(`ClickUp rejected tagged task (${res.status}); retrying without tags`);
+    res = await post({ ...body, tags: [] });
+  }
 
   if (!res.ok) {
     throw new Error(`ClickUp task creation failed: ${res.statusText}`);

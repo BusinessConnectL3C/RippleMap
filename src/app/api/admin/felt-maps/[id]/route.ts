@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireStaffViewer } from "@/lib/staff";
-import { deleteFile } from "@/lib/aws/s3";
+import { deleteFile, SYSTEM_BUCKET } from "@/lib/aws/s3";
 import { approvePublicMap, GrantError, setMapVisibility } from "@/lib/felt/access";
 import { FeltApiError } from "@/lib/felt/client";
 import { isInternalOrg } from "@/lib/felt/templates";
@@ -72,7 +72,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   await db.feltMap.delete({ where: { id } });
   if (map.thumbnailKey) {
-    await deleteFile(map.thumbnailKey).catch((err) =>
+    await deleteFile(map.thumbnailKey, SYSTEM_BUCKET).catch((err) =>
       console.error(`Failed to delete thumbnail ${map.thumbnailKey}:`, err)
     );
   }

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { createClickUpTicket } from "@/lib/clickup/tickets";
+import { getOrgTier } from "@/lib/plans";
 
 const createSchema = z.object({
   title: z.string().min(5).max(200),
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
       priority: parsed.data.priority,
       customerEmail: user.email,
       listId: org?.clickupListId ?? undefined,
+      plan: await getOrgTier(su.orgId),
     });
     clickupTaskId = result.taskId;
     clickupStatus = result.clickupStatus ?? undefined;

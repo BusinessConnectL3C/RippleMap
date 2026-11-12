@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { PLAN_LABEL, tierFromStatus } from "@/lib/plans";
 import { ticketStatusLabel } from "@/types/portal";
 import { TopBar } from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,7 @@ const PRIORITY_VARIANT: Record<string, "default" | "secondary" | "destructive"> 
 export default async function AdminTicketsPage() {
   const tickets = await db.supportTicket.findMany({
     orderBy: { createdAt: "desc" },
-    include: { organization: { select: { id: true, name: true } } },
+    include: { organization: { select: { id: true, name: true, billing: { select: { status: true } } } } },
   });
 
   return (
@@ -52,6 +53,14 @@ export default async function AdminTicketsPage() {
                     >
                       {ticket.organization.name}
                     </Link>
+                    {(() => {
+                      const tier = tierFromStatus(ticket.organization.billing?.status);
+                      return (
+                        <Badge variant={tier === "paid" ? "success" : tier === "trial" ? "info" : "secondary"} className="ml-2">
+                          {tier === "paid" ? "Priority" : PLAN_LABEL[tier]}
+                        </Badge>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-gray-900 max-w-xs truncate">{ticket.title}</td>
                   <td className="px-4 py-3">

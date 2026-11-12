@@ -18,6 +18,11 @@ interface Props {
   initialClickupListId: string | null;
   initialFeltProjectId: string | null;
   initialArcgisEnabled: boolean;
+  initialMedia: { enabled: boolean; s3Bucket: string | null; s3Prefix: string | null };
+  /** Shown as the placeholder for "shared bucket". */
+  sharedBucketName: string;
+  /** Why the current media setting is refused, if it is. */
+  mediaProblem: string | null;
 }
 
 export function OrgEditForm({
@@ -28,6 +33,9 @@ export function OrgEditForm({
   initialClickupListId,
   initialFeltProjectId,
   initialArcgisEnabled,
+  initialMedia,
+  sharedBucketName,
+  mediaProblem,
 }: Props) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -36,6 +44,9 @@ export function OrgEditForm({
   const [clickupListId, setClickupListId] = useState(initialClickupListId ?? "");
   const [feltProjectId, setFeltProjectId] = useState(initialFeltProjectId ?? "");
   const [arcgisEnabled, setArcgisEnabled] = useState(initialArcgisEnabled);
+  const [mediaEnabled, setMediaEnabled] = useState(initialMedia.enabled);
+  const [s3Bucket, setS3Bucket] = useState(initialMedia.s3Bucket ?? "");
+  const [s3Prefix, setS3Prefix] = useState(initialMedia.s3Prefix ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +63,7 @@ export function OrgEditForm({
         clickupListId: clickupListId.trim() || null,
         feltProjectId: feltProjectId.trim() || null,
         arcgisEnabled,
+        media: { enabled: mediaEnabled, s3Bucket: s3Bucket.trim() || null, s3Prefix: s3Prefix.trim() || null },
       }),
     });
     setSaving(false);
@@ -109,6 +121,47 @@ export function OrgEditForm({
           <p className="text-xs text-gray-600">For orgs still using Survey123, Field Maps, or hosted feature services.</p>
         </div>
         <Switch id="arcgisEnabled" checked={arcgisEnabled} onCheckedChange={setArcgisEnabled} />
+      </div>
+
+      <div className="space-y-3 rounded-md border border-gray-200 p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="mediaEnabled">Media page (S3)</Label>
+            <p className="text-xs text-gray-600">Shows this org the files in its own S3 folder.</p>
+          </div>
+          <Switch id="mediaEnabled" checked={mediaEnabled} onCheckedChange={setMediaEnabled} />
+        </div>
+        {mediaProblem && (
+          <p className="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">
+            Media is switched off for this org until fixed: {mediaProblem}
+          </p>
+        )}
+        {mediaEnabled && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="s3Bucket">Bucket</Label>
+              <Input
+                id="s3Bucket"
+                value={s3Bucket}
+                onChange={(e) => setS3Bucket(e.target.value)}
+                placeholder={`Shared: ${sharedBucketName}`}
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-gray-600">Leave blank for the shared bucket, or enter this org&apos;s own bucket.</p>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="s3Prefix">Folder (prefix)</Label>
+              <Input
+                id="s3Prefix"
+                value={s3Prefix}
+                onChange={(e) => setS3Prefix(e.target.value)}
+                placeholder="orgs/goodjustice/"
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-gray-600">Required in the shared bucket. The org sees only files under it.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

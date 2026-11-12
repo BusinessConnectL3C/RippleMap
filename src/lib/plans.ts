@@ -31,7 +31,11 @@ export const PLAN_LABEL: Record<PlanTier, string> = { free: "Free", trial: "Tria
 
 export async function getOrgTier(orgId: string): Promise<PlanTier> {
   const billing = await db.orgBilling.findUnique({ where: { orgId }, select: { status: true } });
-  switch (billing?.status) {
+  return tierFromStatus(billing?.status);
+}
+
+export function tierFromStatus(status: string | null | undefined): PlanTier {
+  switch (status) {
     case "TRIAL":
       return "trial";
     case "ACTIVE":

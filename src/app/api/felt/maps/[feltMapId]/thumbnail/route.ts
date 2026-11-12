@@ -5,7 +5,7 @@ import { getViewer, getViewableMap, isOrgAdmin } from "@/lib/felt/access";
 import { FeltApiError } from "@/lib/felt/client";
 import { refreshThumbnail } from "@/lib/felt/thumbnails";
 import { isValidFeltId } from "@/lib/felt/maps";
-import { getViewUrl } from "@/lib/aws/s3";
+import { getViewUrl, SYSTEM_BUCKET } from "@/lib/aws/s3";
 
 /**
  * Serve a map's thumbnail to someone allowed to view the map: check access,
@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ fel
   const access = viewer ? await getViewableMap(viewer, feltMapId) : null;
   if (!access?.map.thumbnailKey) return new NextResponse(null, { status: 404 });
 
-  const url = await getViewUrl(access.map.thumbnailKey);
+  const url = await getViewUrl(access.map.thumbnailKey, SYSTEM_BUCKET);
   return NextResponse.redirect(url, {
     status: 302,
     // Private: the redirect target is a per-request signed URL. Short enough
