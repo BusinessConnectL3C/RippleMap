@@ -23,6 +23,8 @@ interface Props {
   title: string;
   /** Org owners/admins and BC staff can save the current view as the map's thumbnail. */
   canSetThumbnail?: boolean;
+  /** Gets the SDK controller once the map is ready (null when it goes away), e.g. to read the current view. */
+  onController?: (felt: FeltController | null) => void;
 }
 
 /** Must match THUMBNAIL_SIZE in src/lib/felt/thumbnails.ts. */
@@ -51,7 +53,11 @@ type Status = "loading" | "ready" | "error" | "forbidden";
  * /api/felt/maps/[id]/embed-token (which enforces RippleMap's permissions).
  * The token is re-minted, and the map re-embedded, shortly before it expires.
  */
-export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Props) {
+export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false, onController }: Props) {
+  const onControllerRef = useRef(onController);
+  useEffect(() => {
+    onControllerRef.current = onController;
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   // Browser fullscreen where supported; otherwise (e.g. iPhone Safari) the map
@@ -257,6 +263,7 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
         if (cancelled) return;
 
         controllerRef.current = felt;
+        onControllerRef.current?.(felt);
         pinIdsRef.current = []; // a fresh embed has none of the old pins
         syncPins();
         setStatus("ready");
@@ -277,6 +284,7 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
       cancelled = true;
       if (refreshTimer) clearTimeout(refreshTimer);
       container.replaceChildren();
+      onControllerRef.current?.(null);
     };
   }, [feltMapId, generation, syncPins]);
 
