@@ -8,9 +8,11 @@ interface TopBarProps {
   title: string;
   backHref?: string;
   backLabel?: string;
+  /** Page-level actions, shown on the right of the title. */
+  actions?: React.ReactNode;
 }
 
-export function TopBar({ title, backHref, backLabel }: TopBarProps) {
+export function TopBar({ title, backHref, backLabel, actions }: TopBarProps) {
   const { setOpen } = useMobileNav();
 
   return (
@@ -26,6 +28,7 @@ export function TopBar({ title, backHref, backLabel }: TopBarProps) {
           </button>
           <h1 className="truncate text-lg font-semibold text-gray-900">{title}</h1>
         </div>
+        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
       {backHref && (
         <div className="px-4 pb-3 sm:px-6">
