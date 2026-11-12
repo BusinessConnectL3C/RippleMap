@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,6 +120,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
   // Replace data
   const [layers, setLayers] = useState<ReplaceableLayer[] | null>(null);
   const [layersError, setLayersError] = useState<string | null>(null);
+  const [legacyLayers, setLegacyLayers] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [replaceAck, setReplaceAck] = useState(false);
   const [missingColumns, setMissingColumns] = useState<string[]>([]);
@@ -253,6 +254,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? "Couldn't load this map's layers.");
       setLayers(data.layers);
+      setLegacyLayers(data.legacy ?? []);
     } catch (err) {
       setLayersError(err instanceof Error ? err.message : "Couldn't load this map's layers.");
     }
@@ -360,7 +362,21 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                       No layers on this map can be replaced yet. Only layers added here with Add data can be replaced;
                       layers built in Felt, or that collect field data, are left alone.
                     </p>
-                  ) : (
+                  ) : null}
+
+                  {legacyLayers.length > 0 && (
+                    <div className="flex gap-2 rounded-md border border-border bg-surface-page p-3 text-sm text-text-secondary">
+                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />
+                      <p>
+                        <strong className="text-text-primary">{legacyLayers.join(", ")}</strong>{" "}
+                        {legacyLayers.length === 1 ? "was" : "were"} added before data replacement was available, so{" "}
+                        {legacyLayers.length === 1 ? "it can't" : "they can't"} be replaced. To make a layer replaceable,
+                        add the file again with <strong>Upload a file</strong>, then delete the old layer in the map.
+                      </p>
+                    </div>
+                  )}
+
+                  {layers !== null && layers.length > 0 && (
                     <>
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-1.5">
@@ -502,6 +518,8 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                 </div>
               )}
 
+              {(mode !== "replace" || (layers !== null && layers.length > 0)) && (
+                <>
               <label className="flex items-start gap-2 text-sm text-text-secondary">
                 <input
                   id="add-data-confirm"
@@ -543,6 +561,8 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                   <span className="text-xs text-text-muted">Felt is processing the data. Large files can take a few minutes.</span>
                 )}
               </div>
+                </>
+              )}
             </>
           )}
 

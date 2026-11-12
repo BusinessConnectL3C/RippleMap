@@ -67,8 +67,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ fel
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { feltMapId } = await params;
   try {
-    const layers = await listReplaceableLayers(viewer, feltMapId);
-    return NextResponse.json({ layers }, { headers: { "Cache-Control": "no-store" } });
+    const { layers, legacy } = await listReplaceableLayers(viewer, feltMapId);
+    return NextResponse.json({ layers, legacy }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof UploadError) return NextResponse.json({ error: err.message }, { status: err.status });
     throw err;

@@ -350,8 +350,20 @@ export interface ReplaceableLayer {
  * Layers on this map that came from portal uploads and can be replaced.
  * Layers deleted in Felt are left out. One Felt call per layer.
  */
-export async function listReplaceableLayers(viewer: Viewer, feltMapId: string): Promise<ReplaceableLayer[]> {
+export async function listReplaceableLayers(
+  viewer: Viewer,
+  feltMapId: string
+): Promise<{ layers: ReplaceableLayer[]; legacy: string[] }> {
   const map = await authorize(viewer, feltMapId);
+  // File layers added before replacement existed have no permanent source
+  // address, so Felt can't refresh them. Name them so the user knows why.
+  const legacyRows = await db.mapUpload.findMany({
+    where: { mapId: map.id, mode: "NEW", status: "COMPLETED", kind: "FILE", sourceToken: null, feltLayerId: { not: null } },
+    select: { layerName: true },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const legacy = [...new Set(legacyRows.map((r) => r.layerName))];
   const origins = await db.mapUpload.findMany({
     where: {
       mapId: map.id,
@@ -383,7 +395,7 @@ export async function listReplaceableLayers(viewer: Viewer, feltMapId: string): 
       }
     })
   );
-  return results.filter((r): r is ReplaceableLayer => r !== null);
+  return { layers: results.filter((r): r is ReplaceableLayer => r !== null), legacy };
 }
 
 /** The file Felt should fetch for a permanent source address, if it's armed. */
