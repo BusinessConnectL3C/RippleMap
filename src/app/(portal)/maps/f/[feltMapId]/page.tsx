@@ -4,6 +4,10 @@ import { getViewer, getViewableMap, isOrgAdmin } from "@/lib/felt/access";
 import { isValidFeltId } from "@/lib/felt/maps";
 import { TopBar } from "@/components/layout/TopBar";
 import { FeltMapEmbed } from "@/components/maps/FeltMapEmbed";
+import { AddDataPanel } from "@/components/maps/AddDataPanel";
+import { db } from "@/lib/db";
+import { PLAN_LABEL } from "@/lib/plans";
+import { ALLOWED_EXTENSIONS, getUploadQuota, serializeUpload } from "@/lib/felt/uploads";
 
 interface Props {
   params: Promise<{ feltMapId: string }>;
@@ -24,14 +28,33 @@ export default async function FeltMapPage({ params }: Props) {
   const access = await getViewableMap(viewer, feltMapId);
   if (!access) notFound();
 
+  const canManage = viewer.role === "BC_STAFF" || isOrgAdmin(viewer);
+  const [quota, recent] = canManage
+    ? await Promise.all([
+        getUploadQuota(access.map.orgId, access.map.id),
+        db.mapUpload.findMany({ where: { mapId: access.map.id }, orderBy: { createdAt: "desc" }, take: 5 }),
+      ])
+    : [null, []];
+
   return (
     <div className="flex flex-col h-full">
       <TopBar title={access.map.title} backHref="/maps" backLabel="Maps & Apps" />
+      {quota && (
+        <AddDataPanel
+          feltMapId={access.map.feltMapId}
+          planLabel={PLAN_LABEL[quota.tier]}
+          maxFileBytes={quota.maxFileBytes}
+          maxUploadsPerMap={quota.maxUploadsPerMap}
+          used={quota.used}
+          recent={recent.map(serializeUpload)}
+          accept={ALLOWED_EXTENSIONS.map((e) => `.${e}`).join(",")}
+        />
+      )}
       <div className="flex-1 p-0 overflow-hidden">
         <FeltMapEmbed
           feltMapId={access.map.feltMapId}
           title={access.map.title}
-          canSetThumbnail={viewer.role === "BC_STAFF" || isOrgAdmin(viewer)}
+          canSetThumbnail={canManage}
         />
       </div>
     </div>

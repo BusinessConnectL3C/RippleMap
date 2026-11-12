@@ -1,9 +1,10 @@
 /** Display helpers for OrgBilling. Pure and client-safe. */
 
-export type BillingStatus = "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED";
+export type BillingStatus = "FREE" | "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED";
 export type BillingCycle = "MONTHLY" | "ANNUAL";
 
 export const BILLING_STATUS_LABEL: Record<BillingStatus, string> = {
+  FREE: "Free",
   TRIAL: "Trial",
   ACTIVE: "Active",
   PAST_DUE: "Past due",
@@ -11,6 +12,7 @@ export const BILLING_STATUS_LABEL: Record<BillingStatus, string> = {
 };
 
 export const BILLING_STATUS_BADGE: Record<BillingStatus, "info" | "success" | "warning" | "secondary"> = {
+  FREE: "secondary",
   TRIAL: "info",
   ACTIVE: "success",
   PAST_DUE: "warning",
