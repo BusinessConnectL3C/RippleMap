@@ -6,13 +6,25 @@ import { Felt, type FeltController } from "@feltmaps/js-sdk";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CANCEL_PICK_EVENT, LOCATION_PICKED_EVENT, PICK_LOCATION_EVENT } from "@/components/maps/AddRecordsForm";
+import {
+  CANCEL_PICK_EVENT,
+  DRAFT_PINS_EVENT,
+  LOCATION_PICKED_EVENT,
+  PICK_LOCATION_EVENT,
+  type DraftPin,
+} from "@/components/maps/AddRecordsForm";
+
+/** Temporary pins for unsaved records: the one being typed, and queued ones. */
+const PIN_COLOR_CURRENT = "#C93535";
+const PIN_COLOR_QUEUED = "#6C8042";
 
 interface Props {
   feltMapId: string;
   title: string;
   /** Org owners/admins and BC staff can save the current view as the map's thumbnail. */
   canSetThumbnail?: boolean;
+  /** Gets the SDK controller once the map is ready (null when it goes away), e.g. to read the current view. */
+  onController?: (felt: FeltController | null) => void;
 }
 
 /** Must match THUMBNAIL_SIZE in src/lib/felt/thumbnails.ts. */
@@ -41,7 +53,11 @@ type Status = "loading" | "ready" | "error" | "forbidden";
  * /api/felt/maps/[id]/embed-token (which enforces RippleMap's permissions).
  * The token is re-minted, and the map re-embedded, shortly before it expires.
  */
-export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Props) {
+export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false, onController }: Props) {
+  const onControllerRef = useRef(onController);
+  useEffect(() => {
+    onControllerRef.current = onController;
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   // Browser fullscreen where supported; otherwise (e.g. iPhone Safari) the map
@@ -95,6 +111,59 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
       document.removeEventListener("keydown", onKey);
     };
   }, [picking]);
+
+  // Unsaved records from Add records, drawn as session-only Felt elements:
+  // the SDK's elements aren't saved to the map and only this viewer sees them.
+  const draftPinsRef = useRef<DraftPin[]>([]);
+  const pinIdsRef = useRef<string[]>([]);
+  const pinSync = useRef<Promise<void>>(Promise.resolve());
+  const syncPins = useCallback(() => {
+    pinSync.current = pinSync.current.then(async () => {
+      const felt = controllerRef.current;
+      const old = pinIdsRef.current;
+      pinIdsRef.current = [];
+      if (!felt) return;
+      await Promise.all(old.map((id) => felt.deleteElement(id).catch(() => {})));
+      const created = await Promise.all(
+        draftPinsRef.current.map((p) =>
+          felt
+            .createElement({
+              type: "Place",
+              coordinates: [p.longitude, p.latitude],
+              name: p.label,
+              color: p.current ? PIN_COLOR_CURRENT : PIN_COLOR_QUEUED,
+              interaction: "locked",
+            })
+            .catch(() => null)
+        )
+      );
+      pinIdsRef.current = created.flatMap((e) => (e ? [e.id] : []));
+
+      // A typed location may be off screen: bring the record being entered into view.
+      const current = draftPinsRef.current.find((p) => p.current);
+      if (current) {
+        const { bounds } = await felt.getViewport();
+        const [west, south, east, north] = bounds;
+        const visible =
+          current.latitude >= south && current.latitude <= north && current.longitude >= west && current.longitude <= east;
+        if (!visible) felt.setViewport({ center: { latitude: current.latitude, longitude: current.longitude } });
+      }
+    }).catch((err) => console.error("Couldn't draw record pins:", err)); // keep the chain usable
+  }, []);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onPins = (e: Event) => {
+      draftPinsRef.current = (e as CustomEvent<DraftPin[]>).detail;
+      // Typing coordinates fires on every keystroke; redraw once it settles.
+      clearTimeout(timer);
+      timer = setTimeout(syncPins, 250);
+    };
+    window.addEventListener(DRAFT_PINS_EVENT, onPins);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener(DRAFT_PINS_EVENT, onPins);
+    };
+  }, [syncPins]);
 
   async function toggleFullscreen() {
     const frame = frameRef.current;
@@ -194,6 +263,9 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
         if (cancelled) return;
 
         controllerRef.current = felt;
+        onControllerRef.current?.(felt);
+        pinIdsRef.current = []; // a fresh embed has none of the old pins
+        syncPins();
         setStatus("ready");
 
         const delay = Math.min(
@@ -212,8 +284,9 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
       cancelled = true;
       if (refreshTimer) clearTimeout(refreshTimer);
       container.replaceChildren();
+      onControllerRef.current?.(null);
     };
-  }, [feltMapId, generation]);
+  }, [feltMapId, generation, syncPins]);
 
   return (
     <div

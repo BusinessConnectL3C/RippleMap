@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, type ComponentProps } from "react";
-import { ExternalLink, Upload } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import type { FeltController } from "@feltmaps/js-sdk";
+import { ExternalLink, Printer, Upload } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FeltMapEmbed } from "@/components/maps/FeltMapEmbed";
 import { AddDataPanel } from "@/components/maps/AddDataPanel";
+import { PrintDialog } from "@/components/maps/PrintDialog";
 import { CANCEL_PICK_EVENT, LOCATION_PICKED_EVENT, PICK_LOCATION_EVENT } from "@/components/maps/AddRecordsForm";
 
 interface Props {
@@ -29,6 +31,21 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
   // While a record's location is being picked, get the panel out of the way
   // on screens where it covers the map.
   const [picking, setPicking] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const controllerRef = useRef<FeltController | null>(null);
+  const onController = useCallback((felt: FeltController | null) => {
+    controllerRef.current = felt;
+  }, []);
+  const getCurrentBounds = useCallback(async () => {
+    const felt = controllerRef.current;
+    if (!felt) return null;
+    try {
+      const { bounds } = await felt.getViewport();
+      return bounds as [number, number, number, number];
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     const start = () => setPicking(true);
@@ -58,21 +75,26 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Edit this map in Felt. Sign in to Felt with your Field Editor account."
+                  aria-label="Open in Felt"
                 >
-                  <ExternalLink className="h-3.5 w-3.5" /> Open in Felt
+                  <ExternalLink className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Open in Felt</span>
                 </a>
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-1.5" aria-label="Print" onClick={() => setPrintOpen(true)}>
+              <Printer className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Print</span>
+            </Button>
             {addData && (
               <Button
                 size="sm"
                 variant={panelOpen ? "outline" : "default"}
                 className="gap-1.5"
+                aria-label="Add data"
                 aria-expanded={panelOpen}
                 aria-controls="add-data-panel"
                 onClick={() => setPanelOpen((o) => !o)}
               >
-                <Upload className="h-3.5 w-3.5" /> Add data
+                <Upload className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Add data</span>
               </Button>
             )}
           </>
@@ -80,7 +102,12 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
       />
       <div className="relative flex min-h-0 flex-1">
         <div className="relative min-w-0 flex-1">
-          <FeltMapEmbed feltMapId={feltMapId} title={title} canSetThumbnail={canSetThumbnail} />
+          <FeltMapEmbed
+            feltMapId={feltMapId}
+            title={title}
+            canSetThumbnail={canSetThumbnail}
+            onController={onController}
+          />
         </div>
         {addData && panelOpen && (
           <aside
@@ -96,6 +123,12 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
           </aside>
         )}
       </div>
+      <PrintDialog
+        feltMapId={feltMapId}
+        open={printOpen}
+        onOpenChange={setPrintOpen}
+        getCurrentBounds={getCurrentBounds}
+      />
     </div>
   );
 }
