@@ -55,7 +55,8 @@ function putWithProgress(url: string, file: File, onProgress: (pct: number) => v
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
-    xhr.onerror = () => reject(new Error("Upload failed. Check your connection and try again."));
+    xhr.onerror = () =>
+      reject(new Error("The upload was blocked or interrupted. Check your connection and try again; if it keeps happening, contact support."));
     xhr.send(file);
   });
 }
@@ -126,7 +127,14 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
         const startData = await start.json().catch(() => null);
         if (!start.ok) throw new Error(startData?.error ?? "Couldn't start the upload.");
 
-        await putWithProgress(startData.putUrl, file, (percent) => setPhase({ step: "uploading", percent }));
+        try {
+          await putWithProgress(startData.putUrl, file, (percent) => setPhase({ step: "uploading", percent }));
+        } catch (putErr) {
+          // Release the reservation: the server sees no file and marks it failed,
+          // so it doesn't count toward the plan's upload limit.
+          await fetch(`${base}/${startData.uploadId}/complete`, { method: "POST" }).catch(() => {});
+          throw putErr;
+        }
 
         setPhase({ step: "importing" });
         const done = await fetch(`${base}/${startData.uploadId}/complete`, { method: "POST" });
