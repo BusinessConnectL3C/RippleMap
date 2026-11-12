@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -147,4 +148,33 @@ export async function putFile(
   bucket = DEFAULT_BUCKET
 ): Promise<void> {
   await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+}
+
+/**
+ * Presigned PUT for a browser upload of exactly `sizeBytes`. Content-Length is
+ * part of the signature, so S3 rejects a body of any other size.
+ */
+export async function getSizedUploadUrl(
+  key: string,
+  sizeBytes: number,
+  bucket = DEFAULT_BUCKET,
+  expiresIn = 600
+): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: "application/octet-stream",
+    ContentLength: sizeBytes,
+  });
+  return getSignedUrl(client, command, { expiresIn, signableHeaders: new Set(["content-length", "content-type"]) });
+}
+
+/** Object size in bytes, or null if it doesn't exist. */
+export async function getObjectSize(key: string, bucket = DEFAULT_BUCKET): Promise<number | null> {
+  try {
+    const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return head.ContentLength ?? null;
+  } catch {
+    return null;
+  }
 }

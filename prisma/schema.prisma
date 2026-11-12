@@ -176,8 +176,49 @@ model FeltMap {
 
   organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   grants       FeltMapGrant[]
+  uploads      MapUpload[]
 
   @@index([orgId])
+}
+
+/// A data upload (file or link) into a Felt map from the portal. Files go to
+/// BC's S3 bucket first (size-limited presigned PUT), then Felt imports them
+/// from a short-lived link; the S3 copy is deleted once Felt has finished.
+/// Also the audit trail of who confirmed the data contains nothing sensitive.
+model MapUpload {
+  id                       String          @id @default(cuid())
+  orgId                    String
+  mapId                    String
+  userId                   String?
+  kind                     MapUploadKind
+  layerName                String
+  fileName                 String?
+  sourceUrl                String?
+  sizeBytes                BigInt?
+  s3Key                    String?
+  feltLayerId              String?
+  status                   MapUploadStatus @default(PENDING_UPLOAD)
+  error                    String?
+  confirmedNoSensitiveData Boolean         @default(false)
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+
+  map FeltMap @relation(fields: [mapId], references: [id], onDelete: Cascade)
+
+  @@index([mapId])
+  @@index([orgId])
+}
+
+enum MapUploadKind {
+  FILE
+  URL
+}
+
+enum MapUploadStatus {
+  PENDING_UPLOAD
+  IMPORTING
+  COMPLETED
+  FAILED
 }
 
 /// Per-user view access to a RESTRICTED map. OWNER/ADMIN (and BC_STAFF) see
@@ -241,6 +282,8 @@ enum OrgType {
 }
 
 enum BillingStatus {
+  /// Free tier. Orgs with no billing record are also treated as Free.
+  FREE
   TRIAL
   ACTIVE
   PAST_DUE

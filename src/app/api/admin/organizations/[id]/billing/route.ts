@@ -11,7 +11,7 @@ const dateField = z
 
 const billingSchema = z.object({
   plan: z.string().trim().max(200).nullable(),
-  status: z.enum(["TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"]),
+  status: z.enum(["FREE", "TRIAL", "ACTIVE", "PAST_DUE", "CANCELED"]),
   cycle: z.enum(["MONTHLY", "ANNUAL"]).nullable(),
   amountCents: z.number().int().min(0).max(100_000_000).nullable(),
   feltSeats: z.number().int().min(0).max(100),
