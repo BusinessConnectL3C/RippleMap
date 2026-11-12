@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { putFile } from "@/lib/aws/s3";
+import { putFile, SYSTEM_BUCKET, SYSTEM_PREFIX } from "@/lib/aws/s3";
 import { feltFetch } from "./client";
 
 /**
@@ -13,7 +13,7 @@ import { feltFetch } from "./client";
  *
  * Kept under a system prefix, separate from any org's media prefix.
  */
-const THUMBNAIL_PREFIX = "ripplemap-system/felt-thumbnails";
+const THUMBNAIL_PREFIX = `${SYSTEM_PREFIX}felt-thumbnails`;
 
 interface MapImageExport {
   download_url: string;
@@ -84,7 +84,7 @@ export async function refreshThumbnail(mapRowId: string, newView?: ThumbnailView
   const bytes = new Uint8Array(await res.arrayBuffer());
 
   const key = thumbnailKeyFor(map.orgId, map.feltMapId);
-  await putFile(key, bytes, "image/jpeg");
+  await putFile(key, bytes, "image/jpeg", SYSTEM_BUCKET);
   await db.feltMap.update({
     where: { id: mapRowId },
     data: { thumbnailKey: key, ...(newView && { thumbnailView: { ...newView } }) },

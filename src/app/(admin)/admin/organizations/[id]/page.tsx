@@ -13,6 +13,8 @@ import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
 import { DeleteOrgButton } from "@/components/admin/DeleteOrgButton";
 import { BillingEditForm } from "@/components/admin/BillingEditForm";
 import { FeltSeatsPanel } from "@/components/admin/FeltSeatsPanel";
+import { checkMediaScope } from "@/lib/aws/media";
+import { SHARED_MEDIA_BUCKET } from "@/lib/aws/s3";
 import { feltSeatUsage } from "@/lib/felt/seats";
 import { orgProjectName } from "@/lib/felt/projects";
 import { toDateInput } from "@/lib/billing";
@@ -69,6 +71,16 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               initialClickupListId={org.clickupListId}
               initialFeltProjectId={org.feltProjectId}
               initialArcgisEnabled={org.arcgisEnabled}
+              initialMedia={{ enabled: org.mediaSource === "S3", s3Bucket: org.s3Bucket, s3Prefix: org.s3Prefix }}
+              sharedBucketName={SHARED_MEDIA_BUCKET}
+              mediaProblem={
+                org.mediaSource === "S3"
+                  ? (() => {
+                      const check = checkMediaScope(org.s3Bucket, org.s3Prefix);
+                      return check.ok ? null : check.reason;
+                    })()
+                  : null
+              }
             />
           </CardContent>
         </Card>

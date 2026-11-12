@@ -18,6 +18,23 @@ const client = new S3Client({
 
 const DEFAULT_BUCKET = process.env.AWS_S3_BUCKET!;
 
+/**
+ * RippleMap's own files (map thumbnails, in-flight data uploads) live under
+ * this prefix in SYSTEM_BUCKET. They contain every client's data, so they
+ * must never appear in an org's Media page: listings below always skip this
+ * prefix, and src/lib/aws/media.ts refuses media scopes that could reach it.
+ *
+ * SYSTEM_BUCKET defaults to AWS_S3_BUCKET; set RIPPLEMAP_SYSTEM_BUCKET to keep
+ * system files in a separate bucket that no org's media points at.
+ */
+export const SYSTEM_PREFIX = "ripplemap-system/";
+export const SYSTEM_BUCKET = process.env.RIPPLEMAP_SYSTEM_BUCKET || DEFAULT_BUCKET;
+export const SHARED_MEDIA_BUCKET = DEFAULT_BUCKET;
+
+function isSystemKey(key: string): boolean {
+  return key.startsWith(SYSTEM_PREFIX);
+}
+
 /** Generate a presigned URL to upload a file directly to S3 (valid for 5 minutes). */
 export async function getUploadUrl(
   key: string,
@@ -86,7 +103,7 @@ export async function listFilesPage(
 
   const files: S3FileInfo[] = [];
   for (const obj of response.Contents ?? []) {
-    if (!obj.Key || obj.Key === prefix || obj.Key.endsWith("/")) continue;
+    if (!obj.Key || obj.Key === prefix || obj.Key.endsWith("/") || isSystemKey(obj.Key)) continue;
     const relativePath = obj.Key.slice(prefix.length);
     const parts = relativePath.split("/");
     const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
@@ -126,7 +143,7 @@ export async function listFolders(prefix: string, bucket: string): Promise<strin
     const response = await client.send(command);
 
     for (const obj of response.Contents ?? []) {
-      if (!obj.Key || obj.Key === prefix || obj.Key.endsWith("/")) continue;
+      if (!obj.Key || obj.Key === prefix || obj.Key.endsWith("/") || isSystemKey(obj.Key)) continue;
       const relativePath = obj.Key.slice(prefix.length);
       const parts = relativePath.split("/");
       if (parts.length > 1) {

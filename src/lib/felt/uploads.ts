@@ -1,7 +1,7 @@
 import "server-only";
 import type { MapUpload } from "@prisma/client";
 import { db } from "@/lib/db";
-import { deleteFile, getObjectSize, getSizedUploadUrl, getViewUrl } from "@/lib/aws/s3";
+import { deleteFile, getObjectSize, getSizedUploadUrl, getViewUrl, SYSTEM_BUCKET, SYSTEM_PREFIX } from "@/lib/aws/s3";
 import { getOrgTier, UPLOAD_LIMITS, formatBytes, type PlanTier } from "@/lib/plans";
 import { feltFetch } from "./client";
 import { getViewableMap, isOrgAdmin, type Viewer } from "./access";
@@ -20,7 +20,7 @@ import { getViewableMap, isOrgAdmin, type Viewer } from "./access";
  * Who: org owners/admins and BC staff, on maps they can view.
  */
 
-const UPLOAD_PREFIX = "ripplemap-system/uploads";
+const UPLOAD_PREFIX = `${SYSTEM_PREFIX}uploads`;
 
 /** File types Felt can turn into layers that we accept from the portal. */
 export const ALLOWED_EXTENSIONS = [
@@ -135,7 +135,7 @@ export async function startFileUpload(
   const s3Key = `${UPLOAD_PREFIX}/${map.orgId}/${upload.id}/${safeFileName(input.fileName)}`;
   await db.mapUpload.update({ where: { id: upload.id }, data: { s3Key } });
 
-  return { uploadId: upload.id, putUrl: await getSizedUploadUrl(s3Key, input.sizeBytes) };
+  return { uploadId: upload.id, putUrl: await getSizedUploadUrl(s3Key, input.sizeBytes, SYSTEM_BUCKET) };
 }
 
 async function getOwnedUpload(viewer: Viewer, feltMapId: string, uploadId: string): Promise<MapUpload> {
@@ -159,13 +159,13 @@ export async function completeFileUpload(viewer: Viewer, feltMapId: string, uplo
   if (upload.kind !== "FILE" || !upload.s3Key) throw new UploadError("Not a file upload", 400);
   if (upload.status !== "PENDING_UPLOAD") return upload;
 
-  const size = await getObjectSize(upload.s3Key);
+  const size = await getObjectSize(upload.s3Key, SYSTEM_BUCKET);
   if (size === null || size !== Number(upload.sizeBytes)) {
     return fail(upload, "The file didn't finish uploading. Please try again.");
   }
 
   // Long enough for Felt to fetch it; Felt keeps its own copy afterwards.
-  const importUrl = await getViewUrl(upload.s3Key);
+  const importUrl = await getViewUrl(upload.s3Key, SYSTEM_BUCKET);
   try {
     const layerId = await importIntoFelt(feltMapId, upload.layerName, importUrl);
     return db.mapUpload.update({ where: { id: upload.id }, data: { status: "IMPORTING", feltLayerId: layerId } });
@@ -241,7 +241,7 @@ export async function refreshUploadStatus(
 
 async function cleanup(upload: MapUpload) {
   if (!upload.s3Key) return;
-  await deleteFile(upload.s3Key).catch((err) => console.error(`Failed to delete upload ${upload.s3Key}:`, err));
+  await deleteFile(upload.s3Key, SYSTEM_BUCKET).catch((err) => console.error(`Failed to delete upload ${upload.s3Key}:`, err));
 }
 
 async function fail(upload: MapUpload, message: string): Promise<MapUpload> {

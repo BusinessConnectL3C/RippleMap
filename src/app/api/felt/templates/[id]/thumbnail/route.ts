@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getViewUrl } from "@/lib/aws/s3";
+import { getViewUrl, SYSTEM_BUCKET } from "@/lib/aws/s3";
 import { getTemplate } from "@/lib/felt/templates";
 
 /**
@@ -15,7 +15,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const template = await getTemplate(id);
   if (!template?.thumbnailKey) return new NextResponse(null, { status: 404 });
 
-  return NextResponse.redirect(await getViewUrl(template.thumbnailKey), {
+  return NextResponse.redirect(await getViewUrl(template.thumbnailKey, SYSTEM_BUCKET), {
     status: 302,
     headers: { "Cache-Control": "private, max-age=300" },
   });
