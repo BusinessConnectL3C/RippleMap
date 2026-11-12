@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Camera, Check, Loader2, RotateCw } from "lucide-react";
+import { AlertCircle, Camera, Check, Loader2, Maximize2, Minimize2, RotateCw } from "lucide-react";
 import { Felt, type FeltController } from "@feltmaps/js-sdk";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
@@ -41,6 +42,47 @@ type Status = "loading" | "ready" | "error" | "forbidden";
  */
 export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  // Browser fullscreen where supported; otherwise (e.g. iPhone Safari) the map
+  // is pinned over the whole window instead.
+  const [fullscreen, setFullscreen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const expanded = fullscreen || pinned;
+
+  useEffect(() => {
+    const onChange = () => setFullscreen(document.fullscreenElement === frameRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!pinned) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPinned(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pinned]);
+
+  async function toggleFullscreen() {
+    const frame = frameRef.current;
+    if (!frame) return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {});
+      return;
+    }
+    if (pinned) {
+      setPinned(false);
+      return;
+    }
+    if (document.fullscreenEnabled && frame.requestFullscreen) {
+      try {
+        await frame.requestFullscreen();
+        return;
+      } catch {
+        // fall through to the in-window version
+      }
+    }
+    setPinned(true);
+  }
 
   const [status, setStatus] = useState<Status>("loading");
   const controllerRef = useRef<FeltController | null>(null);
@@ -140,46 +182,73 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
   }, [feltMapId, generation]);
 
   return (
-    <div className="relative w-full h-full min-h-[600px]">
+    <div
+      ref={frameRef}
+      className={cn(
+        "relative w-full bg-surface-page",
+        pinned ? "fixed inset-0 z-[60] h-dvh" : fullscreen ? "h-full" : "h-full min-h-[600px]"
+      )}
+    >
       {/* The SDK inserts its iframe here; it needs an explicit height. */}
       <div ref={containerRef} className="absolute inset-0 [&>iframe]:h-full [&>iframe]:w-full [&>iframe]:border-0" aria-label={title} />
 
-      {status === "ready" && canSetThumbnail && (
+      {status === "ready" && (
         <div className="absolute right-3 top-3 z-10 flex max-w-xs flex-col items-end gap-1">
           <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9 w-9 p-0 bg-surface-card shadow-sm"
-                  disabled={thumb === "saving"}
-                  onClick={saveThumbnailView}
-                  aria-label={
-                    thumb === "saving"
-                      ? "Saving preview image"
+            <div className="flex gap-2">
+              {canSetThumbnail && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 w-9 p-0 bg-surface-card shadow-sm"
+                      disabled={thumb === "saving"}
+                      onClick={saveThumbnailView}
+                      aria-label={
+                        thumb === "saving"
+                          ? "Saving preview image"
+                          : thumb === "saved"
+                            ? "Preview image updated"
+                            : "Use this view as the map's preview image"
+                      }
+                    >
+                      {thumb === "saving" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : thumb === "saved" ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side={expanded ? "bottom" : "left"} className="max-w-[16rem]">
+                    {thumb === "saving"
+                      ? "Saving the preview image…"
                       : thumb === "saved"
                         ? "Preview image updated"
-                        : "Use this view as the map's preview image"
-                  }
-                >
-                  {thumb === "saving" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : thumb === "saved" ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-[16rem]">
-                {thumb === "saving"
-                  ? "Saving the preview image…"
-                  : thumb === "saved"
-                    ? "Preview image updated"
-                    : "Use this view as the map's preview image. Pan and zoom first, then click."}
-              </TooltipContent>
-            </Tooltip>
+                        : "Use this view as the map's preview image. Pan and zoom first, then click."}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 p-0 bg-surface-card shadow-sm"
+                    onClick={toggleFullscreen}
+                    aria-label={expanded ? "Exit full screen" : "Full screen"}
+                    aria-pressed={expanded}
+                  >
+                    {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side={expanded ? "bottom" : "left"}>
+                  {expanded ? "Exit full screen (Esc)" : "Full screen"}
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </TooltipProvider>
           {thumb === "saving" && (
             <p className="rounded bg-surface-card px-2 py-1 text-xs text-text-secondary shadow-sm">This can take up to a minute.</p>

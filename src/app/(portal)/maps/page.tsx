@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { listGroupItems } from "@/lib/arcgis/groups";
 import { getViewer, isOrgAdmin, listVisibleMaps } from "@/lib/felt/access";
 import { autoSyncOrgMaps } from "@/lib/felt/sync";
+import { getMapActivity } from "@/lib/felt/activity";
 import { refreshThumbnailQuietly } from "@/lib/felt/thumbnails";
 import { after } from "next/server";
 import type { ArcGISItem } from "@/types/arcgis";
@@ -76,6 +77,8 @@ export default async function MapsPage() {
   // Owners/admins (and BC staff) can start a map from a template.
   const canCreate = (viewer.role === "BC_STAFF" || isOrgAdmin(viewer)) && (await listTemplates()).length > 0;
 
+  const activity = await getMapActivity(feltMaps);
+
   const items: GalleryItem[] = [
     ...feltMaps.map((m): GalleryItem => ({
       key: `felt:${m.id}`,
@@ -83,7 +86,7 @@ export default async function MapsPage() {
       ...FELT_KIND[m.kind as "MAP" | "DASHBOARD"],
       href: `/maps/f/${m.feltMapId}`,
       provider: "felt",
-      updatedAt: m.updatedAt.getTime(),
+      updatedAt: (activity.get(m.id)?.at ?? m.createdAt).getTime(),
       thumbnailUrl: m.thumbnailKey
         ? `/api/felt/maps/${m.feltMapId}/thumbnail?v=${m.updatedAt.getTime()}`
         : undefined,
