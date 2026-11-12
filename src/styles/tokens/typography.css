@@ -1,13 +1,15 @@
 /* RippleMap — Typography tokens
  * Display face carries brand personality (headings, logo-adjacent copy).
  * Body face handles UI + long-form copy: clear, mature, unfussy.
- * --font-display / --font-body / --font-mono are populated at runtime by the
- * next/font variables applied on <html> in src/app/layout.tsx. */
+ * --font-display and --font-mono come from next/font variables on <html>
+ * (src/app/layout.tsx). --font-body is Neue Haas Grotesk Display Pro from the
+ * Adobe Fonts web project (CSS family "neue-haas-grotesk-display"), falling
+ * back to the bundled Hanken Grotesk (--font-body-fallback). */
 
 :root {
   /* ---- Families (fallbacks only — next/font supplies the primary face) ---- */
   --font-display: "Onest", "Also Sans", system-ui, sans-serif;
-  --font-body: "Hanken Grotesk", "Neue Haas Grotesk Display Pro", system-ui, sans-serif;
+  --font-body: "neue-haas-grotesk-display", var(--font-body-fallback, "Hanken Grotesk"), system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
   /* ---- Type scale (1.200 minor-third, 16px base) ---- */
