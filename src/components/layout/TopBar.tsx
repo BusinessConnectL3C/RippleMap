@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { ArrowLeft, Menu } from "lucide-react";
 import { useMobileNav } from "@/components/layout/MobileNavContext";
 
@@ -12,7 +11,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, backHref, backLabel }: TopBarProps) {
-  const { data: session } = useSession();
   const { setOpen } = useMobileNav();
 
   return (
@@ -27,15 +25,6 @@ export function TopBar({ title, backHref, backLabel }: TopBarProps) {
             <Menu className="h-5 w-5" />
           </button>
           <h1 className="truncate text-lg font-semibold text-gray-900">{title}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-white text-sm font-medium">
-            {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium text-gray-900">{session?.user?.name}</p>
-            <p className="text-xs text-gray-600">{session?.user?.email}</p>
-          </div>
         </div>
       </div>
       {backHref && (

@@ -1,7 +1,8 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { Sidebar, SIDEBAR_COOKIE } from "@/components/layout/Sidebar";
 import { MobileNavProvider } from "@/components/layout/MobileNavContext";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -25,11 +26,15 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!state?.completed) redirect("/onboarding");
 
   const showMedia = !!org?.mediaSource;
+  const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "collapsed";
 
   return (
     <MobileNavProvider>
       <div className="flex h-full">
-        <Sidebar showMedia={showMedia} orgName={org?.name} isStaff={user?.role === "BC_STAFF"} />
+        <Sidebar
+          showMedia={showMedia} orgName={org?.name} isStaff={user?.role === "BC_STAFF"}
+          defaultCollapsed={sidebarCollapsed}
+        />
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </MobileNavProvider>
