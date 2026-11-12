@@ -107,6 +107,7 @@ export default async function AccountPage() {
             <CardTitle>Organization Members</CardTitle>
             {canManageMembers && (
               <InviteMembersDialog
+                iconOnly
                 pendingInvites={pendingInvites.map((i) => ({
                   ...i,
                   role: i.role as "ADMIN" | "MEMBER",
@@ -130,7 +131,7 @@ export default async function AccountPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Connections</CardTitle>
+            <CardTitle>ArcGIS Connection</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="mb-3 text-xs text-text-muted">

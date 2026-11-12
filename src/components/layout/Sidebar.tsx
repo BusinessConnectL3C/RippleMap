@@ -192,13 +192,13 @@ function SidebarContent({
       <div className={cn("flex h-16 shrink-0 items-center border-b border-gray-200", collapsed ? "justify-center px-2" : "gap-2 px-6 pr-3")}>
         {collapsed ? (
           <Link href="/dashboard" aria-label="Home">
-            <Logo type="logomark" tone="black" height={22} />
+            <Logo type="logomark" tone="black" height={24} trim />
           </Link>
         ) : (
           <>
-            <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
               <Link href="/dashboard">
-                <Logo type="secondary" tone="black" height={22} />
+                <Logo type="secondary" tone="black" height={20} trim />
               </Link>
               <p className="truncate text-xs text-gray-600" title={orgName}>
                 {orgName ?? "Client Portal"}

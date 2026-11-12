@@ -25,6 +25,12 @@ const DIMENSIONS: Record<keyof typeof FILES, { width: number; height: number }> 
   logomark: { width: 2256, height: 1705 },
 };
 
+/** Same art with the transparent padding cropped off (secondary and logomark only). */
+const TRIMMED: Partial<Record<keyof typeof FILES, { width: number; height: number }>> = {
+  secondary: { width: 1504, height: 240 },
+  logomark: { width: 319, height: 240 },
+};
+
 export type LogoType = keyof typeof FILES;
 export type LogoTone = "black" | "white" | "green";
 
@@ -33,14 +39,22 @@ export interface LogoProps {
   tone?: LogoTone;
   height?: number;
   className?: string;
+  /**
+   * Use the padding-free files, so `height` is the height of the art itself.
+   * The original files have wide transparent margins (the mark fills about a
+   * third of the logomark image), which makes them look tiny at UI sizes.
+   */
+  trim?: boolean;
 }
 
 /** RippleMap Logo — renders the official brand assets. Never redraw the mark. */
-export function Logo({ type = "secondary", tone = "black", height = 28, className }: LogoProps) {
-  const { width, height: naturalHeight } = DIMENSIONS[type];
+export function Logo({ type = "secondary", tone = "black", height = 28, className, trim = false }: LogoProps) {
+  const trimmed = trim ? TRIMMED[type] : undefined;
+  const { width, height: naturalHeight } = trimmed ?? DIMENSIONS[type];
+  const file = trimmed ? FILES[type][tone].replace(/\.png$/, "_Trim.png") : FILES[type][tone];
   return (
     <Image
-      src={`/brand/logos/${FILES[type][tone]}`}
+      src={`/brand/logos/${file}`}
       alt="RippleMap"
       width={width}
       height={naturalHeight}

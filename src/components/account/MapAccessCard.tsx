@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, ChevronDown, ChevronRight, Copy, Globe, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,7 +33,7 @@ interface Props {
   maps: MapAccessRow[];
   /** Members with the MEMBER role. Owners and admins always see every map. */
   members: MemberOption[];
-  /** The org has a Felt project, so "Check Felt for new maps" can run. */
+  /** The org has a Felt project, so "Check for new maps" can run. */
   canSync: boolean;
 }
 
@@ -133,10 +134,12 @@ export function MapAccessCard({ maps, members, canSync }: Props) {
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <CardTitle>Map Access</CardTitle>
         {canSync && (
-          <Button variant="outline" size="sm" onClick={syncNow} disabled={busy === "sync"} className="gap-1.5">
-            {busy === "sync" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            Check Felt for new maps
-          </Button>
+          <IconButton
+            label={busy === "sync" ? "Checking for new maps…" : "Check for new maps"}
+            icon={busy === "sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            onClick={syncNow}
+            disabled={busy === "sync"}
+          />
         )}
       </CardHeader>
       <CardContent className="space-y-3">

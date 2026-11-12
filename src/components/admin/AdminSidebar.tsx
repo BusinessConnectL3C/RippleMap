@@ -20,9 +20,9 @@ function AdminSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="flex h-16 flex-col justify-center gap-0.5 border-b border-gray-200 px-6">
+      <div className="flex h-16 flex-col justify-center gap-1.5 border-b border-gray-200 px-6">
         <Link href="/admin/organizations">
-          <Logo type="secondary" tone="black" height={22} />
+          <Logo type="secondary" tone="black" height={20} trim />
         </Link>
         <p className="rm-eyebrow">BC Admin</p>
       </div>

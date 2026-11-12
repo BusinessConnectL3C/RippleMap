@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -56,10 +57,7 @@ export function OrganizationForm({ initialName, orgType }: Props) {
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle>Organization</CardTitle>
         {!isEditing && (
-          <Button variant="outline" size="sm" onClick={startEditing} className="gap-1.5">
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </Button>
+          <IconButton label="Edit organization" icon={<Pencil className="h-4 w-4" />} onClick={startEditing} />
         )}
       </CardHeader>
       <CardContent className="space-y-3">
