@@ -13,12 +13,17 @@ const fontDisplay = localFont({
   variable: "--font-display",
   display: "swap",
 });
-const fontBody = localFont({
+// Body copy is Neue Haas Grotesk Display Pro (brand guide), served by Adobe
+// Fonts through a web project — Adobe's licence doesn't allow bundling the
+// files. Hanken Grotesk stays bundled as the fallback (--font-body-fallback),
+// used until the Adobe kit loads or if NEXT_PUBLIC_ADOBE_FONTS_KIT_ID is unset.
+const fontBodyFallback = localFont({
   src: "../../node_modules/@fontsource-variable/hanken-grotesk/files/hanken-grotesk-latin-wght-normal.woff2",
   weight: "100 900",
-  variable: "--font-body",
+  variable: "--font-body-fallback",
   display: "swap",
 });
+const adobeFontsKitId = process.env.NEXT_PUBLIC_ADOBE_FONTS_KIT_ID?.trim();
 const fontMono = localFont({
   src: [
     { path: "../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2", weight: "400" },
@@ -35,7 +40,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable} h-full`}>
+    <html lang="en" className={`${fontDisplay.variable} ${fontBodyFallback.variable} ${fontMono.variable} h-full`}>
+      <head>
+        {adobeFontsKitId && /^[a-z0-9]+$/i.test(adobeFontsKitId) && (
+          <>
+            <link rel="preconnect" href="https://use.typekit.net" crossOrigin="" />
+            <link rel="stylesheet" href={`https://use.typekit.net/${adobeFontsKitId}.css`} />
+          </>
+        )}
+      </head>
       <body className="h-full bg-surface-page font-sans antialiased">
         <SessionProvider>{children}</SessionProvider>
         <Toaster />
