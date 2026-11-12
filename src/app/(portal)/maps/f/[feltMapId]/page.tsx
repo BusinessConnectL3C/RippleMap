@@ -2,11 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getViewer, getViewableMap, isOrgAdmin } from "@/lib/felt/access";
 import { getMap, isValidFeltId } from "@/lib/felt/maps";
-import { ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TopBar } from "@/components/layout/TopBar";
-import { FeltMapEmbed } from "@/components/maps/FeltMapEmbed";
-import { AddDataPanel } from "@/components/maps/AddDataPanel";
+import { MapWorkspace } from "@/components/maps/MapWorkspace";
 import { db } from "@/lib/db";
 import { PLAN_LABEL } from "@/lib/plans";
 import { ALLOWED_EXTENSIONS, getUploadQuota, serializeUpload } from "@/lib/felt/uploads";
@@ -49,44 +45,22 @@ export default async function FeltMapPage({ params }: Props) {
     : [null, []];
 
   return (
-    <div className="flex flex-col h-full">
-      <TopBar
-        title={access.map.title}
-        backHref="/maps"
-        backLabel="Maps & Apps"
-        actions={
-          feltUrl && (
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <a
-                href={feltUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Edit this map in Felt. Sign in to Felt with your Field Editor account."
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> Open in Felt
-              </a>
-            </Button>
-          )
+    <MapWorkspace
+      feltMapId={access.map.feltMapId}
+      title={access.map.title}
+      canSetThumbnail={canManage}
+      feltUrl={feltUrl}
+      addData={
+        quota && {
+          feltMapId: access.map.feltMapId,
+          planLabel: PLAN_LABEL[quota.tier],
+          maxFileBytes: quota.maxFileBytes,
+          maxUploadsPerMap: quota.maxUploadsPerMap,
+          used: quota.used,
+          recent: recent.map(serializeUpload),
+          accept: ALLOWED_EXTENSIONS.map((e) => `.${e}`).join(","),
         }
-      />
-      {quota && (
-        <AddDataPanel
-          feltMapId={access.map.feltMapId}
-          planLabel={PLAN_LABEL[quota.tier]}
-          maxFileBytes={quota.maxFileBytes}
-          maxUploadsPerMap={quota.maxUploadsPerMap}
-          used={quota.used}
-          recent={recent.map(serializeUpload)}
-          accept={ALLOWED_EXTENSIONS.map((e) => `.${e}`).join(",")}
-        />
-      )}
-      <div className="flex-1 p-0 overflow-hidden">
-        <FeltMapEmbed
-          feltMapId={access.map.feltMapId}
-          title={access.map.title}
-          canSetThumbnail={canManage}
-        />
-      </div>
-    </div>
+      }
+    />
   );
 }

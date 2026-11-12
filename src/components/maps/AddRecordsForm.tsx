@@ -160,7 +160,7 @@ export function AddRecordsForm({ base, busy, onSave }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 @xl:grid-cols-3">
         <div className="space-y-1.5">
           <Label htmlFor="records-layer">Layer</Label>
           <Select
@@ -183,7 +183,7 @@ export function AddRecordsForm({ base, busy, onSave }: Props) {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5 md:col-span-2">
+        <div className="space-y-1.5 @xl:col-span-2">
           <Label htmlFor="records-lat">Location *</Label>
           <div className="flex flex-wrap gap-2">
             <Input
@@ -222,7 +222,7 @@ export function AddRecordsForm({ base, busy, onSave }: Props) {
       </div>
 
       {layer && layer.fields.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 @sm:grid-cols-2 @3xl:grid-cols-3">
           {layer.fields.map((f) => {
             const id = `records-field-${f.name}`;
             if (f.type === "BOOLEAN") {
