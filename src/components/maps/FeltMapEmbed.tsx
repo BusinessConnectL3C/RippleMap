@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, ImageIcon, Loader2, RotateCw } from "lucide-react";
+import { AlertCircle, Camera, Check, Loader2, RotateCw } from "lucide-react";
 import { Felt, type FeltController } from "@feltmaps/js-sdk";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
   feltMapId: string;
@@ -145,23 +146,41 @@ export function FeltMapEmbed({ feltMapId, title, canSetThumbnail = false }: Prop
 
       {status === "ready" && canSetThumbnail && (
         <div className="absolute right-3 top-3 z-10 flex max-w-xs flex-col items-end gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 bg-surface-card shadow-sm"
-            disabled={thumb === "saving"}
-            onClick={saveThumbnailView}
-            title="Frame the map the way you want, then save this view as its preview image"
-          >
-            {thumb === "saving" ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : thumb === "saved" ? (
-              <Check className="h-3.5 w-3.5" />
-            ) : (
-              <ImageIcon className="h-3.5 w-3.5" />
-            )}
-            {thumb === "saving" ? "Saving thumbnail…" : thumb === "saved" ? "Thumbnail updated" : "Use this view as thumbnail"}
-          </Button>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 w-9 p-0 bg-surface-card shadow-sm"
+                  disabled={thumb === "saving"}
+                  onClick={saveThumbnailView}
+                  aria-label={
+                    thumb === "saving"
+                      ? "Saving preview image"
+                      : thumb === "saved"
+                        ? "Preview image updated"
+                        : "Use this view as the map's preview image"
+                  }
+                >
+                  {thumb === "saving" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : thumb === "saved" ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[16rem]">
+                {thumb === "saving"
+                  ? "Saving the preview image…"
+                  : thumb === "saved"
+                    ? "Preview image updated"
+                    : "Use this view as the map's preview image. Pan and zoom first, then click."}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {thumb === "saving" && (
             <p className="rounded bg-surface-card px-2 py-1 text-xs text-text-secondary shadow-sm">This can take up to a minute.</p>
           )}

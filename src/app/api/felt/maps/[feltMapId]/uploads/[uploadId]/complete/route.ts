@@ -5,7 +5,7 @@ import { completeFileUpload, serializeUpload, UploadError } from "@/lib/felt/upl
 
 /** The browser finished uploading the file to S3: verify it and start Felt's import. */
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ feltMapId: string; uploadId: string }> }
 ) {
   const session = await auth();
@@ -14,7 +14,7 @@ export async function POST(
 
   const { feltMapId, uploadId } = await params;
   try {
-    const upload = await completeFileUpload(viewer, feltMapId, uploadId);
+    const upload = await completeFileUpload(viewer, feltMapId, uploadId, req.nextUrl.origin);
     return NextResponse.json({ upload: serializeUpload(upload) });
   } catch (err) {
     if (err instanceof UploadError) return NextResponse.json({ error: err.message }, { status: err.status });

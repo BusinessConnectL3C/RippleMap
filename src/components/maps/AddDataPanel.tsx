@@ -2,18 +2,29 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, AlertCircle, Loader2, Upload, Link2, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UploadRow {
   id: string;
   kind: "FILE" | "URL";
+  mode?: "NEW" | "REPLACE";
   layerName: string;
   status: "PENDING_UPLOAD" | "IMPORTING" | "COMPLETED" | "FAILED";
   error: string | null;
   createdAt: string;
+}
+
+interface ReplaceableLayer {
+  uploadId: string;
+  layerName: string;
+  kind: "FILE" | "URL";
+  fileExt: string | null;
+  sourceUrl: string | null;
+  columns: string[];
 }
 
 interface Props {
@@ -26,11 +37,13 @@ interface Props {
   accept: string;
 }
 
+type Mode = "file" | "url" | "replace";
+
 type Phase =
   | { step: "idle" }
   | { step: "uploading"; percent: number }
   | { step: "importing" }
-  | { step: "done"; layerName: string }
+  | { step: "done"; layerName: string; replaced: boolean }
   | { step: "error"; message: string };
 
 const POLL_MS = 3000;
@@ -43,6 +56,38 @@ function formatBytes(bytes: number): string {
 
 function stripExtension(name: string): string {
   return name.replace(/\.[A-Za-z0-9]+$/, "").replace(/[_-]+/g, " ").trim();
+}
+
+/** Lower-case and drop non-alphanumerics: Felt may normalise column names. */
+function normaliseColumn(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/** Column names from a CSV's header row (handles simple quoting). */
+async function readCsvHeader(file: File): Promise<string[]> {
+  const text = await file.slice(0, 64 * 1024).text();
+  const line = text.split(/\r?\n/)[0] ?? "";
+  const cols: string[] = [];
+  let cur = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (ch === "," && !quoted) {
+      cols.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  cols.push(cur.trim());
+  return cols.filter(Boolean);
 }
 
 /** PUT the file straight to S3 with progress. Content-Type must match the signature. */
@@ -64,13 +109,20 @@ function putWithProgress(url: string, file: File, onProgress: (pct: number) => v
 export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPerMap, used, recent, accept }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"file" | "url">("file");
+  const [mode, setMode] = useState<Mode>("file");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
   const [layerName, setLayerName] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState<Phase>({ step: "idle" });
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Replace data
+  const [layers, setLayers] = useState<ReplaceableLayer[] | null>(null);
+  const [layersError, setLayersError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState("");
+  const [replaceAck, setReplaceAck] = useState(false);
+  const [missingColumns, setMissingColumns] = useState<string[]>([]);
 
   useEffect(() => () => {
     if (pollTimer.current) clearTimeout(pollTimer.current);
@@ -79,15 +131,16 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
   const atLimit = maxUploadsPerMap !== null && used >= maxUploadsPerMap;
   const busy = phase.step === "uploading" || phase.step === "importing";
   const base = `/api/felt/maps/${encodeURIComponent(feltMapId)}/uploads`;
+  const selected = layers?.find((l) => l.uploadId === selectedId) ?? null;
 
-  function poll(uploadId: string, name: string, startedAt: number) {
+  function poll(uploadId: string, name: string, startedAt: number, replaced: boolean) {
     pollTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(`${base}/${uploadId}`, { cache: "no-store" });
         const data = await res.json().catch(() => null);
         const status: UploadRow["status"] | undefined = data?.upload?.status;
         if (status === "COMPLETED") {
-          setPhase({ step: "done", layerName: name });
+          setPhase({ step: "done", layerName: name, replaced });
           router.refresh();
           return;
         }
@@ -97,73 +150,119 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
           return;
         }
         if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
-          setPhase({ step: "error", message: "This is taking a while. The layer will appear on the map when Felt finishes." });
+          setPhase({ step: "error", message: "This is taking a while. The map will update when Felt finishes." });
           return;
         }
-        poll(uploadId, name, startedAt);
+        poll(uploadId, name, startedAt, replaced);
       } catch {
-        poll(uploadId, name, startedAt);
+        poll(uploadId, name, startedAt, replaced);
       }
     }, POLL_MS);
   }
 
-  async function submit() {
-    const name = layerName.trim();
-    if (!name || !confirmed) return;
-
-    if (mode === "file") {
-      if (!file) return;
-      if (file.size > maxFileBytes) {
-        setPhase({ step: "error", message: `That file is ${formatBytes(file.size)}. Your plan allows up to ${formatBytes(maxFileBytes)}.` });
-        return;
-      }
-      setPhase({ step: "uploading", percent: 0 });
-      try {
-        const start = await fetch(base, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ kind: "FILE", fileName: file.name, sizeBytes: file.size, layerName: name, confirmed }),
-        });
-        const startData = await start.json().catch(() => null);
-        if (!start.ok) throw new Error(startData?.error ?? "Couldn't start the upload.");
-
-        try {
-          await putWithProgress(startData.putUrl, file, (percent) => setPhase({ step: "uploading", percent }));
-        } catch (putErr) {
-          // Release the reservation: the server sees no file and marks it failed,
-          // so it doesn't count toward the plan's upload limit.
-          await fetch(`${base}/${startData.uploadId}/complete`, { method: "POST" }).catch(() => {});
-          throw putErr;
-        }
-
-        setPhase({ step: "importing" });
-        const done = await fetch(`${base}/${startData.uploadId}/complete`, { method: "POST" });
-        const doneData = await done.json().catch(() => null);
-        if (!done.ok) throw new Error(doneData?.error ?? "Couldn't hand the file to Felt.");
-        if (doneData.upload.status === "FAILED") throw new Error(doneData.upload.error);
-        poll(startData.uploadId, name, Date.now());
-      } catch (err) {
-        setPhase({ step: "error", message: err instanceof Error ? err.message : "Upload failed." });
-        router.refresh();
-      }
+  /** Reserve, PUT to S3, hand to Felt, then poll. Shared by new layers and replacements. */
+  async function uploadFile(f: File, extra: Record<string, unknown>, name: string, replaced: boolean) {
+    if (f.size > maxFileBytes) {
+      setPhase({ step: "error", message: `That file is ${formatBytes(f.size)}. Your plan allows up to ${formatBytes(maxFileBytes)}.` });
       return;
     }
+    setPhase({ step: "uploading", percent: 0 });
+    try {
+      const start = await fetch(base, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "FILE", fileName: f.name, sizeBytes: f.size, confirmed, ...extra }),
+      });
+      const startData = await start.json().catch(() => null);
+      if (!start.ok) throw new Error(startData?.error ?? "Couldn't start the upload.");
 
+      try {
+        await putWithProgress(startData.putUrl, f, (percent) => setPhase({ step: "uploading", percent }));
+      } catch (putErr) {
+        // Release the reservation: the server sees no file and marks it failed,
+        // so it doesn't count toward the plan's upload limit.
+        await fetch(`${base}/${startData.uploadId}/complete`, { method: "POST" }).catch(() => {});
+        throw putErr;
+      }
+
+      setPhase({ step: "importing" });
+      const done = await fetch(`${base}/${startData.uploadId}/complete`, { method: "POST" });
+      const doneData = await done.json().catch(() => null);
+      if (!done.ok) throw new Error(doneData?.error ?? "Couldn't hand the file to Felt.");
+      if (doneData.upload.status === "FAILED") throw new Error(doneData.upload.error);
+      poll(startData.uploadId, name, Date.now(), replaced);
+    } catch (err) {
+      setPhase({ step: "error", message: err instanceof Error ? err.message : "Upload failed." });
+      router.refresh();
+    }
+  }
+
+  async function postAndPoll(body: Record<string, unknown>, name: string, replaced: boolean, fallbackError: string) {
     setPhase({ step: "importing" });
     try {
       const res = await fetch(base, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "URL", url: url.trim(), layerName: name, confirmed }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? "Couldn't add that link.");
+      if (!res.ok) throw new Error(data?.error ?? fallbackError);
       if (data.upload.status === "FAILED") throw new Error(data.upload.error);
-      poll(data.upload.id, name, Date.now());
+      poll(data.upload.id, name, Date.now(), replaced);
     } catch (err) {
-      setPhase({ step: "error", message: err instanceof Error ? err.message : "Couldn't add that link." });
+      setPhase({ step: "error", message: err instanceof Error ? err.message : fallbackError });
       router.refresh();
     }
+  }
+
+  async function submit() {
+    if (!confirmed) return;
+
+    if (mode === "replace") {
+      if (!selected || !replaceAck) return;
+      if (selected.kind === "URL") {
+        await postAndPoll(
+          { kind: "REFRESH_LINK", replacesUploadId: selected.uploadId, confirmed },
+          selected.layerName,
+          true,
+          "Couldn't refresh from that link."
+        );
+      } else if (file) {
+        await uploadFile(file, { replacesUploadId: selected.uploadId }, selected.layerName, true);
+      }
+      return;
+    }
+
+    const name = layerName.trim();
+    if (!name) return;
+    if (mode === "file") {
+      if (file) await uploadFile(file, { layerName: name }, name, false);
+      return;
+    }
+    await postAndPoll({ kind: "URL", url: url.trim(), layerName: name, confirmed }, name, false, "Couldn't add that link.");
+  }
+
+  async function chooseMode(next: Mode) {
+    setMode(next);
+    setFile(null);
+    setMissingColumns([]);
+    if (next !== "replace" || layers !== null) return;
+    setLayersError(null);
+    try {
+      const res = await fetch(base, { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Couldn't load this map's layers.");
+      setLayers(data.layers);
+    } catch (err) {
+      setLayersError(err instanceof Error ? err.message : "Couldn't load this map's layers.");
+    }
+  }
+
+  async function checkColumns(f: File | null, layer: ReplaceableLayer | null) {
+    setMissingColumns([]);
+    if (!f || !layer || layer.fileExt !== "csv" || layer.columns.length === 0) return;
+    const incoming = new Set((await readCsvHeader(f)).map(normaliseColumn));
+    setMissingColumns(layer.columns.filter((c) => !incoming.has(normaliseColumn(c))));
   }
 
   function reset() {
@@ -171,10 +270,33 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
     setUrl("");
     setLayerName("");
     setConfirmed(false);
+    setReplaceAck(false);
+    setSelectedId("");
+    setMissingColumns([]);
+    setLayers(null);
+    setMode("file");
     setPhase({ step: "idle" });
   }
 
-  const ready = !!layerName.trim() && confirmed && (mode === "file" ? !!file : !!url.trim());
+  const ready =
+    confirmed &&
+    (mode === "replace"
+      ? !!selected && replaceAck && (selected.kind === "URL" || !!file)
+      : !!layerName.trim() && (mode === "file" ? !!file : !!url.trim()));
+
+  const tab = (value: Mode, label: string, Icon: typeof Upload) => (
+    <Button
+      size="sm"
+      role="tab"
+      aria-selected={mode === value}
+      variant={mode === value ? "default" : "outline"}
+      className="gap-1.5"
+      disabled={busy}
+      onClick={() => chooseMode(value)}
+    >
+      <Icon className="h-3.5 w-3.5" /> {label}
+    </Button>
+  );
 
   return (
     <div className="border-b border-border bg-surface-card">
@@ -200,8 +322,16 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <CheckCircle2 className="h-5 w-5 text-[var(--success)]" aria-hidden="true" />
               <span>
-                <strong>{phase.layerName}</strong> was added. It appears in the map&apos;s legend; you may need to zoom
-                to it.
+                {phase.replaced ? (
+                  <>
+                    <strong>{phase.layerName}</strong> now has the new data. Its styling and charts were kept.
+                  </>
+                ) : (
+                  <>
+                    <strong>{phase.layerName}</strong> was added. It appears in the map&apos;s legend; you may need to
+                    zoom to it.
+                  </>
+                )}
               </span>
               <Button size="sm" variant="outline" onClick={reset}>
                 Add more data
@@ -209,80 +339,168 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
             </div>
           ) : (
             <>
-              <div className="flex gap-2" role="tablist" aria-label="Data source">
-                <Button
-                  size="sm"
-                  role="tab"
-                  aria-selected={mode === "file"}
-                  variant={mode === "file" ? "default" : "outline"}
-                  className="gap-1.5"
-                  disabled={busy}
-                  onClick={() => setMode("file")}
-                >
-                  <Upload className="h-3.5 w-3.5" /> Upload a file
-                </Button>
-                <Button
-                  size="sm"
-                  role="tab"
-                  aria-selected={mode === "url"}
-                  variant={mode === "url" ? "default" : "outline"}
-                  className="gap-1.5"
-                  disabled={busy}
-                  onClick={() => setMode("url")}
-                >
-                  <Link2 className="h-3.5 w-3.5" /> Paste a link
-                </Button>
+              <div className="flex flex-wrap gap-2" role="tablist" aria-label="Data source">
+                {tab("file", "Upload a file", Upload)}
+                {tab("url", "Paste a link", Link2)}
+                {tab("replace", "Replace a layer's data", RefreshCw)}
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                {mode === "file" ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="add-data-file">File</Label>
-                    <Input
-                      id="add-data-file"
-                      type="file"
-                      accept={accept}
-                      disabled={busy}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] ?? null;
-                        setFile(f);
-                        if (f && !layerName) setLayerName(stripExtension(f.name));
-                      }}
-                    />
-                    <p className="text-xs text-text-muted">
-                      CSV or Excel (with addresses or latitude/longitude columns), GeoJSON, KML/KMZ, GPX, GeoPackage,
-                      GeoTIFF, Parquet. Zip Shapefiles first.
+              {mode === "replace" ? (
+                <div className="space-y-3">
+                  {layersError ? (
+                    <p className="text-sm text-[var(--danger)]" role="alert">
+                      {layersError}
                     </p>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="add-data-url">Link</Label>
-                    <Input
-                      id="add-data-url"
-                      type="url"
-                      value={url}
-                      disabled={busy}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://…"
-                    />
-                    <p className="text-xs text-text-muted">
-                      A public Google Sheet, a hosted data file, or an ArcGIS FeatureServer/MapServer URL.
+                  ) : layers === null ? (
+                    <p className="flex items-center gap-2 text-sm text-text-muted">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading layers…
                     </p>
-                  </div>
-                )}
+                  ) : layers.length === 0 ? (
+                    <p className="text-sm text-text-secondary">
+                      No layers on this map can be replaced yet. Only layers added here with Add data can be replaced;
+                      layers built in Felt, or that collect field data, are left alone.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="replace-layer">Layer</Label>
+                          <Select
+                            value={selectedId}
+                            disabled={busy}
+                            onValueChange={(id) => {
+                              setSelectedId(id);
+                              setFile(null);
+                              setMissingColumns([]);
+                            }}
+                          >
+                            <SelectTrigger id="replace-layer">
+                              <SelectValue placeholder="Choose a layer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {layers.map((l) => (
+                                <SelectItem key={l.uploadId} value={l.uploadId}>
+                                  {l.layerName} {l.kind === "URL" ? "(from a link)" : l.fileExt ? `(.${l.fileExt})` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-data-name">Layer name</Label>
-                  <Input
-                    id="add-data-name"
-                    value={layerName}
-                    disabled={busy}
-                    maxLength={120}
-                    onChange={(e) => setLayerName(e.target.value)}
-                    placeholder="e.g. Volunteer sites"
-                  />
+                        {selected?.kind === "FILE" && (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="replace-file">New file</Label>
+                            <Input
+                              id="replace-file"
+                              type="file"
+                              accept={selected.fileExt ? `.${selected.fileExt}` : accept}
+                              disabled={busy}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0] ?? null;
+                                setFile(f);
+                                checkColumns(f, selected);
+                              }}
+                            />
+                            <p className="text-xs text-text-muted">
+                              Must be a {selected.fileExt ? `.${selected.fileExt}` : "same-type"} file with every row you
+                              want in the layer.
+                            </p>
+                          </div>
+                        )}
+
+                        {selected?.kind === "URL" && (
+                          <div className="space-y-1.5">
+                            <Label>Source link</Label>
+                            <p className="break-all rounded bg-surface-page px-2 py-1.5 text-xs text-text-secondary">
+                              {selected.sourceUrl}
+                            </p>
+                            <p className="text-xs text-text-muted">Felt will fetch this link again and use what&apos;s there now.</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {missingColumns.length > 0 && (
+                        <div className="flex gap-2 rounded-md border border-[var(--warning)] bg-[var(--warning-subtle)] p-3 text-sm">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--yellow-500)]" aria-hidden="true" />
+                          <p>
+                            Your file is missing {missingColumns.length === 1 ? "a column" : "columns"} the layer has now:{" "}
+                            <strong>{missingColumns.join(", ")}</strong>. Styling, filters or charts that use{" "}
+                            {missingColumns.length === 1 ? "it" : "them"} will stop working.
+                          </p>
+                        </div>
+                      )}
+
+                      {selected && (
+                        <label className="flex items-start gap-2 text-sm text-text-secondary">
+                          <input
+                            id="replace-ack"
+                            type="checkbox"
+                            className="mt-1"
+                            checked={replaceAck}
+                            disabled={busy}
+                            onChange={(e) => setReplaceAck(e.target.checked)}
+                          />
+                          <span>
+                            I understand this <strong>replaces all the data</strong> in <strong>{selected.layerName}</strong>,
+                            including any changes made to it on the map. Felt keeps no earlier version. Styling and charts
+                            are kept.
+                          </span>
+                        </label>
+                      )}
+                    </>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {mode === "file" ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="add-data-file">File</Label>
+                      <Input
+                        id="add-data-file"
+                        type="file"
+                        accept={accept}
+                        disabled={busy}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null;
+                          setFile(f);
+                          if (f && !layerName) setLayerName(stripExtension(f.name));
+                        }}
+                      />
+                      <p className="text-xs text-text-muted">
+                        CSV or Excel (with addresses or latitude/longitude columns), GeoJSON, KML/KMZ, GPX, GeoPackage,
+                        GeoTIFF, Parquet. Zip Shapefiles first.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="add-data-url">Link</Label>
+                      <Input
+                        id="add-data-url"
+                        type="url"
+                        value={url}
+                        disabled={busy}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder="https://…"
+                      />
+                      <p className="text-xs text-text-muted">
+                        A public Google Sheet, a hosted data file, or an ArcGIS FeatureServer/MapServer URL.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-data-name">Layer name</Label>
+                    <Input
+                      id="add-data-name"
+                      value={layerName}
+                      disabled={busy}
+                      maxLength={120}
+                      onChange={(e) => setLayerName(e.target.value)}
+                      placeholder="e.g. Volunteer sites"
+                    />
+                  </div>
+                </div>
+              )}
 
               <label className="flex items-start gap-2 text-sm text-text-secondary">
                 <input
@@ -312,8 +530,14 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                   {phase.step === "uploading"
                     ? `Uploading… ${phase.percent}%`
                     : phase.step === "importing"
-                      ? "Adding to map…"
-                      : "Add to map"}
+                      ? mode === "replace"
+                        ? "Replacing data…"
+                        : "Adding to map…"
+                      : mode === "replace"
+                        ? selected?.kind === "URL"
+                          ? "Refresh from link"
+                          : "Replace data"
+                        : "Add to map"}
                 </Button>
                 {phase.step === "importing" && (
                   <span className="text-xs text-text-muted">Felt is processing the data. Large files can take a few minutes.</span>
@@ -339,7 +563,13 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                             : "text-text-muted"
                       }`}
                     >
-                      {u.status === "COMPLETED" ? "Added" : u.status === "FAILED" ? u.error ?? "Failed" : "In progress"}
+                      {u.status === "COMPLETED"
+                        ? u.mode === "REPLACE"
+                          ? "Replaced"
+                          : "Added"
+                        : u.status === "FAILED"
+                          ? u.error ?? "Failed"
+                          : "In progress"}
                     </span>
                   </li>
                 ))}

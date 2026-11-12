@@ -200,6 +200,20 @@ model MapUpload {
   status                   MapUploadStatus @default(PENDING_UPLOAD)
   error                    String?
   confirmedNoSensitiveData Boolean         @default(false)
+  /// NEW creates a layer; REPLACE swaps the data of the layer created by
+  /// `replacesUploadId` (its "origin" upload).
+  mode                     MapUploadMode   @default(NEW)
+  replacesUploadId         String?
+  /// Origin uploads only: Felt imports from a permanent RippleMap address
+  /// (/api/felt/sources/{sourceToken}/…), so the layer can be refreshed
+  /// later with a new file. It answers only while armed (`sourceArmedUntil`)
+  /// and redirects to `sourceKey`, the file currently being imported.
+  sourceToken              String?         @unique
+  sourceKey                String?
+  sourceArmedUntil         DateTime?
+  /// Replace uploads: when Felt was asked to refresh, to tell a finished
+  /// refresh from the layer's previous state.
+  refreshRequestedAt       DateTime?
   createdAt                DateTime        @default(now())
   updatedAt                DateTime        @updatedAt
 
@@ -207,6 +221,11 @@ model MapUpload {
 
   @@index([mapId])
   @@index([orgId])
+}
+
+enum MapUploadMode {
+  NEW
+  REPLACE
 }
 
 enum MapUploadKind {
