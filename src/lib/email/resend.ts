@@ -64,3 +64,48 @@ export async function sendInviteEmail(params: {
     return { sent: false, reason: "send_failed" };
   }
 }
+
+export async function sendVerificationEmail(params: {
+  to: string;
+  name: string;
+  verifyUrl: string;
+}): Promise<SendResult> {
+  const client = getClient();
+  if (!client) return { sent: false, reason: "not_configured" };
+
+  const firstName = params.name.split(" ")[0] || params.name;
+  try {
+    const { error } = await client.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject: "Confirm your email for RippleMap",
+      html: `
+        <div style="font-family: 'Hanken Grotesk', -apple-system, sans-serif; max-width: 480px; margin: 0 auto;">
+          <div style="background: #6c8042; height: 4px; border-radius: 2px; margin-bottom: 24px;"></div>
+          <h2 style="color: #303030;">Confirm your email</h2>
+          <p style="color: #434342; font-size: 15px; line-height: 1.5;">
+            Hi ${firstName}, confirm this is your email address to finish setting up your RippleMap account.
+          </p>
+          <p style="margin: 24px 0;">
+            <a href="${params.verifyUrl}"
+               style="background: #6c8042; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+              Confirm email
+            </a>
+          </p>
+          <p style="color: #7a7a74; font-size: 13px;">
+            This link expires in 24 hours. If you didn't create a RippleMap account, you can ignore this email.
+          </p>
+        </div>
+      `,
+      text: `Hi ${firstName}, confirm your email for RippleMap: ${params.verifyUrl}\n\nThis link expires in 24 hours. If you didn't create a RippleMap account, you can ignore this email.`,
+    });
+    if (error) {
+      console.error("Resend send error:", error);
+      return { sent: false, reason: "send_failed" };
+    }
+    return { sent: true };
+  } catch (err) {
+    console.error("Resend send threw:", err);
+    return { sent: false, reason: "send_failed" };
+  }
+}

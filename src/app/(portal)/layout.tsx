@@ -18,9 +18,10 @@ export default async function PortalLayout({ children }: { children: React.React
       where: { id: su.orgId },
       select: { name: true, mediaSource: true },
     }),
-    db.user.findUnique({ where: { id: session.user.id }, select: { role: true } }),
+    db.user.findUnique({ where: { id: session.user.id }, select: { role: true, emailVerifiedAt: true } }),
   ]);
 
+  if (!user?.emailVerifiedAt) redirect("/verify-email");
   if (!state?.completed) redirect("/onboarding");
 
   const showMedia = !!org?.mediaSource;

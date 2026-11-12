@@ -30,10 +30,11 @@ export default async function OnboardingPage({ searchParams }: Props) {
         users: { where: { feltSeat: true }, select: { name: true }, orderBy: { feltSeatSince: "asc" } },
       },
     }),
-    db.user.findUnique({ where: { id: session.user.id }, select: { role: true } }),
+    db.user.findUnique({ where: { id: session.user.id }, select: { role: true, emailVerifiedAt: true } }),
   ]);
 
   if (!org || !user) redirect("/login");
+  if (!user.emailVerifiedAt) redirect("/verify-email");
   if (org.onboardingState?.completed) redirect("/dashboard");
 
   const canInvite = user.role === "OWNER" || user.role === "ADMIN";

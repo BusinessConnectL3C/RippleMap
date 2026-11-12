@@ -18,7 +18,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 ## Current State (as of 2026-05-20)
 
 ### Working
-- Registration (creates RippleMap account, the org's private Felt project and its ClickUp list; no ArcGIS group — ArcGIS is opt-in)
+- Registration creates the RippleMap account and org, then emails a verification link (`src/lib/verification.ts`; 24 h, single use, only a hash stored). The org's ClickUp list and private Felt project are created only when the owner verifies (`src/lib/provisioning.ts`, from `GET /api/auth/verify-email`). Unverified users are held on `/verify-email`. If `RESEND_API_KEY` is unset, verification is skipped and the org is provisioned at registration. Invite acceptance counts as verified; pre-existing users were backfilled as verified. No ArcGIS group (opt-in).
 - Login / JWT session
 - Onboarding flow (3 user steps, same for all org types: invite team → "also use ArcGIS?" → explore; `src/lib/onboarding/steps.ts`). BC-side setup (first map, Field Editor) is shown as status and never blocks the user. Not yet tested end to end.
 - ArcGIS OAuth connect (authorization code flow, tokens encrypted and stored)
@@ -27,7 +27,6 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Neon DB migrations applied (2 migrations)
 
 ### Not Yet Built / Pending
-- **Email confirmation on registration** — still no verification-token flow on registration itself. (Org-invite emails, however, now send via Resend — see below.)
 - **Admin panel** — no UI for BC staff to manage users, set arcgisGroupId manually if group creation fails, etc.
 - **Billing (manual, live):** `OrgBilling` holds each org's plan, status, price, cycle, dates, Felt seats and billing contact. BC staff edit it in admin (org page → Billing; overview at `/admin/billing`); org OWNER/ADMIN see it read-only at `/billing`. Never store card or bank account numbers there (BC policy). BC staff accounts don't see the portal Billing/Support pages (redirected to admin).
 - **Stripe billing integration** — replacing Salesforce. Existing Salesforce code (`src/lib/salesforce/`, `/api/salesforce/`, `SalesforceLink` table) to be removed. Stripe not yet implemented.
@@ -62,7 +61,7 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 | `ARCGIS_ADMIN_USERNAME` | BC org admin ArcGIS username (for group management) |
 | `ARCGIS_ADMIN_PASSWORD` | BC org admin ArcGIS password |
 | `DIRECT_URL` | Neon **non-pooled** connection string. Used only by `prisma.config.ts` for `migrate deploy` — advisory locks used to serialize migrations aren't reliable over the pooled connection. Same credentials as `DATABASE_URL`, host without `-pooler`. |
-| `RESEND_API_KEY` | Optional. Powers org-invite emails (`src/lib/email/resend.ts`). If unset, inviting a member falls back to a copyable link instead of sending anything — nothing breaks either way. |
+| `RESEND_API_KEY` | Powers verification and org-invite emails (`src/lib/email/resend.ts`). **Required in production**: without it, registration skips email verification. If unset, invites fall back to a copyable link. |
 | `RESEND_FROM_EMAIL` | Optional, defaults to `RippleMap <invites@ripplemap.app>`. Requires that sending domain to be verified in Resend or emails won't deliver. |
 | `CLICKUP_API_TOKEN` | BC ClickUp workspace API token, used for all ticket/list/comment operations |
 | `CLICKUP_SUPPORT_FOLDER_ID` | ClickUp folder that holds one auto-created list per org |
@@ -91,10 +90,11 @@ A Next.js 16 client portal for Business Connect L3C's RippleMap product. Clients
 - Felt map sync & public maps: `src/lib/felt/sync.ts` (`syncOrgMaps`, throttled `autoSyncOrgMaps`). Runs when staff press Sync, when an org owner/admin presses "Check Felt for new maps" (`POST /api/account/maps/sync`), and automatically (≤ every 5 min per org) when an owner/admin opens Maps & Apps or Account. Felt has no webhook for new maps. Visibility `PUBLIC` = Felt public link on (viewer export still off), set by org owner/admin or staff via `setMapVisibility`. Maps found public in Felt stay public and get `madePublicInFelt` (review flag: Keep public / Make private); sync never flips public maps back.
 - Felt seats & invites: Felt has no members/invite API. Admin org page → Felt Seats shows workspace and org seat counts (`src/lib/felt/seats.ts`) and, per Field Editor, the exact invite steps to do in Felt plus Invite pending/accepted (`User.feltInviteAcceptedAt`).
 - BC staff act as owners of their own org (edit name, invite and manage members in Account); BC staff accounts themselves can't be changed or removed from the UI.
+- Map templates: `src/lib/felt/templates.ts`. BC staff tick "Offer to clients as a template" on maps in a BC-internal org (admin Felt Maps card; client-org maps are refused). Org owners/admins pick one at `/maps/new` (`POST /api/maps/from-template`): it's duplicated into their project, private and Restricted, capped at 25 maps per org. Template previews: `GET /api/felt/templates/[id]/thumbnail`.
 - ArcGIS tenant check: `src/lib/arcgis/access.ts` (`getOrgItem`). Every route that touches an ArcGIS item with BC's tokens must use it or `getAuthorizedLayer`.
 
 ## Database
 - Provider: Neon (PostgreSQL)
 - Migrations in: `prisma/migrations/`
 - Do NOT truncate `_prisma_migrations` — only truncate application tables
-- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SupportTicketComment", "FeltMapGrant", "FeltMap", "OrgBilling", "User" CASCADE;` (this does not delete the orgs' Felt projects or maps in Felt)
+- To reset test data: `TRUNCATE "ArcGISAccountLink", "OnboardingState", "SupportTicket", "SupportTicketComment", "FeltMapGrant", "FeltMap", "OrgBilling", "EmailVerificationToken", "User" CASCADE;` (this does not delete the orgs' Felt projects or maps in Felt)

@@ -22,6 +22,8 @@ interface MapRow {
   grantCount: number;
   hasThumbnail: boolean;
   madePublicInFelt: boolean;
+  isTemplate: boolean;
+  templateDescription: string | null;
 }
 
 interface Props {
@@ -29,6 +31,56 @@ interface Props {
   feltProjectId: string | null;
   feltConfigured: boolean;
   maps: MapRow[];
+  /** BC staff org: its maps can be offered to clients as templates. */
+  isInternalOrg?: boolean;
+}
+
+function TemplateControls({
+  map,
+  busy,
+  onSave,
+}: {
+  map: MapRow;
+  busy: boolean;
+  onSave: (body: { isTemplate?: boolean; templateDescription?: string | null }, label: string) => void;
+}) {
+  const [description, setDescription] = useState(map.templateDescription ?? "");
+  return (
+    <div className="mt-2 space-y-1">
+      <label className="flex items-center gap-2 text-xs text-gray-700">
+        <input
+          type="checkbox"
+          checked={map.isTemplate}
+          disabled={busy}
+          onChange={(e) =>
+            onSave({ isTemplate: e.target.checked }, e.target.checked ? "Offered as a template" : "Removed from templates")
+          }
+        />
+        Offer to clients as a template
+      </label>
+      {map.isTemplate && (
+        <div className="flex gap-1">
+          <Input
+            id={`template-desc-${map.id}`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Short description clients see"
+            className="h-7 text-xs"
+            maxLength={300}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            disabled={busy || description === (map.templateDescription ?? "")}
+            onClick={() => onSave({ templateDescription: description.trim() || null }, "Description saved")}
+          >
+            Save
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const KIND_LABEL: Record<Kind, string> = { MAP: "Map", DASHBOARD: "Dashboard", SURVEY: "Survey" };
@@ -38,7 +90,7 @@ async function errorMessage(res: Response) {
   return data?.error ?? "Please try again.";
 }
 
-export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Props) {
+export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps, isInternalOrg = false }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [mapInput, setMapInput] = useState("");
@@ -139,6 +191,18 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps }: Pr
                   >
                     <ExternalLink className="h-3 w-3" />
                   </a>
+                  {m.isTemplate && (
+                    <Badge variant="info" className="ml-2">
+                      Template
+                    </Badge>
+                  )}
+                  {isInternalOrg && (
+                    <TemplateControls
+                      map={m}
+                      busy={busy === m.id}
+                      onSave={(body, label) => run(m.id, () => patchMap(m.id, body), async () => label)}
+                    />
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   <Select

@@ -57,7 +57,7 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/login?registered=1");
+    router.push("/verify-email?sent=1");
   };
 
   return (
