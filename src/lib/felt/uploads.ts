@@ -52,9 +52,32 @@ export interface UploadQuota {
   used: number;
 }
 
-/** Uploads that count toward the per-map limit: everything except failures. */
+/**
+ * A reserved file upload whose browser PUT never completed (closed tab,
+ * network or CORS error) is abandoned after this long: it stops counting
+ * toward the plan limit and is shown as not uploaded.
+ */
+const ABANDON_AFTER_MS = 15 * 60 * 1000;
+
+export function isAbandoned(u: Pick<MapUpload, "status" | "createdAt">): boolean {
+  return u.status === "PENDING_UPLOAD" && Date.now() - u.createdAt.getTime() > ABANDON_AFTER_MS;
+}
+
+/**
+ * Uploads that count toward the per-map limit: imports that started or
+ * finished, plus file uploads reserved in the last few minutes (so parallel
+ * attempts can't exceed the limit). Failed and abandoned ones don't count.
+ */
 function countedUploads(mapId: string) {
-  return db.mapUpload.count({ where: { mapId, status: { not: "FAILED" } } });
+  return db.mapUpload.count({
+    where: {
+      mapId,
+      OR: [
+        { status: { in: ["IMPORTING", "COMPLETED"] } },
+        { status: "PENDING_UPLOAD", createdAt: { gt: new Date(Date.now() - ABANDON_AFTER_MS) } },
+      ],
+    },
+  });
 }
 
 export async function getUploadQuota(orgId: string, mapId: string): Promise<UploadQuota> {
@@ -250,14 +273,15 @@ async function fail(upload: MapUpload, message: string): Promise<MapUpload> {
 }
 
 export function serializeUpload(u: MapUpload) {
+  const abandoned = isAbandoned(u);
   return {
     id: u.id,
     kind: u.kind,
     layerName: u.layerName,
     fileName: u.fileName,
     sourceUrl: u.sourceUrl,
-    status: u.status,
-    error: u.error,
+    status: abandoned ? ("FAILED" as const) : u.status,
+    error: abandoned ? "Not uploaded" : u.error,
     createdAt: u.createdAt.toISOString(),
   };
 }
