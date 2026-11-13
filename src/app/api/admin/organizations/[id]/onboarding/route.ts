@@ -1,12 +1,10 @@
+import { requireStaffViewer } from "@/lib/staff";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+/** DB-checked (not the JWT), so a demoted staff account loses access at once. */
 async function requireBCStaff() {
-  const session = await auth();
-  const su = session?.user as unknown as { role?: string } | undefined;
-  if (!session?.user?.id || su?.role !== "BC_STAFF") return false;
-  return true;
+  return requireStaffViewer();
 }
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

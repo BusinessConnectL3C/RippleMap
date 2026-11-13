@@ -1,18 +1,18 @@
+import { requireStaffViewer } from "@/lib/staff";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { isInternalOrg } from "@/lib/felt/templates";
 
+/** DB-checked (not the JWT), so a demoted staff account loses access at once. */
 async function requireBCStaff() {
-  const session = await auth();
-  const su = session?.user as unknown as { role?: string } | undefined;
-  if (!session?.user?.id || su?.role !== "BC_STAFF") return false;
-  return true;
+  return requireStaffViewer();
 }
 
 const patchSchema = z
   .object({
-    role: z.enum(["OWNER", "ADMIN", "MEMBER"]).optional(),
+    // BC_STAFF is shown as "RM Staff": RippleMap system admin across every org.
+    role: z.enum(["OWNER", "ADMIN", "MEMBER", "BC_STAFF"]).optional(),
     // Field Editor bookkeeping. This records what BC staff set up in Felt by
     // hand (Felt has no members/seats API); it doesn't change anything in Felt.
     feltSeat: z.boolean().optional(),
@@ -23,7 +23,8 @@ const patchSchema = z
   .refine((v) => Object.values(v).some((x) => x !== undefined), { message: "Nothing to update" });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!await requireBCStaff()) {
+  const staff = await requireBCStaff();
+  if (!staff) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -35,14 +36,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { role, feltSeat, feltAccess, feltEmail, feltInviteAccepted } = parsed.data;
-  const existing = await db.user.findUnique({ where: { id }, select: { feltSeat: true, role: true } });
+  const existing = await db.user.findUnique({ where: { id }, select: { feltSeat: true, role: true, orgId: true, email: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // BC_STAFF is granted and removed only with database access (scripts/
-  // create-bc-staff.mjs), never from the admin UI: an accidental dropdown
-  // change here would otherwise silently demote a system admin.
-  if (role !== undefined && existing.role === "BC_STAFF") {
-    return NextResponse.json({ error: "BC staff roles can't be changed here" }, { status: 409 });
+  // RM Staff (BC_STAFF) can see and manage every org, so granting or removing
+  // it is guarded: only for people in RippleMap's own org (an org that already
+  // has an RM Staff account), never on yourself, and never the last one.
+  if (role !== undefined && role !== existing.role && (role === "BC_STAFF" || existing.role === "BC_STAFF")) {
+    if (id === staff.id) {
+      return NextResponse.json({ error: "You can't change your own RM Staff role" }, { status: 409 });
+    }
+    if (role === "BC_STAFF" && !(await isInternalOrg(existing.orgId))) {
+      return NextResponse.json(
+        { error: "RM Staff can only be given to people in the RippleMap organization, not to client organizations" },
+        { status: 409 }
+      );
+    }
+    if (existing.role === "BC_STAFF" && (await db.user.count({ where: { role: "BC_STAFF" } })) <= 1) {
+      return NextResponse.json({ error: "There must always be at least one RM Staff account" }, { status: 409 });
+    }
+    // Audit trail for privilege changes (Vercel logs).
+    console.info(
+      JSON.stringify({ event: "staff_role_change", by: staff.id, userId: id, from: existing.role, to: role })
+    );
   }
 
   await db.user.update({
@@ -70,8 +86,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
 
-  const user = await db.user.findUnique({ where: { id }, select: { orgId: true } });
+  const user = await db.user.findUnique({ where: { id }, select: { orgId: true, role: true } });
   if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (user.role === "BC_STAFF") {
+    return NextResponse.json({ error: "Remove the RM Staff role first, then remove the person" }, { status: 409 });
+  }
 
   // Prevent deleting the last user in an org
   const orgUserCount = await db.user.count({ where: { orgId: user.orgId } });

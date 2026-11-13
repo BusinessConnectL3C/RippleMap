@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { requireStaffViewer } from "@/lib/staff";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,9 @@ interface Props {
 
 export default async function AdminOrgDetailPage({ params }: Props) {
   const { id } = await params;
+  // The admin layout already requires RM Staff; this gives the signed-in staff member's id.
+  const staff = await requireStaffViewer();
+  if (!staff) notFound();
 
   const org = await db.organization.findUnique({
     where: { id },
@@ -212,6 +216,8 @@ export default async function AdminOrgDetailPage({ params }: Props) {
               <p className="p-4 text-sm text-gray-600">No users in this org.</p>
             ) : (
               <UserRoleEditor
+                isInternalOrg={org.users.some((u) => u.role === "BC_STAFF")}
+                currentUserId={staff.id}
                 users={org.users.map((u) => ({
                   id: u.id,
                   name: u.name,
