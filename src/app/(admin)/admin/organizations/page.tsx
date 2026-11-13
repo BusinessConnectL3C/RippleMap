@@ -2,7 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { TopBar } from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, ChevronRight, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { feltSeatUsage } from "@/lib/felt/seats";
 
 export default async function AdminOrgsPage() {
@@ -18,7 +19,16 @@ export default async function AdminOrgsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <TopBar title="Organizations" />
+      <TopBar
+        title="Organizations"
+        actions={
+          <Button asChild size="sm" className="gap-1.5">
+            <Link href="/admin/organizations/new">
+              <Plus className="h-3.5 w-3.5" /> New organization
+            </Link>
+          </Button>
+        }
+      />
       <div className="flex-1 p-6 space-y-4">
         <p className="text-sm text-gray-700">
           Felt seats:{" "}
