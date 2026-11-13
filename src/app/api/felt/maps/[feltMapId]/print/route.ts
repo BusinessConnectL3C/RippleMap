@@ -27,6 +27,7 @@ const schema = z.discriminatedUnion("kind", [
     format: z.enum(PRINT_FORMATS),
     dpi: z.union([z.literal(PRINT_DPI[0]), z.literal(PRINT_DPI[1])]),
     bounds: z.tuple([lng, lat, lng, lat]).optional(),
+    layerIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)).max(200).optional(),
   }),
   z.object({ kind: z.literal("PAGE"), pageId: z.string().min(1).max(100) }),
 ]);
