@@ -32,6 +32,7 @@ model Organization {
   supportTickets  SupportTicket[]
   invites         OrgInvite[]
   feltMaps        FeltMap[]
+  printLayouts    OrgPrintLayout[]
   billing         OrgBilling?
 }
 
@@ -397,4 +398,38 @@ enum ContactStatus {
   NEW
   CONTACTED
   CLOSED
+}
+
+/// A Felt print layout (from BC's shared Felt workspace) offered to one org,
+/// in addition to Felt's built-ins and the shared "RippleMap …" layouts.
+/// Assigned by BC staff on the admin org page.
+model OrgPrintLayout {
+  id           String   @id @default(cuid())
+  orgId        String
+  feltLayoutId String
+  /// Name when assigned, for display if the layout is renamed or deleted in Felt.
+  name         String
+  /// Preselected when this org prints. At most one per org.
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, feltLayoutId])
+}
+
+/// Wireframe of a Felt print layout for the layout picker (Felt's API has no
+/// layout images): the item frames of a page made from the layout, normalised
+/// to the page. Workspace-wide, rebuilt when the layout's contents change.
+model PrintLayoutPreview {
+  id           String   @id @default(cuid())
+  feltLayoutId String
+  orientation  String
+  /// The layout's `contents` from Felt when this was built; a change means it was edited.
+  contentsKey  String
+  aspect       Float
+  items        Json
+  updatedAt    DateTime @updatedAt
+
+  @@unique([feltLayoutId, orientation])
 }
