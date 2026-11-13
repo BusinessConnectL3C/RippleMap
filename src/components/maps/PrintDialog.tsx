@@ -8,13 +8,26 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { LayoutWireframe, type WireframeItem } from "@/components/maps/LayoutWireframe";
 
 interface LayoutOption {
   id: string;
   name: string;
   branded: boolean;
   orientation: "portrait" | "landscape" | null;
+  assigned: boolean;
+  isDefault: boolean;
 }
+
+interface Preview {
+  layoutId: string;
+  orientation: "portrait" | "landscape";
+  aspect: number;
+  items: WireframeItem[];
+}
+
+/** Letter page proportions, for wireframes still loading. */
+const LETTER_ASPECT = { landscape: 11 / 8.5, portrait: 8.5 / 11 };
 
 interface PageOption {
   id: string;
@@ -68,6 +81,25 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getCurrentBounds }:
   const [dpi, setDpi] = useState<150 | 300>(300);
   const [view, setView] = useState<"current" | "saved">("current");
   const [state, setState] = useState<State>({ step: "idle" });
+  // Wireframes per orientation, keyed by layout id. Built-ins follow the chosen
+  // orientation; saved layouts keep their own.
+  const [previews, setPreviews] = useState<Record<string, Record<string, Preview>>>({});
+
+  useEffect(() => {
+    if (!options || options.layouts.length === 0 || previews[orientation]) return;
+    let cancelled = false;
+    const ids = options.layouts.map((l) => l.id).join(",");
+    fetch(`${base}/previews?ids=${encodeURIComponent(ids)}&orientation=${orientation}`)
+      .then((res) => (res.ok ? res.json() : { previews: [] }))
+      .then((data: { previews: Preview[] }) => {
+        if (cancelled) return;
+        setPreviews((p) => ({ ...p, [orientation]: Object.fromEntries(data.previews.map((pv) => [pv.layoutId, pv])) }));
+      })
+      .catch(() => !cancelled && setPreviews((p) => ({ ...p, [orientation]: {} })));
+    return () => {
+      cancelled = true;
+    };
+  }, [options, orientation, previews, base]);
 
   useEffect(() => {
     if (!open || options) return;
@@ -78,6 +110,7 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getCurrentBounds }:
         if (!res.ok) throw new Error(data?.error ?? "Couldn't load print layouts.");
         if (cancelled) return;
         setOptions(data);
+        // The org's default comes first when it has one.
         const first = data.layouts[0] as LayoutOption | undefined;
         if (first) {
           setLayoutId(first.id);
@@ -128,7 +161,7 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getCurrentBounds }:
         if (!next) setState({ step: "idle" });
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Printer className="h-5 w-5" aria-hidden="true" /> Print map
@@ -148,28 +181,46 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getCurrentBounds }:
           <div className="space-y-5">
             <fieldset className="space-y-2" disabled={printing}>
               <legend className="mb-2 text-sm font-medium text-text-primary">Layout</legend>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Layout">
-                {options.layouts.map((l) => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={layoutId === l.id}
-                    onClick={() => {
-                      setLayoutId(l.id);
-                      if (l.orientation) setOrientation(l.orientation);
-                    }}
-                    className={cn(
-                      "flex min-h-14 flex-col items-start justify-center gap-1 rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                      layoutId === l.id
-                        ? "border-brand bg-brand-subtle text-text-primary"
-                        : "border-border hover:border-border-strong hover:bg-surface-page"
-                    )}
-                  >
-                    <span className="font-medium leading-tight">{l.name}</span>
-                    {l.branded && <Badge variant="brand">RippleMap</Badge>}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Layout">
+                {options.layouts.map((l) => {
+                  const loaded = previews[orientation];
+                  const preview = loaded?.[l.id];
+                  const o = l.orientation ?? orientation;
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={layoutId === l.id}
+                      onClick={() => {
+                        setLayoutId(l.id);
+                        if (l.orientation) setOrientation(l.orientation);
+                      }}
+                      className={cn(
+                        "group flex flex-col gap-2 rounded-lg border p-2 text-left text-sm transition-colors",
+                        layoutId === l.id
+                          ? "border-brand bg-brand-subtle ring-1 ring-brand"
+                          : "border-border hover:border-border-strong hover:bg-surface-page"
+                      )}
+                    >
+                      <div className="flex aspect-[4/3] items-center justify-center rounded bg-surface-page p-2">
+                        <LayoutWireframe
+                          aspect={preview?.aspect ?? LETTER_ASPECT[o]}
+                          items={preview ? preview.items : loaded ? [] : null}
+                          className={o === "portrait" ? "h-full w-auto" : "max-h-full"}
+                        />
+                      </div>
+                      <span className="px-1 font-medium leading-tight text-text-primary">{l.name}</span>
+                      {(l.isDefault || l.assigned || l.branded) && (
+                        <span className="flex flex-wrap gap-1 px-1">
+                          {l.isDefault && <Badge variant="default">Default</Badge>}
+                          {l.assigned && !l.isDefault && <Badge variant="brand">Your organization</Badge>}
+                          {l.branded && !l.assigned && <Badge variant="brand">RippleMap</Badge>}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </fieldset>
 

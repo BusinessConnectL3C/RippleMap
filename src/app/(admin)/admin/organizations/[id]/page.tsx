@@ -13,6 +13,7 @@ import { ONBOARDING_STEPS, isStepId } from "@/lib/onboarding/steps";
 import { DeleteOrgButton } from "@/components/admin/DeleteOrgButton";
 import { BillingEditForm } from "@/components/admin/BillingEditForm";
 import { FeltSeatsPanel } from "@/components/admin/FeltSeatsPanel";
+import { PrintLayoutsPanel } from "@/components/admin/PrintLayoutsPanel";
 import { checkMediaScope } from "@/lib/aws/media";
 import { SHARED_MEDIA_BUCKET } from "@/lib/aws/s3";
 import { feltSeatUsage } from "@/lib/felt/seats";
@@ -158,6 +159,18 @@ export default async function AdminOrgDetailPage({ params }: Props) {
             />
           </CardContent>
         </Card>
+
+        {/* Print layouts */}
+        {isFeltConfigured() && (
+          <Card id="print-layouts">
+            <CardHeader>
+              <CardTitle>Print Layouts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PrintLayoutsPanel orgId={org.id} />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Onboarding */}
         <Card>
