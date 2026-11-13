@@ -13,14 +13,14 @@ function getClient(): Resend | null {
 export async function sendInviteEmail(params: {
   to: string;
   orgName: string;
-  role: "ADMIN" | "MEMBER";
+  role: "OWNER" | "ADMIN" | "MEMBER";
   inviteUrl: string;
   expiresAt: Date;
 }): Promise<SendResult> {
   const client = getClient();
   if (!client) return { sent: false, reason: "not_configured" };
 
-  const roleLabel = params.role === "ADMIN" ? "an Admin" : "a Member";
+  const roleLabel = params.role === "OWNER" ? "the Owner" : params.role === "ADMIN" ? "an Admin" : "a Member";
   const expiresLabel = params.expiresAt.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",

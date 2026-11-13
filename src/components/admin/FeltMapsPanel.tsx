@@ -96,6 +96,7 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps, isIn
   const [mapInput, setMapInput] = useState("");
   const [newKind, setNewKind] = useState<Kind>("MAP");
   const [templateTitle, setTemplateTitle] = useState("");
+  const [existingProject, setExistingProject] = useState("");
 
   async function run(key: string, fn: () => Promise<Response>, success: (res: Response) => Promise<string>) {
     setBusy(key);
@@ -135,7 +136,7 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps, isIn
     return (
       <div className="space-y-3">
         <p className="text-sm text-gray-600">
-          This org has no Felt project yet (creation at registration may have failed).
+          This org has no Felt project yet. Create its private project, or connect one that was already made in Felt.
         </p>
         <Button
           disabled={busy === "project"}
@@ -150,6 +151,40 @@ export function FeltMapsPanel({ orgId, feltProjectId, feltConfigured, maps, isIn
           {busy === "project" && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
           Create private Felt project
         </Button>
+        <div className="space-y-1.5 border-t border-gray-100 pt-3">
+          <Label htmlFor={`existing-project-${orgId}`}>Or connect an existing project</Label>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              id={`existing-project-${orgId}`}
+              value={existingProject}
+              onChange={(e) => setExistingProject(e.target.value)}
+              placeholder="Felt project link or id"
+              className="max-w-sm"
+            />
+            <Button
+              variant="outline"
+              disabled={busy === "link" || !existingProject.trim()}
+              onClick={() =>
+                run(
+                  "link",
+                  () =>
+                    fetch(`/api/admin/organizations/${orgId}/felt-project`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ existingProject }),
+                    }),
+                  async () => "Felt project connected"
+                )
+              }
+            >
+              {busy === "link" && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Connect
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500">
+            It must be private, and the portal&apos;s Felt account must be a member of it. Then use Sync to pick up its maps.
+          </p>
+        </div>
       </div>
     );
   }

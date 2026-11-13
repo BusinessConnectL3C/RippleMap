@@ -35,7 +35,7 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
               <CardHeader>
                 <CardTitle>Join {valid.organization.name}</CardTitle>
                 <CardDescription>
-                  You&apos;ve been invited as {valid.role === "ADMIN" ? "an Admin" : "a Member"}. Set your name and
+                  You&apos;ve been invited as {valid.role === "OWNER" ? "the Owner" : valid.role === "ADMIN" ? "an Admin" : "a Member"}. Set your name and
                   password to finish creating your account.
                 </CardDescription>
               </CardHeader>
