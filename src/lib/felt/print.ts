@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { feltFetch } from "./client";
 import { getViewableMap, type Viewer } from "./access";
+import { deleteMap, duplicateMapIntoProject, getMap, TEMP_PRINT_MAP_TITLE } from "./maps";
 
 /**
  * Printing from the portal, through Felt's print editor API.
@@ -128,6 +129,13 @@ export interface PrintRequest {
    * can set which layers each map on the page shows. Omit for the saved set.
    */
   layerIds?: string[];
+  /**
+   * The viewer's filters per layer (Felt Style Language, the SDK's `combined`
+   * filters), for layers where they differ from the saved style. Felt's print
+   * API can't take filters, so these are printed from a temporary copy of the
+   * map with the filters saved into its layer styles.
+   */
+  filters?: { layerId: string; filters: unknown }[];
 }
 
 async function authorize(viewer: Viewer, feltMapId: string) {
@@ -303,17 +311,28 @@ function logPrint(map: { orgId: string; id: string }, viewer: Viewer, detail: Re
   console.info(JSON.stringify({ event: "felt_print", orgId: map.orgId, mapId: map.id, userId: viewer.id, ...detail }));
 }
 
-/** Print the map with a layout: temporary page → export → delete the page. */
-export async function printWithLayout(viewer: Viewer, feltMapId: string, req: PrintRequest): Promise<FeltPrintExport> {
-  const map = await authorize(viewer, feltMapId);
-  const layout = (await allowedLayouts(feltMapId, map.orgId)).find((l) => l.id === req.layoutId);
-  if (!layout) throw new PrintError("That layout isn't available", 400);
+interface FeltLayerInfo {
+  id: string;
+  name: string;
+  status?: string;
+  style?: Record<string, unknown> | null;
+}
 
-  const page = await feltFetch<FeltPageDetail>(`${path(feltMapId)}/print_pages`, {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const listLayers = (mapId: string) => feltFetch<FeltLayerInfo[]>(`${path(mapId)}/layers`);
+
+/** Make a page on `mapId` from the layout, export it, delete the page. */
+async function exportLayoutPage(
+  mapId: string,
+  layoutId: string,
+  req: PrintRequest,
+  layerIds: string[] | undefined
+): Promise<FeltPrintExport> {
+  const page = await feltFetch<FeltPageDetail>(`${path(mapId)}/print_pages`, {
     method: "POST",
     body: {
       name: TEMP_PAGE_NAME,
-      layout_id: layout.id,
+      layout_id: layoutId,
       page: { size: req.size, orientation: req.orientation },
       output: { format: req.format, dpi: req.dpi },
       ...(req.bounds && { map_view: { bounds: req.bounds } }),
@@ -322,23 +341,91 @@ export async function printWithLayout(viewer: Viewer, feltMapId: string, req: Pr
   try {
     // Show the same layers the viewer has turned on, on every map in the layout.
     const mapItems = page.items.filter((it) => it.type === "map");
-    if (req.layerIds && mapItems.length > 0) {
-      await feltFetch(`${path(feltMapId)}/print_pages/${encodeURIComponent(page.id)}/items`, {
+    if (layerIds && mapItems.length > 0) {
+      await feltFetch(`${path(mapId)}/print_pages/${encodeURIComponent(page.id)}/items`, {
         method: "POST",
-        body: { items: mapItems.map((it) => ({ id: it.id, layer_ids: req.layerIds })) },
+        body: { items: mapItems.map((it) => ({ id: it.id, layer_ids: layerIds })) },
       });
     }
-    const result = await feltFetch<FeltPrintExport>(
-      `${path(feltMapId)}/print_pages/${encodeURIComponent(page.id)}/exports`,
-      { method: "POST" }
-    );
-    logPrint(map, viewer, { layout: layout.name, size: req.size, format: req.format });
-    return result;
+    return await feltFetch<FeltPrintExport>(`${path(mapId)}/print_pages/${encodeURIComponent(page.id)}/exports`, {
+      method: "POST",
+    });
   } finally {
-    await feltFetch(`${path(feltMapId)}/print_pages/${encodeURIComponent(page.id)}`, { method: "DELETE" }).catch((err) =>
-      console.error(`Couldn't delete temporary print page ${page.id} on map ${feltMapId}:`, err)
+    await feltFetch(`${path(mapId)}/print_pages/${encodeURIComponent(page.id)}`, { method: "DELETE" }).catch((err) =>
+      console.error(`Couldn't delete temporary print page ${page.id} on map ${mapId}:`, err)
     );
   }
+}
+
+/**
+ * Print with the viewer's filters: copy the map into the same private project
+ * (locked down like any portal map), save the filters into the copy's layer
+ * styles, print the copy, delete it. The original map is never changed.
+ */
+async function exportFilteredCopy(
+  feltMapId: string,
+  layoutId: string,
+  req: PrintRequest,
+  filters: { layerId: string; filters: unknown }[]
+): Promise<FeltPrintExport> {
+  const [original, originalLayers] = await Promise.all([getMap(feltMapId), listLayers(feltMapId)]);
+  const copy = await duplicateMapIntoProject(feltMapId, original.project_id, TEMP_PRINT_MAP_TITLE);
+  try {
+    // Wait for the copy's layers to finish processing.
+    let copyLayers: FeltLayerInfo[] = [];
+    const deadline = Date.now() + 90_000;
+    for (;;) {
+      copyLayers = await listLayers(copy.id);
+      const ready = copyLayers.length >= originalLayers.length && copyLayers.every((l) => !l.status || l.status === "completed");
+      if (ready) break;
+      if (Date.now() > deadline) throw new PrintError("Felt took too long to prepare the filtered print. Please try again.", 504);
+      await sleep(2000);
+    }
+
+    // Match copied layers to the originals: same id if Felt keeps ids, else
+    // same position and name.
+    const toCopyId = new Map<string, string>();
+    for (const [i, layer] of originalLayers.entries()) {
+      const sameId = copyLayers.find((c) => c.id === layer.id);
+      const samePlace = copyLayers[i]?.name === layer.name ? copyLayers[i] : undefined;
+      const sameName = copyLayers.filter((c) => c.name === layer.name);
+      const match = sameId ?? samePlace ?? (sameName.length === 1 ? sameName[0] : undefined);
+      if (match) toCopyId.set(layer.id, match.id);
+    }
+
+    for (const f of filters) {
+      const copyLayerId = toCopyId.get(f.layerId);
+      if (!copyLayerId) throw new PrintError("Couldn't match the map's layers to apply your filters.", 502);
+      const layer = await feltFetch<FeltLayerInfo>(`${path(copy.id)}/layers/${encodeURIComponent(copyLayerId)}`);
+      if (!layer.style) throw new PrintError("Couldn't read a layer's style to apply your filters.", 502);
+      // The SDK's `combined` filters already include the saved style's own filters.
+      await feltFetch(`${path(copy.id)}/layers/${encodeURIComponent(copyLayerId)}/update_style`, {
+        method: "POST",
+        body: { style: { ...layer.style, filters: f.filters } },
+      });
+    }
+
+    const layerIds = req.layerIds?.map((id) => toCopyId.get(id)).filter((id): id is string => !!id);
+    return await exportLayoutPage(copy.id, layoutId, req, layerIds);
+  } finally {
+    await deleteMap(copy.id).catch((err) =>
+      console.error(`Couldn't delete temporary print copy ${copy.id} of map ${feltMapId} (sync cleans it up later):`, err)
+    );
+  }
+}
+
+/** Print the map with a layout (and, if given, the viewer's filters). */
+export async function printWithLayout(viewer: Viewer, feltMapId: string, req: PrintRequest): Promise<FeltPrintExport> {
+  const map = await authorize(viewer, feltMapId);
+  const layout = (await allowedLayouts(feltMapId, map.orgId)).find((l) => l.id === req.layoutId);
+  if (!layout) throw new PrintError("That layout isn't available", 400);
+
+  const filtered = !!req.filters?.length;
+  const result = filtered
+    ? await exportFilteredCopy(feltMapId, layout.id, req, req.filters!)
+    : await exportLayoutPage(feltMapId, layout.id, req, req.layerIds);
+  logPrint(map, viewer, { layout: layout.name, size: req.size, format: req.format, filtered });
+  return result;
 }
 
 /** Export a print page designed on this map in Felt, exactly as designed. */

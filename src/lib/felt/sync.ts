@@ -2,7 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getProject } from "./projects";
-import { isPublicInFelt, lockDownMap } from "./maps";
+import { deleteMap, isPublicInFelt, lockDownMap, TEMP_PRINT_MAP_TITLE } from "./maps";
 import type { FeltMapReference } from "./types";
 
 /**
@@ -51,6 +51,16 @@ export async function syncOrgMaps(orgId: string): Promise<SyncResult> {
   const result: SyncResult = { added: [], madePublic: 0, madePrivate: 0, conflicts: [] };
 
   for (const ref of refs) {
+    // Temporary copies made for filtered prints are never portal maps. One
+    // left behind by a crashed print (normally deleted within ~2 min) is
+    // cleaned up here.
+    if (ref.title === TEMP_PRINT_MAP_TITLE) {
+      const age = Date.now() - Date.parse(ref.created_at);
+      if (age > 15 * 60 * 1000) {
+        await deleteMap(ref.id).catch((err) => console.error(`Couldn't delete leftover print copy ${ref.id}:`, err));
+      }
+      continue;
+    }
     const row = byFeltId.get(ref.id);
     if (row && row.orgId !== orgId) {
       result.conflicts.push(ref.id);

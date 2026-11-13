@@ -103,3 +103,13 @@ export async function duplicateMapIntoProject(
   });
   return lockDownMap(copy.id);
 }
+
+/**
+ * Title of the short-lived map copies made to print a viewer's filters
+ * (src/lib/felt/print.ts). Sync never registers them and deletes leftovers.
+ */
+export const TEMP_PRINT_MAP_TITLE = "RippleMap portal print (temporary)";
+
+export async function deleteMap(mapId: string): Promise<void> {
+  await feltFetch(`/maps/${encodeURIComponent(mapId)}`, { method: "DELETE" });
+}
