@@ -40,7 +40,7 @@ export function UserRoleEditor({ users, isInternalOrg, currentUserId }: Props) {
   async function updateRole(userId: string, name: string, role: string, currentRole: string) {
     const message =
       role === "BC_STAFF"
-        ? `Make ${name} RM Staff?\n\nRM Staff can see and manage every organization, user, map, billing record and contact message in RippleMap. They need to sign out and back in to get Admin.`
+        ? `Make ${name} RM Staff?\n\nRM Staff can see and manage every organization, user, map, billing record and contact message in RippleMap. They get Admin on their next page load.`
         : currentRole === "BC_STAFF"
           ? `Remove ${name}'s RM Staff access? They'll become ${ROLE_LABEL[role]} of this organization and lose Admin immediately.`
           : role === "OWNER" || role === "ADMIN"
@@ -60,7 +60,7 @@ export function UserRoleEditor({ users, isInternalOrg, currentUserId }: Props) {
       return;
     }
     if (role === "BC_STAFF") {
-      toast({ variant: "success", title: `${name} is now RM Staff`, description: "They need to sign out and back in to see Admin." });
+      toast({ variant: "success", title: `${name} is now RM Staff`, description: "Admin appears for them on their next page load." });
     }
     router.refresh();
   }
