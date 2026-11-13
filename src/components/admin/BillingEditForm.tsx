@@ -195,7 +195,7 @@ export function BillingEditForm({ orgId, initial, isNew }: Props) {
           rows={3}
           value={v.staffNotes}
           onChange={(e) => set("staffNotes", e.target.value)}
-          placeholder="Visible to BC staff only"
+          placeholder="Visible to RM Staff only"
         />
         <p className="text-xs text-gray-600">
           Not shown to the client. Don&apos;t record card numbers, bank account numbers or other payment details here.

@@ -1,5 +1,5 @@
+import { requireStaffViewer } from "@/lib/staff";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { enableArcgisForOrg } from "@/lib/arcgis/enable";
@@ -22,11 +22,9 @@ const schema = z.object({
     .optional(),
 });
 
+/** DB-checked (not the JWT), so a demoted staff account loses access at once. */
 async function requireBCStaff() {
-  const session = await auth();
-  const su = session?.user as unknown as { role?: string } | undefined;
-  if (!session?.user?.id || su?.role !== "BC_STAFF") return null;
-  return session;
+  return requireStaffViewer();
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -96,7 +94,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   if (org.users.some((u) => u.role === "BC_STAFF")) {
     return NextResponse.json(
-      { error: "Cannot delete an organization with BC staff accounts" },
+      { error: "Cannot delete an organization with RM Staff accounts" },
       { status: 409 }
     );
   }

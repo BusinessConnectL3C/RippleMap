@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requireStaffViewer } from "@/lib/staff";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { MobileNavProvider } from "@/components/layout/MobileNavContext";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  const su = session?.user as unknown as { role?: string } | undefined;
-
-  if (!session?.user?.id || su?.role !== "BC_STAFF") redirect("/dashboard");
+  // Checked against the database, not the JWT: an RM Staff role removed in
+  // admin takes effect on the next page load.
+  if (!(await requireStaffViewer())) redirect("/dashboard");
 
   return (
     <MobileNavProvider>

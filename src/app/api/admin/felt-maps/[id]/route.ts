@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!map) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (!(await isInternalOrg(map.orgId))) {
       return NextResponse.json(
-        { error: "Only maps in a BC staff organization can be templates. Client maps can't be offered to other orgs." },
+        { error: "Only maps in the RippleMap (RM Staff) organization can be templates. Client maps can't be offered to other orgs." },
         { status: 422 }
       );
     }

@@ -25,7 +25,7 @@ function AdminSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <Link href="/admin/organizations">
           <Logo type="secondary" tone="black" height={20} trim />
         </Link>
-        <p className="rm-eyebrow">BC Admin</p>
+        <p className="rm-eyebrow">RM Admin</p>
       </div>
 
       <nav className="flex-1 space-y-1 p-4">

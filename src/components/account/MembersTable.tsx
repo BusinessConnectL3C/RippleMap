@@ -24,7 +24,7 @@ const ROLE_LABEL: Record<Member["role"], string> = {
   OWNER: "Owner",
   ADMIN: "Admin",
   MEMBER: "Member",
-  BC_STAFF: "BC Staff",
+  BC_STAFF: "RM Staff",
 };
 
 export function MembersTable({ members, currentUserId, currentUserRole }: Props) {

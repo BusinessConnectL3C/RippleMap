@@ -77,7 +77,7 @@ export function FeltSeatsPanel({ workspace, org, projectName, holders }: Props) 
           <p className={`font-display text-2xl font-bold tabular-nums ${workspaceFull ? "text-red-700" : "text-gray-900"}`}>
             {workspace.used} <span className="text-base font-medium text-gray-500">of {workspace.limit} used</span>
           </p>
-          <p className="text-xs text-gray-600">Counts everyone marked with a Felt seat in RippleMap, including BC staff.</p>
+          <p className="text-xs text-gray-600">Counts everyone marked with a Felt seat in RippleMap, including RM Staff.</p>
         </div>
         <div className="rounded-md border border-gray-200 p-3">
           <p className="text-xs text-gray-600">This organization</p>

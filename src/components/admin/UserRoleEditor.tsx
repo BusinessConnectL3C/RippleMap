@@ -22,19 +22,31 @@ const ROLE_LABEL: Record<string, string> = {
   OWNER: "Owner",
   ADMIN: "Admin",
   MEMBER: "Member",
+  BC_STAFF: "RM Staff",
 };
 
-export function UserRoleEditor({ users }: { users: User[] }) {
+interface Props {
+  users: User[];
+  /** RippleMap's own org (has an RM Staff account): its people can be made RM Staff. */
+  isInternalOrg: boolean;
+  /** The signed-in staff member, who can't change their own RM Staff role. */
+  currentUserId: string;
+}
+
+export function UserRoleEditor({ users, isInternalOrg, currentUserId }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
 
-  async function updateRole(userId: string, name: string, role: string) {
-    if (
-      (role === "OWNER" || role === "ADMIN") &&
-      !confirm(`Give ${name} ${ROLE_LABEL[role]} access to this organization?`)
-    ) {
-      return;
-    }
+  async function updateRole(userId: string, name: string, role: string, currentRole: string) {
+    const message =
+      role === "BC_STAFF"
+        ? `Make ${name} RM Staff?\n\nRM Staff can see and manage every organization, user, map, billing record and contact message in RippleMap. They need to sign out and back in to get Admin.`
+        : currentRole === "BC_STAFF"
+          ? `Remove ${name}'s RM Staff access? They'll become ${ROLE_LABEL[role]} of this organization and lose Admin immediately.`
+          : role === "OWNER" || role === "ADMIN"
+            ? `Give ${name} ${ROLE_LABEL[role]} access to this organization?`
+            : null;
+    if (message && !confirm(message)) return;
     setPending(userId + ":role");
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
@@ -46,6 +58,9 @@ export function UserRoleEditor({ users }: { users: User[] }) {
       const data = await res.json().catch(() => null);
       toast({ variant: "danger", title: "Could not update role", description: data?.error ?? "Please try again." });
       return;
+    }
+    if (role === "BC_STAFF") {
+      toast({ variant: "success", title: `${name} is now RM Staff`, description: "They need to sign out and back in to see Admin." });
     }
     router.refresh();
   }
@@ -109,18 +124,19 @@ export function UserRoleEditor({ users }: { users: User[] }) {
             <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
             <td className="px-4 py-3 text-gray-600">{user.email}</td>
             <td className="px-4 py-3">
-              {user.role === "BC_STAFF" ? (
-                <span className="text-xs font-medium text-gray-700">BC Staff</span>
+              {user.role === "BC_STAFF" && user.id === currentUserId ? (
+                <span className="text-xs font-medium text-gray-700">RM Staff (you)</span>
               ) : (
               <Select
                 value={user.role}
                 disabled={pending === user.id + ":role"}
-                onValueChange={(value) => updateRole(user.id, user.name, value)}
+                onValueChange={(value) => updateRole(user.id, user.name, value, user.role)}
               >
-                <SelectTrigger className="h-8 w-28 text-xs">
+                <SelectTrigger className="h-8 w-28 text-xs" aria-label={`Role for ${user.name}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {(isInternalOrg || user.role === "BC_STAFF") && <SelectItem value="BC_STAFF">RM Staff</SelectItem>}
                   <SelectItem value="OWNER">Owner</SelectItem>
                   <SelectItem value="ADMIN">Admin</SelectItem>
                   <SelectItem value="MEMBER">Member</SelectItem>
@@ -151,6 +167,7 @@ export function UserRoleEditor({ users }: { users: User[] }) {
               )}
             </td>
             <td className="px-4 py-3 text-right">
+              {user.role !== "BC_STAFF" && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -165,6 +182,7 @@ export function UserRoleEditor({ users }: { users: User[] }) {
                   <Trash2 className="h-3.5 w-3.5" />
                 )}
               </Button>
+              )}
             </td>
           </tr>
         ))}

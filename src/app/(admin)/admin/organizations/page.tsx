@@ -25,7 +25,7 @@ export default async function AdminOrgsPage() {
           <span className={`font-semibold tabular-nums ${seats.used >= seats.limit ? "text-red-700" : "text-gray-900"}`}>
             {seats.used} of {seats.limit} used
           </span>{" "}
-          <span className="text-gray-500">(as recorded in RippleMap, including BC staff)</span>
+          <span className="text-gray-500">(as recorded in RippleMap, including RM Staff)</span>
         </p>
         <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
           <table className="w-full text-sm">

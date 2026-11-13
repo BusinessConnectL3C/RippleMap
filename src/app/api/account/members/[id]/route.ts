@@ -20,7 +20,7 @@ async function requireManager() {
 
 /** BC staff accounts are managed only with database access (scripts/create-bc-staff.mjs). */
 const STAFF_LOCKED = NextResponse.json(
-  { error: "BC staff accounts can't be changed or removed here" },
+  { error: "RM Staff accounts can't be changed or removed here" },
   { status: 409 }
 );
 
