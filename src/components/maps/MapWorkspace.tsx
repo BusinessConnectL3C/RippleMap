@@ -145,6 +145,7 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
       </div>
       <PrintDialog
         feltMapId={feltMapId}
+        mapTitle={title}
         open={printOpen}
         onOpenChange={setPrintOpen}
         getViewState={getViewState}
