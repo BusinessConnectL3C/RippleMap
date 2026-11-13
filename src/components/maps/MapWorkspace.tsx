@@ -50,11 +50,17 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
       // Categories switched off in the legend are filters too.
       const hiddenCategory = legendItems.some((i) => !!i && !i.visible && present.some((l) => l.visible && l.id === i.layerId));
       const active = (f: unknown) => f !== null && f !== undefined && f !== true;
+      // Layers whose legend/viewer filters change what's shown: print their combined filters.
+      const layerFilters = present.flatMap((l, i) => {
+        const f = filters[i];
+        return l.visible && f && (active(f.components) || active(f.ephemeral)) ? [{ layerId: l.id, filters: f.combined }] : [];
+      });
       return {
         bounds: bounds as [number, number, number, number],
         visibleLayerIds: present.filter((l) => l.visible).map((l) => l.id),
         allLayersVisible: present.every((l) => l.visible),
-        filtered: hiddenCategory || filters.some((f) => !!f && (active(f.components) || active(f.ephemeral))),
+        filters: layerFilters,
+        hiddenCategory,
       };
     } catch {
       return null;

@@ -13,8 +13,9 @@ import {
   printWithLayout,
 } from "@/lib/felt/print";
 
-// Creating a page, rendering it (Felt waits up to 55 s) and deleting it.
-export const maxDuration = 120;
+// Creating a page, rendering it (Felt waits up to 55 s) and deleting it; with
+// filters, also copying the map, waiting for its layers, and deleting it.
+export const maxDuration = 300;
 
 const lng = z.number().min(-180).max(180);
 const lat = z.number().min(-85.051129).max(85.051129);
@@ -28,6 +29,12 @@ const schema = z.discriminatedUnion("kind", [
     dpi: z.union([z.literal(PRINT_DPI[0]), z.literal(PRINT_DPI[1])]),
     bounds: z.tuple([lng, lat, lng, lat]).optional(),
     layerIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)).max(200).optional(),
+    // Felt Style Language filters per layer; bounded so a request can't be huge.
+    filters: z
+      .array(z.object({ layerId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/), filters: z.unknown() }))
+      .max(50)
+      .optional()
+      .refine((f) => !f || JSON.stringify(f).length < 50_000, "Filters too large"),
   }),
   z.object({ kind: z.literal("PAGE"), pageId: z.string().min(1).max(100) }),
 ]);

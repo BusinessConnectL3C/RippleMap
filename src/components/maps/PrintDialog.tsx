@@ -44,8 +44,10 @@ export interface ViewState {
   bounds: Bounds;
   visibleLayerIds: string[];
   allLayersVisible: boolean;
-  /** Legend or viewer filters are applied; Felt's print API can't include them. */
-  filtered: boolean;
+  /** Legend/viewer filters per layer (Felt Style Language), printed via a temporary map copy. */
+  filters: { layerId: string; filters: unknown }[];
+  /** Legend categories switched off; those can't be carried into a print. */
+  hiddenCategory: boolean;
 }
 
 interface Props {
@@ -174,6 +176,7 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getViewState }: Pro
         format,
         dpi,
         ...(current && { bounds: current.bounds, layerIds: current.visibleLayerIds }),
+        ...(current && current.filters.length > 0 && { filters: current.filters }),
       },
       layout.name
     );
@@ -315,11 +318,17 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getViewState }: Pro
                     <SelectItem value="saved">The map&apos;s default view</SelectItem>
                   </SelectContent>
                 </Select>
-                {view === "current" && viewState?.filtered && (
+                {view === "current" && viewState && viewState.filters.length > 0 && (
+                  <p className="flex items-start gap-1.5 rounded-md bg-surface-page p-2 text-xs text-text-secondary">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    Your filters will be included. Filtered prints take longer, up to two minutes.
+                  </p>
+                )}
+                {view === "current" && viewState?.hiddenCategory && (
                   <p className="flex items-start gap-1.5 rounded-md bg-[var(--warning-subtle)] p-2 text-xs text-text-secondary">
                     <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    Filters you&apos;ve applied in the legend won&apos;t be in the print: Felt prints each layer&apos;s saved
-                    data. Layers you&apos;ve turned off stay off.
+                    Categories you&apos;ve switched off in the legend may still appear in the print. To leave them out
+                    for sure, use the legend&apos;s filters instead.
                   </p>
                 )}
               </div>
@@ -347,7 +356,11 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getViewState }: Pro
                 {printing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                 {printing ? `Preparing ${state.label}…` : "Print"}
               </Button>
-              {printing && <span className="text-xs text-text-muted">Felt is drawing your print. This can take up to a minute.</span>}
+              {printing && (
+                <span className="text-xs text-text-muted">
+                  Felt is drawing your print. This can take {viewState?.filters.length ? "up to two minutes" : "up to a minute"}.
+                </span>
+              )}
             </div>
 
             {options.pages.length > 0 && (
