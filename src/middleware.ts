@@ -7,7 +7,6 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
   const isLoggedIn = !!session;
-  const userRole = (session?.user as unknown as { role?: string } | undefined)?.role;
   const isAuth = nextUrl.pathname.startsWith("/login") || nextUrl.pathname.startsWith("/register");
   const isPortal = nextUrl.pathname.startsWith("/dashboard") ||
     nextUrl.pathname.startsWith("/maps") ||
@@ -17,12 +16,11 @@ export default auth((req) => {
     nextUrl.pathname.startsWith("/account");
   const isAdmin = nextUrl.pathname.startsWith("/admin");
 
+  // Admin is gated on RM Staff in the admin layout and every admin API, against
+  // the database. Not here: the JWT's role is only refreshed at sign-in, so a
+  // newly granted RM Staff member would be bounced until they signed out.
   if ((isPortal || isAdmin) && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", nextUrl));
-  }
-
-  if (isAdmin && userRole !== "BC_STAFF") {
-    return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   if (isAuth && isLoggedIn) {
