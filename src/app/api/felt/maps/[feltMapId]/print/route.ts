@@ -29,6 +29,8 @@ const schema = z.discriminatedUnion("kind", [
     dpi: z.union([z.literal(PRINT_DPI[0]), z.literal(PRINT_DPI[1])]),
     bounds: z.tuple([lng, lat, lng, lat]).optional(),
     layerIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)).max(200).optional(),
+    title: z.string().max(200).optional(),
+    fileName: z.string().max(120).optional(),
     // Felt Style Language filters per layer; bounded so a request can't be huge.
     filters: z
       .array(z.object({ layerId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/), filters: z.unknown() }))

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Download, FileText, Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,6 +53,8 @@ export interface ViewState {
 
 interface Props {
   feltMapId: string;
+  /** The map's title: the default title and file name for prints. */
+  mapTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The viewer's current map view, read when printing; null if the map isn't ready. */
@@ -81,7 +84,11 @@ function startDownload(url: string, filename: string) {
   a.remove();
 }
 
-export function PrintDialog({ feltMapId, open, onOpenChange, getViewState }: Props) {
+export function PrintDialog({ feltMapId, mapTitle, open, onOpenChange, getViewState }: Props) {
+  const [printTitle, setPrintTitle] = useState(mapTitle);
+  // The file name follows the title until someone edits it.
+  const [fileName, setFileName] = useState(mapTitle);
+  const [fileNameEdited, setFileNameEdited] = useState(false);
   const [viewState, setViewState] = useState<ViewState | null>(null);
   // Read the viewer's map state each time the dialog opens, for the note below.
   useEffect(() => {
@@ -175,6 +182,8 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getViewState }: Pro
         orientation,
         format,
         dpi,
+        title: printTitle.trim() || mapTitle,
+        fileName: fileName.trim() || printTitle.trim() || mapTitle,
         ...(current && { bounds: current.bounds, layerIds: current.visibleLayerIds }),
         ...(current && current.filters.length > 0 && { filters: current.filters }),
       },
@@ -255,6 +264,35 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getViewState }: Pro
             </fieldset>
 
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="print-title">Title on the print</Label>
+                <Input
+                  id="print-title"
+                  value={printTitle}
+                  maxLength={200}
+                  disabled={printing}
+                  onChange={(e) => {
+                    setPrintTitle(e.target.value);
+                    if (!fileNameEdited) setFileName(e.target.value);
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="print-file-name">File name</Label>
+                <Input
+                  id="print-file-name"
+                  value={fileName}
+                  maxLength={120}
+                  disabled={printing}
+                  onChange={(e) => {
+                    setFileName(e.target.value);
+                    setFileNameEdited(true);
+                  }}
+                />
+              </div>
+              <p className="-mt-2 text-xs text-text-muted sm:col-span-2">
+                The title appears where the layout shows the map&apos;s title.
+              </p>
               <div className="space-y-1.5">
                 <Label htmlFor="print-size">Paper</Label>
                 <Select value={size} onValueChange={(v) => setSize(v as typeof size)} disabled={printing}>

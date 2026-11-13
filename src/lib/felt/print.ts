@@ -136,6 +136,22 @@ export interface PrintRequest {
    * map with the filters saved into its layer styles.
    */
   filters?: { layerId: string; filters: unknown }[];
+  /** Replaces `{{ map.title }}` in the layout's text. Default: the map's title. */
+  title?: string;
+  /** The print page's name, which Felt uses for the downloaded file. Default: the title. */
+  fileName?: string;
+}
+
+const MAP_TITLE_TOKEN = /\{\{\s*map\.title\s*\}\}/;
+const MAP_TITLE_TOKENS = /\{\{\s*map\.title\s*\}\}/g;
+
+/** Text for a print: no Liquid syntax (it would be evaluated), no control characters. */
+function cleanPrintText(text: string, max: number): string {
+  return text
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\{[{%]|[%}]\}/g, "")
+    .trim()
+    .slice(0, max);
 }
 
 async function authorize(viewer: Viewer, feltMapId: string) {
@@ -326,12 +342,13 @@ async function exportLayoutPage(
   mapId: string,
   layoutId: string,
   req: PrintRequest,
-  layerIds: string[] | undefined
+  layerIds: string[] | undefined,
+  naming: { title: string; fileName: string }
 ): Promise<FeltPrintExport> {
   const page = await feltFetch<FeltPageDetail>(`${path(mapId)}/print_pages`, {
     method: "POST",
     body: {
-      name: TEMP_PAGE_NAME,
+      name: naming.fileName,
       layout_id: layoutId,
       page: { size: req.size, orientation: req.orientation },
       output: { format: req.format, dpi: req.dpi },
@@ -339,12 +356,22 @@ async function exportLayoutPage(
     },
   });
   try {
+    const updates: Record<string, unknown>[] = [];
     // Show the same layers the viewer has turned on, on every map in the layout.
-    const mapItems = page.items.filter((it) => it.type === "map");
-    if (layerIds && mapItems.length > 0) {
+    if (layerIds) {
+      for (const it of page.items) if (it.type === "map") updates.push({ id: it.id, layer_ids: layerIds });
+    }
+    // Put the chosen title wherever the layout shows the map's title. (On a
+    // filtered print the map is a temporary copy, so its own title is wrong.)
+    for (const it of page.items) {
+      if (it.type === "text" && it.text && MAP_TITLE_TOKEN.test(it.text)) {
+        updates.push({ id: it.id, text: it.text.replace(MAP_TITLE_TOKENS, naming.title) });
+      }
+    }
+    if (updates.length > 0) {
       await feltFetch(`${path(mapId)}/print_pages/${encodeURIComponent(page.id)}/items`, {
         method: "POST",
-        body: { items: mapItems.map((it) => ({ id: it.id, layer_ids: layerIds })) },
+        body: { items: updates },
       });
     }
     return await feltFetch<FeltPrintExport>(`${path(mapId)}/print_pages/${encodeURIComponent(page.id)}/exports`, {
@@ -366,7 +393,8 @@ async function exportFilteredCopy(
   feltMapId: string,
   layoutId: string,
   req: PrintRequest,
-  filters: { layerId: string; filters: unknown }[]
+  filters: { layerId: string; filters: unknown }[],
+  naming: { title: string; fileName: string }
 ): Promise<FeltPrintExport> {
   const [original, originalLayers] = await Promise.all([getMap(feltMapId), listLayers(feltMapId)]);
   const copy = await duplicateMapIntoProject(feltMapId, original.project_id, TEMP_PRINT_MAP_TITLE);
@@ -406,7 +434,7 @@ async function exportFilteredCopy(
     }
 
     const layerIds = req.layerIds?.map((id) => toCopyId.get(id)).filter((id): id is string => !!id);
-    return await exportLayoutPage(copy.id, layoutId, req, layerIds);
+    return await exportLayoutPage(copy.id, layoutId, req, layerIds, naming);
   } finally {
     await deleteMap(copy.id).catch((err) =>
       console.error(`Couldn't delete temporary print copy ${copy.id} of map ${feltMapId} (sync cleans it up later):`, err)
@@ -420,10 +448,12 @@ export async function printWithLayout(viewer: Viewer, feltMapId: string, req: Pr
   const layout = (await allowedLayouts(feltMapId, map.orgId)).find((l) => l.id === req.layoutId);
   if (!layout) throw new PrintError("That layout isn't available", 400);
 
+  const title = cleanPrintText(req.title ?? "", 200) || map.title;
+  const naming = { title, fileName: cleanPrintText(req.fileName ?? "", 120) || title };
   const filtered = !!req.filters?.length;
   const result = filtered
-    ? await exportFilteredCopy(feltMapId, layout.id, req, req.filters!)
-    : await exportLayoutPage(feltMapId, layout.id, req, req.layerIds);
+    ? await exportFilteredCopy(feltMapId, layout.id, req, req.filters!, naming)
+    : await exportLayoutPage(feltMapId, layout.id, req, req.layerIds, naming);
   logPrint(map, viewer, { layout: layout.name, size: req.size, format: req.format, filtered });
   return result;
 }

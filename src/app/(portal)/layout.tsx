@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Sidebar, SIDEBAR_COOKIE } from "@/components/layout/Sidebar";
 import { MobileNavProvider } from "@/components/layout/MobileNavContext";
+import { orgLogoUrl } from "@/lib/org-logo";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -17,7 +18,7 @@ export default async function PortalLayout({ children }: { children: React.React
     }),
     db.organization.findUnique({
       where: { id: su.orgId },
-      select: { name: true, mediaSource: true },
+      select: { name: true, mediaSource: true, logoKey: true },
     }),
     db.user.findUnique({ where: { id: session.user.id }, select: { role: true, emailVerifiedAt: true } }),
   ]);
@@ -34,6 +35,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <Sidebar
           showMedia={showMedia} orgName={org?.name} isStaff={user?.role === "BC_STAFF"}
           defaultCollapsed={sidebarCollapsed}
+          orgLogoUrl={orgLogoUrl(su.orgId, org?.logoKey)}
         />
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
