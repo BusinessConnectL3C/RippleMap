@@ -123,6 +123,11 @@ export interface PrintRequest {
   dpi: (typeof PRINT_DPI)[number];
   /** [west, south, east, north] of the viewer's current view; omit for the map's saved view. */
   bounds?: [number, number, number, number];
+  /**
+   * Layers visible in the viewer. Felt's print API can't take filters, but it
+   * can set which layers each map on the page shows. Omit for the saved set.
+   */
+  layerIds?: string[];
 }
 
 async function authorize(viewer: Viewer, feltMapId: string) {
@@ -304,7 +309,7 @@ export async function printWithLayout(viewer: Viewer, feltMapId: string, req: Pr
   const layout = (await allowedLayouts(feltMapId, map.orgId)).find((l) => l.id === req.layoutId);
   if (!layout) throw new PrintError("That layout isn't available", 400);
 
-  const page = await feltFetch<{ id: string }>(`${path(feltMapId)}/print_pages`, {
+  const page = await feltFetch<FeltPageDetail>(`${path(feltMapId)}/print_pages`, {
     method: "POST",
     body: {
       name: TEMP_PAGE_NAME,
@@ -315,6 +320,14 @@ export async function printWithLayout(viewer: Viewer, feltMapId: string, req: Pr
     },
   });
   try {
+    // Show the same layers the viewer has turned on, on every map in the layout.
+    const mapItems = page.items.filter((it) => it.type === "map");
+    if (req.layerIds && mapItems.length > 0) {
+      await feltFetch(`${path(feltMapId)}/print_pages/${encodeURIComponent(page.id)}/items`, {
+        method: "POST",
+        body: { items: mapItems.map((it) => ({ id: it.id, layer_ids: req.layerIds })) },
+      });
+    }
     const result = await feltFetch<FeltPrintExport>(
       `${path(feltMapId)}/print_pages/${encodeURIComponent(page.id)}/exports`,
       { method: "POST" }

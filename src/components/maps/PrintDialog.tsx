@@ -39,12 +39,21 @@ interface PageOption {
 
 type Bounds = [number, number, number, number];
 
+/** What the viewer currently sees (read from the Felt embed). */
+export interface ViewState {
+  bounds: Bounds;
+  visibleLayerIds: string[];
+  allLayersVisible: boolean;
+  /** Legend or viewer filters are applied; Felt's print API can't include them. */
+  filtered: boolean;
+}
+
 interface Props {
   feltMapId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The viewer's current map view, read when printing; null if the map isn't ready. */
-  getCurrentBounds: () => Promise<Bounds | null>;
+  getViewState: () => Promise<ViewState | null>;
 }
 
 const SIZES = [
@@ -70,7 +79,17 @@ function startDownload(url: string, filename: string) {
   a.remove();
 }
 
-export function PrintDialog({ feltMapId, open, onOpenChange, getCurrentBounds }: Props) {
+export function PrintDialog({ feltMapId, open, onOpenChange, getViewState }: Props) {
+  const [viewState, setViewState] = useState<ViewState | null>(null);
+  // Read the viewer's map state each time the dialog opens, for the note below.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getViewState().then((v) => !cancelled && setViewState(v));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, getViewState]);
   const base = `/api/felt/maps/${encodeURIComponent(feltMapId)}/print`;
   const [options, setOptions] = useState<{ layouts: LayoutOption[]; pages: PageOption[] } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -145,9 +164,17 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getCurrentBounds }:
   async function printLayout() {
     const layout = options?.layouts.find((l) => l.id === layoutId);
     if (!layout) return;
-    const bounds = view === "current" ? await getCurrentBounds() : null;
+    const current = view === "current" ? await getViewState() : null;
     await request(
-      { kind: "LAYOUT", layoutId, size, orientation, format, dpi, ...(bounds && { bounds }) },
+      {
+        kind: "LAYOUT",
+        layoutId,
+        size,
+        orientation,
+        format,
+        dpi,
+        ...(current && { bounds: current.bounds, layerIds: current.visibleLayerIds }),
+      },
       layout.name
     );
   }
@@ -284,10 +311,17 @@ export function PrintDialog({ feltMapId, open, onOpenChange, getCurrentBounds }:
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="current">What I&apos;m looking at now</SelectItem>
+                    <SelectItem value="current">What I&apos;m looking at now (area and layers shown)</SelectItem>
                     <SelectItem value="saved">The map&apos;s default view</SelectItem>
                   </SelectContent>
                 </Select>
+                {view === "current" && viewState?.filtered && (
+                  <p className="flex items-start gap-1.5 rounded-md bg-[var(--warning-subtle)] p-2 text-xs text-text-secondary">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    Filters you&apos;ve applied in the legend won&apos;t be in the print: Felt prints each layer&apos;s saved
+                    data. Layers you&apos;ve turned off stay off.
+                  </p>
+                )}
               </div>
             </div>
 

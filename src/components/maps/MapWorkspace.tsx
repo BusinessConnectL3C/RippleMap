@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FeltMapEmbed } from "@/components/maps/FeltMapEmbed";
 import { AddDataPanel } from "@/components/maps/AddDataPanel";
-import { PrintDialog } from "@/components/maps/PrintDialog";
+import { PrintDialog, type ViewState } from "@/components/maps/PrintDialog";
 import { CANCEL_PICK_EVENT, LOCATION_PICKED_EVENT, PICK_LOCATION_EVENT } from "@/components/maps/AddRecordsForm";
 
 interface Props {
@@ -36,12 +36,26 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
   const onController = useCallback((felt: FeltController | null) => {
     controllerRef.current = felt;
   }, []);
-  const getCurrentBounds = useCallback(async () => {
+  /** What the viewer sees now: area, layers turned on, and whether legend/viewer filters are applied. */
+  const getViewState = useCallback(async (): Promise<ViewState | null> => {
     const felt = controllerRef.current;
     if (!felt) return null;
     try {
-      const { bounds } = await felt.getViewport();
-      return bounds as [number, number, number, number];
+      const [{ bounds }, layers] = await Promise.all([felt.getViewport(), felt.getLayers()]);
+      const present = layers.filter((l): l is NonNullable<typeof l> => !!l);
+      const [filters, legendItems] = await Promise.all([
+        Promise.all(present.map((l) => felt.getLayerFilters(l.id).catch(() => null))),
+        felt.getLegendItems().catch(() => []),
+      ]);
+      // Categories switched off in the legend are filters too.
+      const hiddenCategory = legendItems.some((i) => !!i && !i.visible && present.some((l) => l.visible && l.id === i.layerId));
+      const active = (f: unknown) => f !== null && f !== undefined && f !== true;
+      return {
+        bounds: bounds as [number, number, number, number],
+        visibleLayerIds: present.filter((l) => l.visible).map((l) => l.id),
+        allLayersVisible: present.every((l) => l.visible),
+        filtered: hiddenCategory || filters.some((f) => !!f && (active(f.components) || active(f.ephemeral))),
+      };
     } catch {
       return null;
     }
@@ -127,7 +141,7 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
         feltMapId={feltMapId}
         open={printOpen}
         onOpenChange={setPrintOpen}
-        getCurrentBounds={getCurrentBounds}
+        getViewState={getViewState}
       />
     </div>
   );
