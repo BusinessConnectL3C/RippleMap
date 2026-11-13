@@ -21,6 +21,9 @@ model Organization {
   // Whether this org also uses ArcGIS/Esri (Survey123, Field Maps, hosted
   // feature services). Felt is the default; ArcGIS is opt-in per org.
   arcgisEnabled Boolean      @default(false)
+  /// Org logo in SYSTEM_BUCKET (ripplemap-system/org-logos/{orgId}/…), set by
+  /// org owners or RM Staff; served only via /api/orgs/[id]/logo.
+  logoKey       String?
   mediaSource   MediaSource?
   s3Bucket      String?
   s3Prefix      String?

@@ -50,8 +50,9 @@ export async function getUploadUrl(
 }
 
 /** Generate a presigned URL to view a file from S3 in the browser (valid for 1 hour). */
-export async function getViewUrl(key: string, bucket = DEFAULT_BUCKET): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+export async function getViewUrl(key: string, bucket = DEFAULT_BUCKET, contentType?: string): Promise<string> {
+  // contentType overrides what S3 sends, e.g. for files uploaded as octet-stream.
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key, ...(contentType && { ResponseContentType: contentType }) });
   return getSignedUrl(client, command, { expiresIn: 3600 });
 }
 

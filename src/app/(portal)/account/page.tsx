@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { OrganizationForm } from "@/components/account/OrganizationForm";
+import { OrgLogoUploader } from "@/components/account/OrgLogoUploader";
+import { orgLogoUrl } from "@/lib/org-logo";
 import { MembersTable } from "@/components/account/MembersTable";
 import { InviteMembersDialog } from "@/components/account/InviteMembersDialog";
 import { MapAccessCard } from "@/components/account/MapAccessCard";
@@ -38,7 +40,7 @@ export default async function AccountPage() {
 
   const [user, org, arcgisLink, members, pendingInvites, orgMaps] = await Promise.all([
     db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true, role: true } }),
-    db.organization.findUnique({ where: { id: su.orgId }, select: { name: true, type: true, feltProjectId: true } }),
+    db.organization.findUnique({ where: { id: su.orgId }, select: { name: true, type: true, feltProjectId: true, logoKey: true } }),
     db.arcGISAccountLink.findUnique({ where: { userId: session.user.id } }),
     db.user.findMany({
       where: { orgId: su.orgId },
@@ -99,6 +101,12 @@ export default async function AccountPage() {
                 <p className="text-xs text-text-muted">Only owners can edit organization info.</p>
               </CardContent>
             </>
+          )}
+          {canManageMembers && (
+            <CardContent className="space-y-2 border-t border-border pt-5">
+              <p className="rm-eyebrow">Logo</p>
+              <OrgLogoUploader orgId={su.orgId} logoUrl={orgLogoUrl(su.orgId, org?.logoKey)} />
+            </CardContent>
           )}
         </Card>
 

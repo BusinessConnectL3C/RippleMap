@@ -172,12 +172,15 @@ interface SidebarProps {
   isStaff?: boolean;
   /** Initial desktop state, from the SIDEBAR_COOKIE cookie. */
   defaultCollapsed?: boolean;
+  /** The organization's own logo, shown under the RippleMap header. */
+  orgLogoUrl?: string | null;
 }
 
 function SidebarContent({
   showMedia = false,
   orgName,
   isStaff = false,
+  orgLogoUrl = null,
   collapsed = false,
   onToggle,
   onNavigate,
@@ -218,6 +221,13 @@ function SidebarContent({
           </>
         )}
       </div>
+
+      {orgLogoUrl && !collapsed && (
+        <div className="flex h-14 shrink-0 items-center border-b border-gray-200 px-6">
+          {/* eslint-disable-next-line @next/next/no-img-element -- same-origin redirect to a signed URL */}
+          <img src={orgLogoUrl} alt={orgName ? `${orgName} logo` : "Organization logo"} className="max-h-9 max-w-full object-contain" />
+        </div>
+      )}
 
       <nav className={cn("flex-1 space-y-1 overflow-y-auto", collapsed ? "p-2" : "p-4")}>
         {collapsed && onToggle && (
@@ -270,7 +280,7 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ showMedia = false, orgName, isStaff = false, defaultCollapsed = false }: SidebarProps) {
+export function Sidebar({ showMedia = false, orgName, isStaff = false, defaultCollapsed = false, orgLogoUrl = null }: SidebarProps) {
   const { open, setOpen } = useMobileNav();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
@@ -288,7 +298,7 @@ export function Sidebar({ showMedia = false, orgName, isStaff = false, defaultCo
           collapsed ? "w-16" : "w-64"
         )}
       >
-        <SidebarContent showMedia={showMedia} orgName={orgName} isStaff={isStaff} collapsed={collapsed} onToggle={toggle} />
+        <SidebarContent showMedia={showMedia} orgName={orgName} isStaff={isStaff} orgLogoUrl={orgLogoUrl} collapsed={collapsed} onToggle={toggle} />
       </aside>
 
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
@@ -299,7 +309,7 @@ export function Sidebar({ showMedia = false, orgName, isStaff = false, defaultCo
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
-            <SidebarContent showMedia={showMedia} orgName={orgName} isStaff={isStaff} onNavigate={() => setOpen(false)} />
+            <SidebarContent showMedia={showMedia} orgName={orgName} isStaff={isStaff} orgLogoUrl={orgLogoUrl} onNavigate={() => setOpen(false)} />
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>

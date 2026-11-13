@@ -54,7 +54,11 @@ export default async function AdminOrgsPage() {
             <tbody className="divide-y divide-gray-100">
               {orgs.map((org) => (
                 <tr key={org.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{org.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/admin/organizations/${org.id}`} className="text-gray-900 hover:text-link hover:underline">
+                      {org.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     <Badge variant="secondary">{org.type}</Badge>
                   </td>
