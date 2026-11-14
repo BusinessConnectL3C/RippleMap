@@ -94,6 +94,13 @@ export interface PreviewItem {
   bold?: boolean;
   align?: "left" | "center" | "right";
   fill?: string | null;
+  /**
+   * Text items: the layout's own wording (Liquid tokens included), and the
+   * item's position among the page's text items (see textItemsInOrder), used
+   * to edit it at print time.
+   */
+  text?: string;
+  textIndex?: number;
 }
 
 export interface LayoutPreview {
@@ -140,10 +147,53 @@ export interface PrintRequest {
   title?: string;
   /** The print page's name, which Felt uses for the downloaded file. Default: the title. */
   fileName?: string;
+  /** New wording for the layout's text boxes, by position (PreviewItem.textIndex). */
+  texts?: { index: number; text: string }[];
 }
 
-const MAP_TITLE_TOKEN = /\{\{\s*map\.title\s*\}\}/;
+interface Naming {
+  title: string;
+  fileName: string;
+  texts?: { index: number; text: string }[];
+}
+
 const MAP_TITLE_TOKENS = /\{\{\s*map\.title\s*\}\}/g;
+
+/** Liquid tokens Felt fills in at print time that people may keep in their own text. */
+const ALLOWED_TOKENS = /\{\{\s*(map\.title|map\.description|date)\s*\}\}/g;
+
+/**
+ * Text boxes on a page, in a stable order (back to front, then top to bottom,
+ * left to right). Pages made from the same layout list them in the same order,
+ * so an index from the layout preview finds the same box on a print page.
+ */
+function textItemsInOrder<T extends { type: string; z_index: number; frame: { x: number; y: number } }>(items: T[]): T[] {
+  return items
+    .filter((it) => it.type === "text")
+    .sort((a, b) => a.z_index - b.z_index || a.frame.y - b.frame.y || a.frame.x - b.frame.x);
+}
+
+/** A text box with wording of its own (not only Felt tokens such as {{ date }}), which people can edit. */
+export function isEditableText(text: string | undefined): boolean {
+  return !!text && text.replace(ALLOWED_TOKENS, "").replace(/\s+/g, "").length > 0;
+}
+
+/**
+ * Body text for a print: keeps line breaks and the allowed tokens; removes
+ * any other Liquid syntax (it would be evaluated) and control characters.
+ */
+export function cleanPrintBody(text: string, max: number): string {
+  const kept: string[] = [];
+  const masked = text.replace(ALLOWED_TOKENS, (m) => `\u0000${kept.push(m) - 1}\u0000`);
+  const cleaned = masked
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0001-\u0009\u000b-\u001f\u007f]/g, " ")
+    .replace(/\{[{%]|[%}]\}/g, "");
+  return cleaned
+    .replace(/\u0000(\d+)\u0000/g, (_, i) => kept[Number(i)] ?? "")
+    .trim()
+    .slice(0, max);
+}
 
 /** Text for a print: no Liquid syntax (it would be evaluated), no control characters. */
 function cleanPrintText(text: string, max: number): string {
@@ -228,6 +278,7 @@ async function buildPreview(
   try {
     const { width, height, units } = page.page;
     const heightIn = height * UNIT_INCHES[units];
+    const textOrder = new Map(textItemsInOrder(page.items).map((it, i) => [it.id, i]));
     const items = [...page.items]
       .sort((a, b) => a.z_index - b.z_index)
       .map((it): PreviewItem => ({
@@ -240,6 +291,7 @@ async function buildPreview(
         ...(it.font_weight === 700 && { bold: true }),
         ...(it.align && { align: it.align }),
         ...(it.background_color !== undefined && { fill: it.background_color }),
+        ...(it.type === "text" && { text: it.text ?? "", textIndex: textOrder.get(it.id) }),
       }));
     return { layoutId: layout.id, orientation, aspect: width / height, items };
   } finally {
@@ -266,7 +318,8 @@ export async function getLayoutPreviews(
   async function worker() {
     for (let layout = queue.shift(); layout; layout = queue.shift()) {
       const o = layout.orientation ?? orientation;
-      const contentsKey = JSON.stringify(layout.contents ?? null);
+      // "v2": previews now store text boxes' wording; older cache rows rebuild.
+      const contentsKey = `v2:${JSON.stringify(layout.contents ?? null)}`;
       const cached = await db.printLayoutPreview.findUnique({
         where: { feltLayoutId_orientation: { feltLayoutId: layout.id, orientation: o } },
       });
@@ -343,7 +396,7 @@ async function exportLayoutPage(
   layoutId: string,
   req: PrintRequest,
   layerIds: string[] | undefined,
-  naming: { title: string; fileName: string }
+  naming: Naming
 ): Promise<FeltPrintExport> {
   const page = await feltFetch<FeltPageDetail>(`${path(mapId)}/print_pages`, {
     method: "POST",
@@ -361,13 +414,16 @@ async function exportLayoutPage(
     if (layerIds) {
       for (const it of page.items) if (it.type === "map") updates.push({ id: it.id, layer_ids: layerIds });
     }
-    // Put the chosen title wherever the layout shows the map's title. (On a
-    // filtered print the map is a temporary copy, so its own title is wrong.)
-    for (const it of page.items) {
-      if (it.type === "text" && it.text && MAP_TITLE_TOKEN.test(it.text)) {
-        updates.push({ id: it.id, text: it.text.replace(MAP_TITLE_TOKENS, naming.title) });
-      }
-    }
+    // The viewer's wording for the layout's text boxes, then the chosen title
+    // wherever a box shows the map's title. (On a filtered print the map is a
+    // temporary copy, so its own title would be wrong.)
+    const edits = new Map((naming.texts ?? []).map((t) => [t.index, t.text]));
+    textItemsInOrder(page.items).forEach((it, index) => {
+      const original = it.text ?? "";
+      const edited = edits.has(index) && isEditableText(original) ? edits.get(index)! : original;
+      const final = edited.replace(MAP_TITLE_TOKENS, naming.title);
+      if (final !== original) updates.push({ id: it.id, text: final });
+    });
     if (updates.length > 0) {
       await feltFetch(`${path(mapId)}/print_pages/${encodeURIComponent(page.id)}/items`, {
         method: "POST",
@@ -394,7 +450,7 @@ async function exportFilteredCopy(
   layoutId: string,
   req: PrintRequest,
   filters: { layerId: string; filters: unknown }[],
-  naming: { title: string; fileName: string }
+  naming: Naming
 ): Promise<FeltPrintExport> {
   const [original, originalLayers] = await Promise.all([getMap(feltMapId), listLayers(feltMapId)]);
   const copy = await duplicateMapIntoProject(feltMapId, original.project_id, TEMP_PRINT_MAP_TITLE);
@@ -449,7 +505,11 @@ export async function printWithLayout(viewer: Viewer, feltMapId: string, req: Pr
   if (!layout) throw new PrintError("That layout isn't available", 400);
 
   const title = cleanPrintText(req.title ?? "", 200) || map.title;
-  const naming = { title, fileName: cleanPrintText(req.fileName ?? "", 120) || title };
+  const naming: Naming = {
+    title,
+    fileName: cleanPrintText(req.fileName ?? "", 120) || title,
+    texts: (req.texts ?? []).slice(0, 30).map((t) => ({ index: t.index, text: cleanPrintBody(t.text, 4000) })),
+  };
   const filtered = !!req.filters?.length;
   const result = filtered
     ? await exportFilteredCopy(feltMapId, layout.id, req, req.filters!, naming)
