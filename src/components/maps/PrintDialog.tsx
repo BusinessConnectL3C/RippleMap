@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Download, FileText, Loader2, Printer } from 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +27,10 @@ interface Preview {
   aspect: number;
   items: WireframeItem[];
 }
+
+/** Felt fills these in when printing; boxes holding only these aren't offered for editing. */
+const TOKENS = /\{\{\s*(map\.title|map\.description|date)\s*\}\}/g;
+const isEditableText = (text?: string) => !!text && text.replace(TOKENS, "").replace(/\s+/g, "").length > 0;
 
 /** Letter page proportions, for wireframes still loading. */
 const LETTER_ASPECT = { landscape: 11 / 8.5, portrait: 8.5 / 11 };
@@ -112,6 +117,8 @@ export function PrintDialog({ feltMapId, mapTitle, open, onOpenChange, getViewSt
   // Wireframes per orientation, keyed by layout id. Built-ins follow the chosen
   // orientation; saved layouts keep their own.
   const [previews, setPreviews] = useState<Record<string, Record<string, Preview>>>({});
+  // Edited wording per layout, by text box position (textIndex).
+  const [textEdits, setTextEdits] = useState<Record<string, Record<number, string>>>({});
 
   useEffect(() => {
     if (!options || options.layouts.length === 0 || previews[orientation]) return;
@@ -170,6 +177,14 @@ export function PrintDialog({ feltMapId, mapTitle, open, onOpenChange, getViewSt
     }
   }
 
+  // The chosen layout's text boxes with wording of their own, from its preview.
+  const layoutPreview =
+    previews[orientation]?.[layoutId] ?? Object.values(previews).find((byLayout) => byLayout[layoutId])?.[layoutId];
+  const editableTexts = (layoutPreview?.items ?? [])
+    .filter((it) => it.type === "text" && it.textIndex !== undefined && isEditableText(it.text))
+    .sort((a, b) => a.y - b.y || a.x - b.x)
+    .map((it) => ({ index: it.textIndex!, original: it.text ?? "", heading: (it.size ?? 0) > 0.025 || !!it.bold }));
+
   async function printLayout() {
     const layout = options?.layouts.find((l) => l.id === layoutId);
     if (!layout) return;
@@ -183,6 +198,9 @@ export function PrintDialog({ feltMapId, mapTitle, open, onOpenChange, getViewSt
         format,
         dpi,
         title: printTitle.trim() || mapTitle,
+        texts: editableTexts
+          .filter((t) => textEdits[layoutId]?.[t.index] !== undefined && textEdits[layoutId][t.index] !== t.original)
+          .map((t) => ({ index: t.index, text: textEdits[layoutId][t.index] })),
         fileName: fileName.trim() || printTitle.trim() || mapTitle,
         ...(current && { bounds: current.bounds, layerIds: current.visibleLayerIds }),
         ...(current && current.filters.length > 0 && { filters: current.filters }),
@@ -262,6 +280,51 @@ export function PrintDialog({ feltMapId, mapTitle, open, onOpenChange, getViewSt
                 })}
               </div>
             </fieldset>
+
+            {editableTexts.length > 0 && (
+              <fieldset className="space-y-3" disabled={printing}>
+                <legend className="mb-1 text-sm font-medium text-text-primary">Text on the page</legend>
+                <p className="text-xs text-text-muted">
+                  Change the layout&apos;s wording for this print only. <code>{"{{ map.title }}"}</code> becomes the title
+                  below, and <code>{"{{ date }}"}</code>{" "}becomes today&apos;s date.
+                </p>
+                {editableTexts.map((t, i) => {
+                  const value = textEdits[layoutId]?.[t.index] ?? t.original;
+                  const id = `print-text-${t.index}`;
+                  return (
+                    <div key={`${layoutId}-${t.index}`} className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor={id}>{t.heading ? `Heading ${i + 1}` : `Text box ${i + 1}`}</Label>
+                        {value !== t.original && (
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-link hover:underline"
+                            onClick={() =>
+                              setTextEdits((prev) => {
+                                const forLayout = { ...(prev[layoutId] ?? {}) };
+                                delete forLayout[t.index];
+                                return { ...prev, [layoutId]: forLayout };
+                              })
+                            }
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                      <Textarea
+                        id={id}
+                        value={value}
+                        maxLength={4000}
+                        rows={t.heading ? 1 : Math.min(8, Math.max(2, Math.ceil(value.length / 70)))}
+                        onChange={(e) =>
+                          setTextEdits((prev) => ({ ...prev, [layoutId]: { ...(prev[layoutId] ?? {}), [t.index]: e.target.value } }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </fieldset>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">

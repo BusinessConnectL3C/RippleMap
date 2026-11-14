@@ -12,6 +12,9 @@ export interface WireframeItem {
   bold?: boolean;
   align?: "left" | "center" | "right";
   fill?: string | null;
+  /** Text items: the layout's wording and its position among the page's text boxes. */
+  text?: string;
+  textIndex?: number;
 }
 
 interface Props {

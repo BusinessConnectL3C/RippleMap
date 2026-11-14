@@ -31,6 +31,7 @@ const schema = z.discriminatedUnion("kind", [
     layerIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)).max(200).optional(),
     title: z.string().max(200).optional(),
     fileName: z.string().max(120).optional(),
+    texts: z.array(z.object({ index: z.number().int().min(0).max(100), text: z.string().max(4000) })).max(30).optional(),
     // Felt Style Language filters per layer; bounded so a request can't be huge.
     filters: z
       .array(z.object({ layerId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/), filters: z.unknown() }))
