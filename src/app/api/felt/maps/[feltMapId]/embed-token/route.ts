@@ -37,7 +37,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ fe
   }
 
   try {
-    const { token, expires_at } = await mintEmbedToken(feltMapId, viewer.email);
+    const { token, expires_at } = await mintEmbedToken(feltMapId, viewer.id);
     // Usage signal: every embed load counts as a Felt map view against the
     // workspace's monthly allowance (Business: 100k). Structured so it can be
     // aggregated per org from Vercel logs.

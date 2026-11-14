@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (err instanceof TemplateError) return NextResponse.json({ error: err.message }, { status: err.status });
     if (err instanceof FeltApiError) {
       console.error(`Template copy failed for org ${viewer.orgId}:`, err);
-      return NextResponse.json({ error: "Felt couldn't create the map. Please try again." }, { status: 502 });
+      return NextResponse.json({ error: "Couldn't create the map. Please try again." }, { status: 502 });
     }
     throw err;
   }

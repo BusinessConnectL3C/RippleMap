@@ -242,7 +242,7 @@ export async function completeFileUpload(
     } catch (err) {
       console.error(`Felt refresh failed for upload ${upload.id}:`, err);
       await disarmSource(origin.id);
-      return fail(upload, "Felt couldn't replace the layer's data. Please try again.");
+      return fail(upload, "Couldn't replace the layer's data. Please try again.");
     }
   }
 
@@ -257,7 +257,7 @@ export async function completeFileUpload(
     return db.mapUpload.update({ where: { id: upload.id }, data: { status: "IMPORTING", feltLayerId: layerId } });
   } catch (err) {
     console.error(`Felt import failed for upload ${upload.id}:`, err);
-    return fail(upload, "Felt couldn't read that file. Check the format and try again.");
+    return fail(upload, "Couldn't read that file. Check the format and try again.");
   }
 }
 
@@ -335,7 +335,7 @@ export async function refreshFromLink(
     });
   } catch (err) {
     console.error(`Felt link refresh failed for upload ${upload.id}:`, err);
-    return fail(upload, "Felt couldn't refresh from that link. Make sure it's still public.");
+    return fail(upload, "Couldn't refresh from that link. Make sure it's still public.");
   }
 }
 
@@ -445,7 +445,7 @@ export async function startUrlUpload(
     return db.mapUpload.update({ where: { id: upload.id }, data: { status: "IMPORTING", feltLayerId: layerId } });
   } catch (err) {
     console.error(`Felt URL import failed for upload ${upload.id}:`, err);
-    return fail(upload, "Felt couldn't read data from that link. Make sure it's public and a supported format.");
+    return fail(upload, "Couldn't read data from that link. Make sure it's public and a supported format.");
   }
 }
 
@@ -478,7 +478,7 @@ export async function refreshUploadStatus(
     return { upload: done, completedNow: true };
   }
   if (layer.status === "failed") {
-    const failed = await fail(upload, "Felt couldn't process that data. Check the file's format and contents.");
+    const failed = await fail(upload, "Couldn't process that data. Check the file's format and contents.");
     return { upload: failed, completedNow: false };
   }
   return { upload, completedNow: false };

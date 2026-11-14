@@ -54,8 +54,8 @@ function errorResponse(err: unknown) {
     return NextResponse.json(
       {
         error: timedOut
-          ? "Felt took too long to draw this print. Try a smaller page or lower quality."
-          : "Felt couldn't make this print. Please try again.",
+          ? "This print took too long to build. Try a smaller page or lower quality."
+          : "Couldn't make this print. Please try again.",
       },
       { status: 502 }
     );

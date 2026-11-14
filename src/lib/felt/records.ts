@@ -142,16 +142,16 @@ async function exportLayer(feltMapId: string, feltLayerId: string): Promise<GeoJ
     const status = await feltFetch<{ status: string; download_url: string | null }>(
       `${base}/custom_exports/${encodeURIComponent(started.export_request_id)}`
     );
-    if (status.status === "failed") throw new UploadError("Felt couldn't export the layer's current data.", 502);
+    if (status.status === "failed") throw new UploadError("Couldn't export the layer's current data.", 502);
     if (status.status === "completed" && status.download_url) {
       downloadUrl = status.download_url;
       break;
     }
   }
-  if (!downloadUrl) throw new UploadError("Felt took too long to export the layer. Please try again.", 504);
+  if (!downloadUrl) throw new UploadError("Exporting the layer took too long. Please try again.", 504);
 
   const res = await fetch(downloadUrl, { cache: "no-store" });
-  if (!res.ok) throw new UploadError("Couldn't download the layer's current data from Felt.", 502);
+  if (!res.ok) throw new UploadError("Couldn't download the layer's current data.", 502);
   const declared = Number(res.headers.get("content-length") ?? 0);
   if (declared > MAX_EXPORT_BYTES) {
     throw new UploadError("This layer is too large to add records here. Use Replace data instead.", 413);
@@ -171,10 +171,10 @@ async function exportLayer(feltMapId: string, feltLayerId: string): Promise<GeoJ
   try {
     parsed = JSON.parse(body.toString("utf8"));
   } catch {
-    throw new UploadError("Couldn't read the layer's current data from Felt.", 502);
+    throw new UploadError("Couldn't read the layer's current data.", 502);
   }
   if (parsed.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
-    throw new UploadError("Couldn't read the layer's current data from Felt.", 502);
+    throw new UploadError("Couldn't read the layer's current data.", 502);
   }
   return parsed.features;
 }
@@ -323,6 +323,6 @@ export async function appendRecords(
   } catch (err) {
     console.error(`Adding records failed for upload ${upload.id}:`, err);
     const fresh = await db.mapUpload.findUniqueOrThrow({ where: { id: upload.id } });
-    return fail(fresh, err instanceof UploadError ? err.message : "Felt couldn't add the records. Please try again.");
+    return fail(fresh, err instanceof UploadError ? err.message : "Couldn't add the records. Please try again.");
   }
 }

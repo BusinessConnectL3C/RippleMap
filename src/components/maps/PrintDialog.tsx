@@ -205,7 +205,7 @@ export function PrintDialog({ feltMapId, mapTitle, open, onOpenChange, getViewSt
           <DialogTitle className="flex items-center gap-2">
             <Printer className="h-5 w-5" aria-hidden="true" /> Print map
           </DialogTitle>
-          <DialogDescription>Choose a layout and paper size. Felt draws the print; it can take up to a minute.</DialogDescription>
+          <DialogDescription>Choose a layout and paper size. Prints can take up to a minute.</DialogDescription>
         </DialogHeader>
 
         {loadError ? (
@@ -396,7 +396,7 @@ export function PrintDialog({ feltMapId, mapTitle, open, onOpenChange, getViewSt
               </Button>
               {printing && (
                 <span className="text-xs text-text-muted">
-                  Felt is drawing your print. This can take {viewState?.filters.length ? "up to two minutes" : "up to a minute"}.
+                  Building your print… This can take {viewState?.filters.length ? "up to two minutes" : "up to a minute"}.
                 </span>
               )}
             </div>
