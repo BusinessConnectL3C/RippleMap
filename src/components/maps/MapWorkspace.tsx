@@ -1,15 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ComponentProps } from "react";
 import type { FeltController } from "@feltmaps/js-sdk";
 import { ExternalLink, Printer, Table2, Upload } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
+import { IconButton } from "@/components/ui/icon-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FeltMapEmbed } from "@/components/maps/FeltMapEmbed";
 import { AddDataPanel } from "@/components/maps/AddDataPanel";
 import { PrintDialog, type ViewState } from "@/components/maps/PrintDialog";
 import { CANCEL_PICK_EVENT, LOCATION_PICKED_EVENT, PICK_LOCATION_EVENT } from "@/components/maps/AddRecordsForm";
+
+const noopSubscribe = () => () => {};
 
 interface Props {
   feltMapId: string;
@@ -32,6 +35,24 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
   // on screens where it covers the map.
   const [picking, setPicking] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  // ⌘P / Ctrl+P opens the portal's Print dialog (the browser's own print of
+  // this page can't capture the embedded map). Key presses made while the
+  // map itself has focus go to Felt's frame and can't be caught here.
+  const printShortcut = useSyncExternalStore(
+    noopSubscribe,
+    () => (/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘P" : "Ctrl+P"),
+    () => "Ctrl+P"
+  );
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        setPrintOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const controllerRef = useRef<FeltController | null>(null);
   const onController = useCallback((felt: FeltController | null) => {
     controllerRef.current = felt;
@@ -114,19 +135,18 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
                 </a>
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              aria-label="Open the data table"
-              title="Browse, search and sort each layer's records"
+            <IconButton
+              label="Data table: browse, search and sort records"
+              tooltipSide="bottom"
+              icon={<Table2 className="h-4 w-4" />}
               onClick={openTable}
-            >
-              <Table2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Table</span>
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" aria-label="Print" onClick={() => setPrintOpen(true)}>
-              <Printer className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Print</span>
-            </Button>
+            />
+            <IconButton
+              label={`Print (${printShortcut})`}
+              tooltipSide="bottom"
+              icon={<Printer className="h-4 w-4" />}
+              onClick={() => setPrintOpen(true)}
+            />
             {addData && (
               <Button
                 size="sm"
