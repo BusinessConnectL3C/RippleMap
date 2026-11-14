@@ -14,7 +14,7 @@ Statements below reflect those docs as of today. Two limits on that:
 
 Rev 1 corrections:
 - Embed tokens last **12 h**, not 15 min.
-- `user_email` is the **viewer's** email.
+- `user_email` identifies the viewer. The portal sends a **stable pseudonym** (`u_<hmac>@viewers.ripplemap.app`), not the viewer's real email (Felt support confirmation, §9.3).
 - Webhooks **are** signed.
 - A map image/thumbnail **export API exists**.
 - Felt has a native **Image** field type for photos.
@@ -99,7 +99,7 @@ Rev 1 corrections:
   - Valid **12 h** and scoped to **one map**.
   - **Not individually revocable.** Cutoff means stop minting, and the token dies within 12 h. Deleting the map ends access.
   - Viewers are **read-only**. Data export is off unless the map setting "Viewer permissions: Export data" is turned on.
-- **`user_email` must be the viewer's email.** Felt uses it to attribute views, and the viewer needs no Felt account. This means **every portal user's email is sent to Felt** (PII, §10).
+- **`user_email`** attributes views; the viewer needs no Felt account. The portal sends a stable pseudonym per user (`viewerPseudonym` in `src/lib/felt/embed.ts`, HMAC of the user id), so **no portal user's real email is sent to Felt** (§9.3, §10).
 - **Felt's own guidance:** "the token is the security boundary… give each customer their own map." SDK filters (`setLayerFilters`) change what's displayed, **not what's accessible**. Never use them for tenant isolation.
 - **What the SDK gives us:**
   - viewport control and events;
@@ -366,7 +366,7 @@ A grant must only reference a user and a map in the **same org**. Enforce this i
 - **View:** `/maps/f/[feltMapId]`.
   1. The server component checks ownership.
   2. It renders `<FeltMapEmbed>`, a client component using `@feltmaps/js-sdk`.
-  3. The component fetches `{token, expiresAt}` from `POST /api/felt/maps/[id]/embed-token`, which checks ownership, mints the token with the viewer's email, and logs the mint for usage tracking.
+  3. The component fetches `{token, expiresAt}` from `POST /api/felt/maps/[id]/embed-token`, which checks ownership, mints the token with the viewer's pseudonym, and logs the mint for usage tracking.
   - Existing `/maps/[itemId]` ArcGIS routes stay.
 - **Dashboards are native:** a Felt map with layer components (statistic, bar, histogram, filter, time series), which render inside the embed.
   - Built once on the template map, so duplicates carry them.
@@ -461,7 +461,13 @@ Felt can serve images natively. Choose by sensitivity:
    - **Order-form terms (contractual):** written authorization for client-org staff (not BC employees) to hold BC seats as Authorized Users.
    - Reassigning a seat when a client org churns, or when its Field Editor changes.
    - Ideally, role-based seats per org. The standard ToS forbids seat sharing and limits reassignment (§3.1).
-3. **`user_email` alternatives:** May we pass a stable pseudonymous address per portal user (e.g. `u_<id>@viewers.ripplemap.app`) instead of real emails? This minimizes PII sent to Felt.
+3. **`user_email` alternatives — answered by Felt support (email, Nov 2026):**
+   - A stable pseudonymous address works. Felt accepts any well-formed email on a real domain, creates no account for it, and needs nothing confirmed. **Implemented.**
+   - Portal viewers using embed tokens **don't count toward Felt seats or viewer limits**. Each map load still counts as one map view against the workspace pool.
+   - Felt keeps the `user_email` value in internal logs and product analytics when a token is minted.
+   - Seat holders (anyone editing, contributing or commenting) need their own Felt account; embeds are view-only.
+   - The API key's user must have access to every map embedded.
+   - **Status: policy-level.** This is a support email, not a contract term. Get the seat/viewer position (and seats for client-org staff, §9.2) written into the order form or DPA before relying on it commercially.
 4. **Image attribute values:** What do they look like in GeoJSON export and SDK `getFeatures`? Are they signed, expiring or public URLs?
 5. **Roadmap:** Are REST endpoints planned for layer schema/form editing and feature edits?
 6. **Map views:** Is the monthly view allowance pooled across the workspace? What do usage packs cost?
@@ -478,7 +484,7 @@ Felt can serve images natively. Choose by sensitivity:
   - Require the no-training commitment (and sub-processor list) **in the DPA**.
   - Felt AI and the **MCP server are agentic features**: AI Taskforce and Tech Ops review before BC staff or the portal use them. Consider asking Felt whether Felt AI can be disabled for the workspace.
 - **PII:**
-  - Every embed-token mint sends the viewer's email to Felt (§2.3). Disclose this in RippleMap's privacy notice, or minimize per §9.3.
+  - Embed-token mints send a pseudonym, not the viewer's email (§9.3). Felt logs it; it can be linked back to a user only with RippleMap's `AUTH_SECRET`. Rotating `AUTH_SECRET` changes every pseudonym (Felt's per-viewer counts restart).
   - Field photos may capture people; treat survey layers as Confidential by default.
 - **Credentials:**
   - `FELT_API_TOKEN` is **Restricted**, server-side only, and has no expiry. Set a rotation schedule.
