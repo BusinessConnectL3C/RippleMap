@@ -149,12 +149,12 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
           return;
         }
         if (status === "FAILED") {
-          setPhase({ step: "error", message: data.upload.error ?? "Felt couldn't process that data." });
+          setPhase({ step: "error", message: data.upload.error ?? "Couldn't process that data." });
           router.refresh();
           return;
         }
         if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
-          setPhase({ step: "error", message: "This is taking a while. The map will update when Felt finishes." });
+          setPhase({ step: "error", message: "This is taking a while. The map will update when it finishes." });
           return;
         }
         poll(uploadId, name, startedAt, replaced, records);
@@ -473,7 +473,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                             <p className="break-all rounded bg-surface-page px-2 py-1.5 text-xs text-text-secondary">
                               {selected.sourceUrl}
                             </p>
-                            <p className="text-xs text-text-muted">Felt will fetch this link again and use what&apos;s there now.</p>
+                            <p className="text-xs text-text-muted">The link will be read again, using what&apos;s there now.</p>
                           </div>
                         )}
                       </div>
@@ -501,7 +501,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                           />
                           <span>
                             I understand this <strong>replaces all the data</strong> in <strong>{selected.layerName}</strong>,
-                            including any changes made to it on the map. Felt keeps no earlier version. Styling and charts
+                            including any changes made to it on the map. No earlier version is kept. Styling and charts
                             are kept.
                           </span>
                         </label>
@@ -601,7 +601,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                         : "Add to map"}
                 </Button>
                 {phase.step === "importing" && (
-                  <span className="text-xs text-text-muted">Felt is processing the data. Large files can take a few minutes.</span>
+                  <span className="text-xs text-text-muted">Processing… Large files can take a few minutes.</span>
                 )}
               </div>
                 </>

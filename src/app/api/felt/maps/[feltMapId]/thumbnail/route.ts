@@ -69,7 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ fel
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(`Thumbnail from view failed for FeltMap ${access.map.id}:`, err);
-    const message = err instanceof FeltApiError ? "Felt couldn't render that view. Try zooming out a little." : "Thumbnail update failed";
+    const message = err instanceof FeltApiError ? "Couldn't render that view. Try zooming out a little." : "Thumbnail update failed";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

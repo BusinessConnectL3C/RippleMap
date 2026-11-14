@@ -406,7 +406,7 @@ async function exportFilteredCopy(
       copyLayers = await listLayers(copy.id);
       const ready = copyLayers.length >= originalLayers.length && copyLayers.every((l) => !l.status || l.status === "completed");
       if (ready) break;
-      if (Date.now() > deadline) throw new PrintError("Felt took too long to prepare the filtered print. Please try again.", 504);
+      if (Date.now() > deadline) throw new PrintError("The filtered print took too long to prepare. Please try again.", 504);
       await sleep(2000);
     }
 

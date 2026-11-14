@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ fel
     return NextResponse.json({ upload: serializeUpload(upload) }, { status: 201 });
   } catch (err) {
     if (err instanceof UploadError) return NextResponse.json({ error: err.message }, { status: err.status });
-    if (err instanceof FeltApiError) return NextResponse.json({ error: "Couldn't reach Felt. Please try again." }, { status: 502 });
+    if (err instanceof FeltApiError) return NextResponse.json({ error: "Couldn't reach the map service. Please try again." }, { status: 502 });
     throw err;
   }
 }

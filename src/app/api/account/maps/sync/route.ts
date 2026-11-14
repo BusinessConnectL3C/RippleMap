@@ -34,7 +34,7 @@ export async function POST() {
     if (err instanceof SyncError) return NextResponse.json({ error: err.message }, { status: 409 });
     if (err instanceof FeltApiError) {
       console.error(`Felt sync failed for org ${viewer.orgId}:`, err);
-      return NextResponse.json({ error: "Couldn't reach Felt. Please try again." }, { status: 502 });
+      return NextResponse.json({ error: "Couldn't check for new maps. Please try again." }, { status: 502 });
     }
     throw err;
   }

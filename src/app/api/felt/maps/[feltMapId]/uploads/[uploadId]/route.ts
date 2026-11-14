@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ fel
     return NextResponse.json({ upload: serializeUpload(upload) }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof UploadError) return NextResponse.json({ error: err.message }, { status: err.status });
-    if (err instanceof FeltApiError) return NextResponse.json({ error: "Couldn't reach Felt" }, { status: 502 });
+    if (err instanceof FeltApiError) return NextResponse.json({ error: "Couldn't reach the map service" }, { status: 502 });
     throw err;
   }
 }
