@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
 import type { FeltController } from "@feltmaps/js-sdk";
-import { ExternalLink, Printer, Upload } from "lucide-react";
+import { ExternalLink, Printer, Table2, Upload } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,19 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
   const onController = useCallback((felt: FeltController | null) => {
     controllerRef.current = felt;
   }, []);
+  /** Felt's own table pane (view-only), opened on the first visible layer that has records. */
+  const openTable = useCallback(async () => {
+    const felt = controllerRef.current;
+    if (!felt) return;
+    try {
+      const layers = (await felt.getLayers()).filter((l): l is NonNullable<typeof l> => !!l);
+      const first = layers.find((l) => l.visible && "geometryType" in l && l.geometryType !== "Raster") ?? layers[0];
+      await felt.showLayerDataTable(first ? { layerId: first.id } : undefined);
+    } catch {
+      await felt.showLayerDataTable().catch(() => {});
+    }
+  }, []);
+
   /** What the viewer sees now: area, layers turned on, and whether legend/viewer filters are applied. */
   const getViewState = useCallback(async (): Promise<ViewState | null> => {
     const felt = controllerRef.current;
@@ -101,6 +114,16 @@ export function MapWorkspace({ feltMapId, title, canSetThumbnail, feltUrl, addDa
                 </a>
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              aria-label="Open the data table"
+              title="Browse, search and sort each layer's records"
+              onClick={openTable}
+            >
+              <Table2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Table</span>
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5" aria-label="Print" onClick={() => setPrintOpen(true)}>
               <Printer className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Print</span>
             </Button>

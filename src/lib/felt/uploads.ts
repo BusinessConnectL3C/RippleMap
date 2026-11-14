@@ -88,8 +88,8 @@ function countedUploads(mapId: string) {
         { status: { in: ["IMPORTING", "COMPLETED"] } },
         { status: "PENDING_UPLOAD", createdAt: { gt: new Date(Date.now() - ABANDON_AFTER_MS) } },
       ],
-      // Records typed in the portal aren't uploads; they have their own hourly cap.
-      mode: { not: "APPEND" },
+      // Records typed or edited in the portal aren't uploads; they have their own hourly cap.
+      mode: { notIn: ["APPEND", "EDIT"] },
     },
   });
 }

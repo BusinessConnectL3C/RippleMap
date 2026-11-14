@@ -233,6 +233,9 @@ enum MapUploadMode {
   /// Records typed in the portal, added to the layer created by
   /// `replacesUploadId` (export current data, add rows, refresh).
   APPEND
+  /// Records edited, deleted or given new columns in the portal's data editor
+  /// (layer created by `replacesUploadId`; export, change, refresh).
+  EDIT
 }
 
 enum MapUploadKind {
