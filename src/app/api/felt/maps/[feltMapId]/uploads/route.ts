@@ -12,6 +12,7 @@ import {
   UploadError,
 } from "@/lib/felt/uploads";
 import { appendRecords, listAppendableLayers } from "@/lib/felt/records";
+import { listEditableLayers, loadLayerForEditing, saveLayerEdits } from "@/lib/felt/data-editor";
 
 // Adding records exports the layer from Felt first, which can take ~30 s.
 export const maxDuration = 60;
@@ -31,6 +32,32 @@ const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("URL"), url: z.string().min(1).max(2000), layerName, confirmed: z.boolean() }),
   // Re-fetch a layer that came from a link.
   z.object({ kind: z.literal("REFRESH_LINK"), replacesUploadId: z.string().min(1), confirmed: z.boolean() }),
+  // Edit data: changed cells, deleted records and new columns on a portal CSV/GeoJSON layer.
+  z.object({
+    kind: z.literal("EDIT"),
+    originUploadId: z.string().min(1),
+    confirmed: z.boolean(),
+    snapshot: z.string().regex(/^[a-f0-9]{64}$/),
+    cells: z
+      .array(
+        z.object({
+          row: z.number().int().min(0).max(100_000),
+          column: z.string().min(1).max(200),
+          value: z.union([z.string().max(2000), z.boolean(), z.null()]),
+        })
+      )
+      .max(20_000),
+    deleteRows: z.array(z.number().int().min(0).max(100_000)).max(5000),
+    addColumns: z
+      .array(
+        z.object({
+          name: z.string().min(1).max(63),
+          type: z.enum(["TEXT", "REAL", "DATE", "BOOLEAN"]),
+          defaultValue: z.union([z.string().max(2000), z.boolean(), z.null()]).optional(),
+        })
+      )
+      .max(20),
+  }),
   // Records typed in the portal, added to a layer from an earlier CSV/GeoJSON upload.
   z.object({
     kind: z.literal("RECORDS"),
@@ -67,6 +94,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ fel
       const { uploadId, putUrl } = await startFileUpload(viewer, feltMapId, parsed.data);
       return NextResponse.json({ uploadId, putUrl }, { status: 201 });
     }
+    if (parsed.data.kind === "EDIT") {
+      const upload = await saveLayerEdits(viewer, feltMapId, parsed.data.originUploadId, parsed.data);
+      return NextResponse.json({ upload: serializeUpload(upload) }, { status: 201 });
+    }
     if (parsed.data.kind === "RECORDS") {
       const upload = await appendRecords(viewer, feltMapId, parsed.data);
       return NextResponse.json({ upload: serializeUpload(upload) }, { status: 201 });
@@ -94,7 +125,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ felt
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { feltMapId } = await params;
   try {
-    if (req.nextUrl.searchParams.get("for") === "records") {
+    const purpose = req.nextUrl.searchParams.get("for");
+    if (purpose === "edit") {
+      const layerId = req.nextUrl.searchParams.get("layer");
+      if (layerId) return NextResponse.json(await loadLayerForEditing(viewer, feltMapId, layerId), { headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json({ layers: await listEditableLayers(viewer, feltMapId) }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (purpose === "records") {
       const layers = await listAppendableLayers(viewer, feltMapId);
       return NextResponse.json({ layers }, { headers: { "Cache-Control": "no-store" } });
     }
@@ -102,6 +139,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ felt
     return NextResponse.json({ layers, legacy }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof UploadError) return NextResponse.json({ error: err.message }, { status: err.status });
+    if (err instanceof FeltApiError) return NextResponse.json({ error: "Couldn't reach the map service. Please try again." }, { status: 502 });
     throw err;
   }
 }

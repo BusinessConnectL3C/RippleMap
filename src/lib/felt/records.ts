@@ -40,8 +40,8 @@ const MAX_RECORDS_PER_SAVE = 50;
 const MAX_SAVES_PER_HOUR = 60;
 const EXPORT_TIMEOUT_MS = 35_000;
 
-const LAT_COLUMN = /^(lat|latitude|y|point_y)$/i;
-const LON_COLUMN = /^(lon|lng|long|longitude|x|point_x)$/i;
+export const LAT_COLUMN = /^(lat|latitude|y|point_y)$/i;
+export const LON_COLUMN = /^(lon|lng|long|longitude|x|point_x)$/i;
 
 export type FieldType = "INTEGER" | "REAL" | "TEXT" | "BOOLEAN" | "DATE" | "DATETIME";
 
@@ -64,7 +64,7 @@ export interface NewRecord {
   values: Record<string, string | boolean | null>;
 }
 
-function toFieldType(type: string | undefined): FieldType | null {
+export function toFieldType(type: string | undefined): FieldType | null {
   switch (type) {
     case "INTEGER":
     case "REAL":
@@ -80,7 +80,7 @@ function toFieldType(type: string | undefined): FieldType | null {
   }
 }
 
-function getLayer(feltMapId: string, feltLayerId: string) {
+export function getLayer(feltMapId: string, feltLayerId: string) {
   return feltFetch<FeltLayerStatus>(`/maps/${encodeURIComponent(feltMapId)}/layers/${encodeURIComponent(feltLayerId)}`);
 }
 
@@ -121,14 +121,14 @@ export async function listAppendableLayers(viewer: Viewer, feltMapId: string): P
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-interface GeoJsonFeature {
+export interface GeoJsonFeature {
   type: "Feature";
   geometry: { type: string; coordinates: unknown } | null;
   properties: Record<string, unknown> | null;
 }
 
 /** Export the layer's current data from Felt as GeoJSON features. */
-async function exportLayer(feltMapId: string, feltLayerId: string): Promise<GeoJsonFeature[]> {
+export async function exportLayer(feltMapId: string, feltLayerId: string): Promise<GeoJsonFeature[]> {
   const base = `/maps/${encodeURIComponent(feltMapId)}/layers/${encodeURIComponent(feltLayerId)}`;
   const started = await feltFetch<{ export_request_id: string }>(`${base}/custom_export`, {
     method: "POST",
@@ -179,7 +179,7 @@ async function exportLayer(feltMapId: string, feltLayerId: string): Promise<GeoJ
   return parsed.features;
 }
 
-function typedValue(value: string | boolean | null | undefined, type: FieldType): unknown {
+export function typedValue(value: string | boolean | null | undefined, type: FieldType): unknown {
   if (value === null || value === undefined || value === "") return null;
   if (type === "BOOLEAN") return value === true || value === "true";
   const text = String(value).trim();
@@ -300,29 +300,43 @@ export async function appendRecords(
       });
     }
 
-    const body =
-      ext === "csv"
-        ? toCsv(features, fields.map((f) => f.name))
-        : JSON.stringify({ type: "FeatureCollection", features });
-    const bytes = new TextEncoder().encode(body);
-    const s3Key = `${UPLOAD_PREFIX}/${map.orgId}/${upload.id}/${safeFileName(origin.fileName ?? `data.${ext}`)}`;
-    await putFile(s3Key, bytes, ext === "csv" ? "text/csv" : "application/geo+json", SYSTEM_BUCKET);
-    await db.mapUpload.update({ where: { id: upload.id }, data: { s3Key, sizeBytes: BigInt(bytes.length) } });
-
-    // Point the layer's permanent source at the new file and ask Felt to re-fetch it.
-    await db.mapUpload.update({
-      where: { id: origin.id },
-      data: { sourceKey: s3Key, sourceArmedUntil: new Date(Date.now() + SOURCE_ARM_MS) },
-    });
-    const requestedAt = new Date();
-    await requestLayerRefresh(feltMapId, origin.feltLayerId!);
-    return db.mapUpload.update({
-      where: { id: upload.id },
-      data: { status: "IMPORTING", feltLayerId: origin.feltLayerId, refreshRequestedAt: requestedAt },
-    });
+    return await writeLayerData(feltMapId, map, origin, upload, features, fields.map((f) => f.name), ext);
   } catch (err) {
     console.error(`Adding records failed for upload ${upload.id}:`, err);
     const fresh = await db.mapUpload.findUniqueOrThrow({ where: { id: upload.id } });
     return fail(fresh, err instanceof UploadError ? err.message : "Couldn't add the records. Please try again.");
   }
+}
+
+/**
+ * Write a layer's full data back in its original format and have Felt reload
+ * it through the layer's permanent source address. Returns the upload row,
+ * IMPORTING while Felt refreshes. Shared by Add records and Edit data.
+ */
+export async function writeLayerData(
+  feltMapId: string,
+  map: { id: string; orgId: string },
+  origin: MapUpload,
+  upload: MapUpload,
+  features: GeoJsonFeature[],
+  columnOrder: string[],
+  ext: string
+): Promise<MapUpload> {
+  const body = ext === "csv" ? toCsv(features, columnOrder) : JSON.stringify({ type: "FeatureCollection", features });
+  const bytes = new TextEncoder().encode(body);
+  const s3Key = `${UPLOAD_PREFIX}/${map.orgId}/${upload.id}/${safeFileName(origin.fileName ?? `data.${ext}`)}`;
+  await putFile(s3Key, bytes, ext === "csv" ? "text/csv" : "application/geo+json", SYSTEM_BUCKET);
+  await db.mapUpload.update({ where: { id: upload.id }, data: { s3Key, sizeBytes: BigInt(bytes.length) } });
+
+  // Point the layer's permanent source at the new file and ask Felt to re-fetch it.
+  await db.mapUpload.update({
+    where: { id: origin.id },
+    data: { sourceKey: s3Key, sourceArmedUntil: new Date(Date.now() + SOURCE_ARM_MS) },
+  });
+  const requestedAt = new Date();
+  await requestLayerRefresh(feltMapId, origin.feltLayerId!);
+  return db.mapUpload.update({
+    where: { id: upload.id },
+    data: { status: "IMPORTING", feltLayerId: origin.feltLayerId, refreshRequestedAt: requestedAt },
+  });
 }

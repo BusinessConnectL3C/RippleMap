@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw, Info, PenLine } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Upload, Link2, X, RefreshCw, Info, PenLine, Table2 } from "lucide-react";
+import { EditLayerPicker } from "@/components/maps/EditLayerPicker";
 import { AddRecordsForm } from "@/components/maps/AddRecordsForm";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface UploadRow {
   id: string;
   kind: "FILE" | "URL";
-  mode?: "NEW" | "REPLACE" | "APPEND";
+  mode?: "NEW" | "REPLACE" | "APPEND" | "EDIT";
   layerName: string;
   status: "PENDING_UPLOAD" | "IMPORTING" | "COMPLETED" | "FAILED";
   error: string | null;
@@ -41,7 +42,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Mode = "file" | "url" | "replace" | "records";
+type Mode = "file" | "url" | "replace" | "records" | "edit";
 
 type Phase =
   | { step: "idle" }
@@ -332,7 +333,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
 
       {(
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {atLimit && phase.step === "idle" && mode !== "records" ? (
+          {atLimit && phase.step === "idle" && mode !== "records" && mode !== "edit" ? (
             <p className="text-sm text-text-secondary">
               This map has used all {maxUploadsPerMap} uploads on the {planLabel} plan. Contact BC through Support to
               upgrade. You can still{" "}
@@ -372,9 +373,12 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                 {tab("url", "Paste a link", Link2)}
                 {tab("replace", "Replace data", RefreshCw)}
                 {tab("records", "Add records", PenLine)}
+                {tab("edit", "Edit data", Table2)}
               </div>
 
-              {mode === "records" ? (
+              {mode === "edit" ? (
+                <EditLayerPicker base={base} />
+              ) : mode === "records" ? (
                 <>
                   <AddRecordsForm
                     base={base}
@@ -561,7 +565,7 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                 </div>
               )}
 
-              {mode !== "records" && (mode !== "replace" || (layers !== null && layers.length > 0)) && (
+              {mode !== "records" && mode !== "edit" && (mode !== "replace" || (layers !== null && layers.length > 0)) && (
                 <>
               <label className="flex items-start gap-2 text-sm text-text-secondary">
                 <input
@@ -631,6 +635,8 @@ export function AddDataPanel({ feltMapId, planLabel, maxFileBytes, maxUploadsPer
                           ? "Replaced"
                           : u.mode === "APPEND"
                             ? "Records added"
+                            : u.mode === "EDIT"
+                              ? "Data edited"
                             : "Added"
                         : u.status === "FAILED"
                           ? u.error ?? "Failed"
